@@ -1,0 +1,115 @@
+<%- include("partials/header") %>
+
+<section class="restaurant-page">
+  <div class="restaurant-hero">
+    <% if (restaurant.banner_url) { %>
+      <div class="restaurant-banner-shell">
+        <img
+          src="<%= restaurant.banner_url %>"
+          alt="<%= restaurant.name %> banner"
+          class="restaurant-banner-image"
+          loading="lazy"
+        />
+      </div>
+    <% } %>
+
+    <div class="restaurant-hero-copy">
+      <span class="feature-eyebrow">Restaurant spotlight</span>
+      <h1><%= restaurant.name %></h1>
+      <p class="restaurant-hero-description">
+        <%= restaurant.description || "A polished delivery experience starts with a menu people can navigate quickly and confidently." %>
+      </p>
+
+      <div class="restaurant-hero-metrics">
+        <div class="restaurant-metric">
+          <strong><%= featuredItems.length %></strong>
+          <span>featured dishes</span>
+        </div>
+        <div class="restaurant-metric">
+          <strong>Fast</strong>
+          <span>delivery-friendly menu</span>
+        </div>
+        <div class="restaurant-metric">
+          <strong>Live</strong>
+          <span>cart and checkout flow</span>
+        </div>
+      </div>
+
+      <div class="restaurant-hero-actions">
+        <a href="/restaurant/<%= restaurant.id %>/menu" class="btn restaurant-primary-cta">
+          Browse Full Menu
+        </a>
+        <a href="/cart" class="btn restaurant-secondary-cta">
+          Open Cart
+        </a>
+      </div>
+    </div>
+
+    <aside class="restaurant-hero-panel">
+      <div class="restaurant-hero-brand">
+        <div class="restaurant-logo restaurant-hero-logo">
+          <% if (restaurant.logo_url) { %>
+            <img src="<%= restaurant.logo_url %>" alt="<%= restaurant.name %> logo" loading="lazy">
+          <% } else { %>
+            <span class="home-logo-fallback"><%= restaurant.name.charAt(0).toUpperCase() %></span>
+          <% } %>
+        </div>
+
+        <div>
+          <span class="showcase-label">Open now</span>
+          <h2><%= restaurant.name %></h2>
+        </div>
+      </div>
+
+      <div class="restaurant-hero-preview">
+        <% featuredItems.slice(0, 3).forEach(item => { %>
+          <div class="restaurant-preview-row">
+            <span><%= item.name %></span>
+            <strong>$<%= Number(item.price).toFixed(2) %></strong>
+          </div>
+        <% }) %>
+      </div>
+    </aside>
+  </div>
+
+  <section class="restaurant-preview-section">
+    <div class="home-section-heading restaurant-section-heading">
+      <div>
+        <span class="feature-eyebrow">Featured items</span>
+        <h2>Quick picks before you open the full menu.</h2>
+      </div>
+      <a href="/restaurant/<%= restaurant.id %>/menu" class="btn home-section-link">
+        View Full Menu
+      </a>
+    </div>
+
+    <div class="restaurant-featured-grid">
+      <% featuredItems.forEach(item => { %>
+        <article class="restaurant-featured-card">
+          <% if (item.image_url) { %>
+            <img
+              src="<%= item.image_url %>"
+              alt="<%= item.name %>"
+              class="restaurant-featured-image"
+              loading="lazy"
+            />
+          <% } %>
+
+          <div class="restaurant-featured-content">
+            <span class="menu-category"><%= item.category || "Popular" %></span>
+            <h3><%= item.name %></h3>
+            <p><%= item.description || "Made for quick, confident ordering." %></p>
+            <div class="restaurant-featured-footer">
+              <strong>$<%= Number(item.price).toFixed(2) %></strong>
+              <a href="/restaurant/<%= restaurant.id %>/menu" class="restaurant-card-link">
+                Order now
+              </a>
+            </div>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+</section>
+
+<%- include("partials/footer") %>

@@ -1,0 +1,102 @@
+<%- include("../partials/header") %>
+
+<div class="container">
+  <h1>Add Menu Item</h1>
+
+  <form action="/admin/menu" method="POST" enctype="multipart/form-data" class="admin-form">
+
+    <label for="name">Name</label>
+    <input 
+      type="text" 
+      id="name"
+      name="name" 
+      placeholder="e.g. Grilled Chicken"
+      required 
+    />
+
+    <label for="description">Description</label>
+    <textarea 
+      id="description"
+      name="description" 
+      rows="4"
+      placeholder="Short description of the dish">
+    </textarea>
+
+    <label for="price">Price</label>
+    <input 
+      type="number" 
+      id="price"
+      step="0.01" 
+      name="price" 
+      placeholder="0.00"
+      required 
+    />
+
+    <label for="category">Category</label>
+    <select id="category" name="category" required>
+      <option value="">Select category</option>
+      <option value="Starter">Starter</option>
+      <option value="Main">Main</option>
+      <option value="Dessert">Dessert</option>
+      <option value="Drinks">Drinks</option>
+    </select>
+
+    <label for="image">Upload Image</label>
+    <input 
+      type="file" 
+      id="image"
+      name="image" 
+      accept="image/*"
+    />
+
+    <!-- Preview for newly selected image -->
+    <picture id="imagePreviewContainer" style="display:none; margin-top:10px; max-width:200px; border-radius:6px;">
+      <source id="webpPreview" type="image/webp">
+      <img id="imagePreview" alt="Image preview" style="max-width:100%; border-radius:6px;">
+    </picture>
+
+    <button type="submit">Add Item</button>
+  </form>
+</div>
+
+<script>
+  const fileInput = document.getElementById("image");
+  const imagePreview = document.getElementById("imagePreview");
+  const webpPreview = document.getElementById("webpPreview");
+  const previewContainer = document.getElementById("imagePreviewContainer");
+
+  fileInput.addEventListener("change", function () {
+    const file = this.files[0];
+
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        // Show the original image
+        imagePreview.src = e.target.result;
+
+        // Also create a WebP blob for preview
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(function(blob) {
+            webpPreview.srcset = URL.createObjectURL(blob);
+          }, "image/webp", 0.8);
+        };
+
+        previewContainer.style.display = "block";
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      previewContainer.style.display = "none";
+    }
+  });
+</script>
+
+<%- include("../partials/footer") %>

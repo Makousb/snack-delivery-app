@@ -1,0 +1,119 @@
+<%- include("partials/header") %>
+
+<div class="container">
+  <h1>Incoming Orders</h1>
+
+  <% if (orders.length === 0) { %>
+    <p id="no-orders">No orders yet.</p>
+  <% } %>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="orders-table-body">
+      <% orders.forEach(order => { %>
+        <tr id="order-<%= order.id %>">
+          <td><%= order.id %></td>
+          <td>$<%= Number(order.total).toFixed(2) %></td>
+          <td class="status"><%= order.status %></td>
+          <td><%= order.created_at.toLocaleString() %></td>
+          <td>
+            <form method="POST" action="/admin/order/<%= order.id %>/status">
+              <select name="status">
+                <option <%= order.status === "Pending Payment" ? "selected" : "" %>>Pending Payment</option>
+                <option <%= order.status === "Paid" ? "selected" : "" %>>Paid</option>
+                <option <%= order.status === "Cash Pending" ? "selected" : "" %>>Cash Pending</option>
+                <option <%= order.status === "Preparing" ? "selected" : "" %>>Preparing</option>
+                <option <%= order.status === "Driver Assigned" ? "selected" : "" %>>Driver Assigned</option>
+                <option <%= order.status === "Out for Delivery" ? "selected" : "" %>>Out for Delivery</option>
+                <option <%= order.status === "Completed" ? "selected" : "" %>>Completed</option>
+              </select>
+              <button type="submit">Update</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<!-- 🎨 STATUS COLORS -->
+<style>
+  .status {
+    font-weight: bold;
+  }
+  .status[data-status="Pending Payment"] { color: orange; }
+  .status[data-status="Paid"] { color: green; }
+  .status[data-status="Cash Pending"] { color: brown; }
+  .status[data-status="Preparing"] { color: blue; }
+  .status[data-status="Completed"] { color: gray; }
+</style>
+
+<!-- 🔄 REAL-TIME SOCKET.IO -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const restaurantId = "<%= restaurantId %>";
+
+  // Join restaurant room
+  socket.emit("joinRestaurant", restaurantId);
+
+  // Apply colors to existing rows
+  document.querySelectorAll(".status").forEach(el => {
+    el.setAttribute("data-status", el.innerText);
+  });
+
+  // Listen for new orders
+  socket.on("newOrder", (order) => {
+    const tableBody = document.getElementById("orders-table-body");
+    const noOrdersText = document.getElementById("no-orders");
+
+    if (noOrdersText) {
+      noOrdersText.remove();
+    }
+
+    const row = `
+      <tr id="order-${order.orderId}">
+        <td>${order.orderId}</td>
+        <td>$${Number(order.total).toFixed(2)}</td>
+        <td class="status" data-status="${order.status}">${order.status}</td>
+        <td>Just now</td>
+        <td>
+          <form method="POST" action="/admin/order/${order.orderId}/status">
+            <select name="status">
+              <option ${order.status === "Pending Payment" ? "selected" : ""}>Pending Payment</option>
+              <option ${order.status === "Paid" ? "selected" : ""}>Paid</option>
+              <option ${order.status === "Cash Pending" ? "selected" : ""}>Cash Pending</option>
+              <option ${order.status === "Preparing" ? "selected" : ""}>Preparing</option>
+              <option ${order.status === "Driver Assigned" ? "selected" : ""}>Driver Assigned</option>
+              <option ${order.status === "Out for Delivery" ? "selected" : ""}>Out for Delivery</option>
+              <option ${order.status === "Completed" ? "selected" : ""}>Completed</option>
+            </select>
+            <button type="submit">Update</button>
+          </form>
+        </td>
+      </tr>
+    `;
+
+    tableBody.insertAdjacentHTML("afterbegin", row);
+  });
+
+  // 🔄 Listen for status updates (LIVE changes)
+  socket.on("orderUpdated", (data) => {
+    const row = document.getElementById(`order-${data.orderId}`);
+    if (row) {
+      const statusCell = row.querySelector(".status");
+      statusCell.innerText = data.status;
+      statusCell.setAttribute("data-status", data.status);
+    }
+  });
+</script>
+
+<%- include("partials/footer") %>

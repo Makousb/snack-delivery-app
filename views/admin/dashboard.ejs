@@ -1,0 +1,424 @@
+<%- include("../partials/header") %>
+
+<%
+  const safeDashboard = dashboard || {};
+  const safeOrders = orders || [];
+  const safeMenuItems = menuItems || [];
+  const recentOrders = safeOrders.slice(0, 6);
+  const canManage = typeof currentUser !== "undefined" && currentUser;
+%>
+
+<section class="ops-dashboard">
+  <div class="ops-hero">
+    <div class="ops-hero-copy">
+      <span class="feature-eyebrow">Operations overview</span>
+      <h1>Delivery command center</h1>
+      <p>
+        Monitor inventory, order flow, driver movement, service quality, and revenue from one dashboard built for busy restaurant teams.
+      </p>
+
+      <div class="ops-hero-actions">
+        <% if (canManage) { %>
+          <a href="/admin/menu/new" class="btn restaurant-primary-cta">Add Menu Item</a>
+          <a href="/admin/restaurant/<%= restaurantId %>/orders" class="btn restaurant-secondary-cta">Open Orders</a>
+        <% } else { %>
+          <a href="/auth/login" class="btn restaurant-primary-cta">Login to Manage</a>
+          <span class="ops-chip">Preview mode</span>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="ops-hero-summary">
+      <div class="ops-summary-tile">
+        <span class="ops-summary-label">Active orders</span>
+        <strong><%= safeDashboard.activeOrdersCount || 0 %></strong>
+      </div>
+      <div class="ops-summary-tile">
+        <span class="ops-summary-label">Today's revenue</span>
+        <strong>$<%= Number(safeDashboard.revenueToday || 0).toFixed(2) %></strong>
+      </div>
+      <div class="ops-summary-tile">
+        <span class="ops-summary-label">On-time rate</span>
+        <strong><%= safeDashboard.deliveryRate || 0 %>%</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="ops-kpi-grid">
+    <article class="ops-kpi-card">
+      <span class="ops-kpi-label">Inventory</span>
+      <strong><%= safeDashboard.totalItems || safeMenuItems.length %></strong>
+      <p><%= safeDashboard.availableItems || 0 %> available, <%= safeDashboard.lowStockItems || 0 %> need attention</p>
+    </article>
+
+    <article class="ops-kpi-card">
+      <span class="ops-kpi-label">Order accuracy</span>
+      <strong><%= safeDashboard.accuracyRate || 0 %>%</strong>
+      <p>Quality score based on fulfillment consistency</p>
+    </article>
+
+    <article class="ops-kpi-card">
+      <span class="ops-kpi-label">CSAT</span>
+      <strong><%= safeDashboard.csat || "4.6" %>/5</strong>
+      <p>Customer satisfaction score across recent orders</p>
+    </article>
+
+    <article class="ops-kpi-card">
+      <span class="ops-kpi-label">Complaint rate</span>
+      <strong><%= safeDashboard.complaintRate || "2.4" %>%</strong>
+      <p>Share of orders that required service recovery</p>
+    </article>
+
+    <article class="ops-kpi-card">
+      <span class="ops-kpi-label">Avg. service time</span>
+      <strong><%= safeDashboard.averageServiceTime || "22 min" %></strong>
+      <p>Time from confirmed order to handoff</p>
+    </article>
+
+    <article class="ops-kpi-card">
+      <span class="ops-kpi-label">Weekly revenue</span>
+      <strong>$<%= Number(safeDashboard.revenueWeek || 0).toFixed(2) %></strong>
+      <p>Average order value $<%= Number(safeDashboard.averageOrderValue || 0).toFixed(2) %></p>
+    </article>
+  </div>
+
+  <div class="ops-main-grid">
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Inventory</span>
+          <h2>Inventory and order health</h2>
+        </div>
+        <span class="ops-chip"><%= safeDashboard.inventoryHealth || 0 %>% in stock</span>
+      </div>
+
+      <div class="ops-health-grid">
+        <div class="ops-health-card">
+          <span>Available items</span>
+          <strong><%= safeDashboard.availableItems || 0 %></strong>
+        </div>
+        <div class="ops-health-card">
+          <span>Sold out</span>
+          <strong><%= safeDashboard.soldOutItems || 0 %></strong>
+        </div>
+        <div class="ops-health-card">
+          <span>Seasonal</span>
+          <strong><%= safeDashboard.seasonalItems || 0 %></strong>
+        </div>
+        <div class="ops-health-card">
+          <span>Average menu price</span>
+          <strong>$<%= Number(safeDashboard.averagePrice || 0).toFixed(2) %></strong>
+        </div>
+      </div>
+
+      <div class="ops-status-breakdown">
+        <div class="ops-status-row">
+          <span>Pending payment</span>
+          <div class="ops-status-bar"><span style="width:<%= Math.max(12, (safeDashboard.orderStatusBreakdown?.pendingPayment || 0) * 18) %>px"></span></div>
+          <strong><%= safeDashboard.orderStatusBreakdown?.pendingPayment || 0 %></strong>
+        </div>
+        <div class="ops-status-row">
+          <span>Cash pending</span>
+          <div class="ops-status-bar"><span style="width:<%= Math.max(12, (safeDashboard.orderStatusBreakdown?.cashPending || 0) * 18) %>px"></span></div>
+          <strong><%= safeDashboard.orderStatusBreakdown?.cashPending || 0 %></strong>
+        </div>
+        <div class="ops-status-row">
+          <span>Paid</span>
+          <div class="ops-status-bar"><span style="width:<%= Math.max(12, (safeDashboard.orderStatusBreakdown?.paid || 0) * 18) %>px"></span></div>
+          <strong><%= safeDashboard.orderStatusBreakdown?.paid || 0 %></strong>
+        </div>
+        <div class="ops-status-row">
+          <span>Preparing</span>
+          <div class="ops-status-bar"><span style="width:<%= Math.max(12, (safeDashboard.orderStatusBreakdown?.preparing || 0) * 18) %>px"></span></div>
+          <strong><%= safeDashboard.orderStatusBreakdown?.preparing || 0 %></strong>
+        </div>
+        <div class="ops-status-row">
+          <span>Completed</span>
+          <div class="ops-status-bar"><span style="width:<%= Math.max(12, (safeDashboard.orderStatusBreakdown?.completed || 0) * 18) %>px"></span></div>
+          <strong><%= safeDashboard.orderStatusBreakdown?.completed || 0 %></strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Dispatch</span>
+          <h2>Driver status and locations</h2>
+        </div>
+        <span class="ops-chip"><%= (safeDashboard.driverStatuses || []).length %> drivers live</span>
+      </div>
+
+      <div class="ops-map-card">
+        <div class="ops-map-grid"></div>
+        <span class="ops-map-pin ops-map-pin-a">Central Hub</span>
+        <span class="ops-map-pin ops-map-pin-b">Westside</span>
+        <span class="ops-map-pin ops-map-pin-c">North Hub</span>
+      </div>
+
+      <div class="ops-driver-list">
+        <% (safeDashboard.driverStatuses || []).forEach((driver) => { %>
+          <div class="ops-driver-row">
+            <div>
+              <strong><%= driver.name %></strong>
+              <span><%= driver.zone %></span>
+            </div>
+            <div class="ops-driver-meta">
+              <span class="ops-driver-state"><%= driver.status %></span>
+              <strong><%= driver.orders %> jobs</strong>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Performance</span>
+          <h2>Service quality scorecard</h2>
+        </div>
+      </div>
+
+      <div class="ops-score-list">
+        <div class="ops-score-row">
+          <span>On-time delivery rate</span>
+          <strong><%= safeDashboard.deliveryRate || 0 %>%</strong>
+        </div>
+        <div class="ops-score-row">
+          <span>Order accuracy rate</span>
+          <strong><%= safeDashboard.accuracyRate || 0 %>%</strong>
+        </div>
+        <div class="ops-score-row">
+          <span>Customer satisfaction score (CSAT)</span>
+          <strong><%= safeDashboard.csat || "4.6" %>/5</strong>
+        </div>
+        <div class="ops-score-row">
+          <span>Customer complaint rate</span>
+          <strong><%= safeDashboard.complaintRate || "2.4" %>%</strong>
+        </div>
+        <div class="ops-score-row">
+          <span>Average service time</span>
+          <strong><%= safeDashboard.averageServiceTime || "22 min" %></strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Orders</span>
+          <h2>Recent active orders map</h2>
+        </div>
+        <span class="ops-chip"><%= safeDashboard.totalOrders || 0 %> total orders</span>
+      </div>
+
+      <% if (recentOrders.length === 0) { %>
+        <p class="ops-empty">No orders yet. As new checkouts arrive, they will appear here for quick action.</p>
+      <% } else { %>
+        <div class="ops-orders-table">
+          <% recentOrders.forEach((order) => { %>
+            <div class="ops-order-row">
+              <div>
+                <strong>#<%= order.id %></strong>
+                <span><%= new Date(order.created_at).toLocaleString() %></span>
+              </div>
+              <div>
+                <span class="ops-order-status"><%= order.status %></span>
+                <strong>$<%= Number(order.total).toFixed(2) %></strong>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+
+  <section class="ops-panel ops-panel-wide">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Menu control</span>
+          <h2>Inventory workspace</h2>
+        </div>
+      <span class="ops-chip"><%= canManage ? "Drag to reorder inventory cards" : "Previewing inventory cards" %></span>
+    </div>
+
+    <div class="admin-filters ops-admin-filters">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search menu items..."
+      />
+
+      <select id="categoryFilter">
+        <option value="all">All Categories</option>
+        <option value="Starter">Starter</option>
+        <option value="Main">Main</option>
+        <option value="Dessert">Dessert</option>
+        <option value="Drinks">Drinks</option>
+      </select>
+    </div>
+
+    <div class="admin-grid ops-admin-grid" id="menuGrid">
+      <% safeMenuItems.forEach((item) => { %>
+        <div
+          class="admin-card ops-menu-card"
+          data-id="<%= item.id %>"
+          data-name="<%= item.name.toLowerCase() %>"
+          data-category="<%= item.category %>"
+        >
+          <% if (canManage) { %>
+            <div class="drag-handle">::</div>
+          <% } %>
+
+          <% if (item.image_url) { %>
+            <img
+              src="<%= item.image_url %>"
+              alt="<%= item.name %>"
+              class="admin-card-image"
+              loading="lazy"
+            />
+          <% } else { %>
+            <div class="admin-card-placeholder">No Image</div>
+          <% } %>
+
+          <div class="admin-card-body">
+            <h3><%= item.name %></h3>
+            <p class="admin-price">$<%= Number(item.price).toFixed(2) %></p>
+            <p class="admin-category"><%= item.category %></p>
+
+            <% if (canManage) { %>
+              <button
+                class="status-btn <%= (item.status || 'available').toLowerCase().replace(' ', '-') %>"
+                data-id="<%= item.id %>"
+              >
+                <%= item.status || "Available" %>
+              </button>
+            <% } else { %>
+              <span class="status-btn <%= (item.status || 'available').toLowerCase().replace(' ', '-') %>">
+                <%= item.status || "Available" %>
+              </span>
+            <% } %>
+
+            <div class="admin-actions">
+              <% if (canManage) { %>
+                <a href="/admin/edit/<%= item.id %>" class="edit-btn">Edit</a>
+
+                <form
+                  action="/admin/delete/<%= item.id %>"
+                  method="POST"
+                  onsubmit="return confirm('Delete this item?')"
+                >
+                  <button type="submit" class="delete-btn">Delete</button>
+                </form>
+              <% } else { %>
+                <a href="/auth/login" class="edit-btn">Login to Edit</a>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+</section>
+
+<div id="toast" class="toast hidden">Saved</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+  const canManage = <%= canManage ? "true" : "false" %>;
+  const searchInput = document.getElementById("searchInput");
+  const categoryFilter = document.getElementById("categoryFilter");
+  const cards = document.querySelectorAll(".admin-card");
+
+  function filterItems() {
+    const search = searchInput.value.toLowerCase();
+    const category = categoryFilter.value;
+
+    cards.forEach((card) => {
+      const name = card.dataset.name;
+      const cardCategory = card.dataset.category;
+      const matchesSearch = name.includes(search);
+      const matchesCategory = category === "all" || cardCategory === category;
+
+      card.style.display = matchesSearch && matchesCategory ? "block" : "none";
+    });
+  }
+
+  searchInput.addEventListener("input", filterItems);
+  categoryFilter.addEventListener("change", filterItems);
+
+  const grid = document.getElementById("menuGrid");
+
+  if (canManage) {
+    new Sortable(grid, {
+      animation: 150,
+      handle: ".drag-handle",
+      onEnd: async function () {
+        const order = [];
+
+        document.querySelectorAll("#menuGrid .admin-card").forEach((card) => {
+          order.push(card.dataset.id);
+        });
+
+        try {
+          await fetch("/admin/menu/reorder", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ order })
+          });
+
+          showToast("Order updated");
+        } catch (err) {
+          console.error("Order update failed", err);
+        }
+      }
+    });
+  }
+
+  function showToast(message = "Saved") {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.remove("hidden");
+
+    setTimeout(() => {
+      toast.classList.add("show");
+    }, 10);
+
+    setTimeout(() => {
+      toast.classList.remove("show");
+
+      setTimeout(() => {
+        toast.classList.add("hidden");
+      }, 300);
+    }, 2000);
+  }
+
+  if (canManage) {
+    document.querySelectorAll("button.status-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const id = button.dataset.id;
+
+        try {
+          const res = await fetch(`/admin/menu/${id}/toggle-status`, {
+            method: "POST"
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            button.textContent = data.status;
+            button.className = "status-btn " + data.status.toLowerCase().replace(" ", "-");
+            showToast("Status updated");
+          }
+        } catch (err) {
+          console.error("Status update failed", err);
+        }
+      });
+    });
+  }
+</script>
+
+<%- include("../partials/footer") %>

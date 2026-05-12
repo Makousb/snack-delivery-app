@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title><%= typeof title !== "undefined" ? title : "Snack Delivery" %></title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+
+<body class="landing-body">
+  <main class="landing-page">
+    <nav class="landing-nav" aria-label="Landing navigation">
+      <a href="/" class="landing-brand" aria-label="Snack landing page">
+        <img src="/images/snack-logo.svg" alt="Snack logo" width="42" height="42" />
+        <span>Snack</span>
+      </a>
+
+      <div class="landing-nav-actions">
+        <a href="/auth/login" class="landing-link">Sign In</a>
+        <a href="/auth/signup?accountType=customer" class="landing-nav-cta">
+          Sign Up
+        </a>
+      </div>
+    </nav>
+
+    <% if (typeof success !== "undefined" && success.length) { %>
+      <div class="flash flash-success landing-flash">
+        <%= success[0] %>
+      </div>
+    <% } %>
+
+    <% if (typeof error !== "undefined" && error.length) { %>
+      <div class="flash flash-error landing-flash">
+        <%= error[0] %>
+      </div>
+    <% } %>
+
+    <section class="landing-hero">
+      <div class="landing-hero-copy">
+        <span class="landing-kicker">Fresh meals, fast checkout</span>
+        <h1>Food you want, from places you love.</h1>
+        <p>
+          Sign in or create a Snack account to discover restaurants, save your
+          delivery details, and keep every order easy to track.
+        </p>
+
+        <div class="landing-actions">
+          <a href="/auth/signup?accountType=customer" class="landing-primary-action">
+            Create Customer Account
+          </a>
+          <a href="/auth/login" class="landing-secondary-action">
+            Sign In
+          </a>
+        </div>
+
+        <a href="/home" class="landing-browse-link">
+          Browse restaurants first
+        </a>
+      </div>
+
+      <div class="landing-visual" aria-label="Snack food preview">
+        <img
+          src="/homepage_images/Restaurant_items.avif"
+          alt="Assorted restaurant dishes"
+          class="landing-visual-main"
+        />
+        <div class="landing-food-card landing-food-card-top">
+          <img src="/homepage_images/meat.avif" alt="Grilled meal" />
+          <div>
+            <strong>Hot picks nearby</strong>
+            <span>Ready in 25 min</span>
+          </div>
+        </div>
+        <div class="landing-food-card landing-food-card-bottom">
+          <img src="/homepage_images/greek.avif" alt="Fresh bowl meal" />
+          <div>
+            <strong>Save address once</strong>
+            <span>Checkout faster next time</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-value-row" aria-label="Why use Snack">
+      <article>
+        <span>01</span>
+        <strong>Find food faster</strong>
+        <p>Search restaurants and jump straight into menus built for ordering.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <strong>Keep checkout simple</strong>
+        <p>Save delivery details on your browser and reduce repeat typing.</p>
+      </article>
+      <article>
+        <span>03</span>
+        <strong>Track every order</strong>
+        <p>Use your account to follow orders after checkout.</p>
+      </article>
+    </section>
+
+    <section class="landing-partnerships" aria-labelledby="landing-partnership-title">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Partner with Snack</span>
+        <h2 id="landing-partnership-title">For the people who make delivery work.</h2>
+        <p>
+          Snack also gives restaurants and drivers a simple path to join the
+          marketplace.
+        </p>
+      </div>
+
+      <div class="landing-partner-grid">
+        <article class="landing-partner-panel">
+          <img src="/homepage_images/Restaurant_items.avif" alt="Restaurant dishes" />
+          <div>
+            <span>Restaurants and food businesses</span>
+            <h3>Register your business and start taking orders.</h3>
+            <p>
+              Create a branded restaurant page, upload your menu, and manage
+              orders from a focused business dashboard.
+            </p>
+            <a href="/auth/signup?accountType=owner">Register Business</a>
+          </div>
+        </article>
+
+        <article class="landing-partner-panel landing-partner-panel-alt">
+          <img src="/homepage_images/meat.avif" alt="Prepared food for delivery" />
+          <div>
+            <span>Delivery drivers</span>
+            <h3>Deliver with Snack and keep each route organized.</h3>
+            <p>
+              Sign up as a driver to accept delivery jobs, update journey
+              stages, and track active work from your driver hub.
+            </p>
+            <a href="/auth/signup?accountType=driver">Apply to Drive</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

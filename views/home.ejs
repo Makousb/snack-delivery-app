@@ -1,0 +1,518 @@
+<%- include("partials/header") %>
+
+<%
+  const safeRestaurants = restaurants || [];
+  const safePopularItems = popularItems || [];
+  const categoryShortcuts = [
+    { name: "Burgers", detail: "Stacked, crispy, saucy", tone: "green" },
+    { name: "Pizza", detail: "Big slices, hot boxes", tone: "red" },
+    { name: "Chicken", detail: "Crunchy favorites", tone: "amber" },
+    { name: "Healthy", detail: "Bowls, salads, wraps", tone: "blue" },
+    { name: "Dessert", detail: "Sweet finishes", tone: "pink" }
+  ];
+  const orderPerks = [
+    { label: "Fast handoff", value: "25 min", text: "Clear timing before you commit." },
+    { label: "Local picks", value: safeRestaurants.length + "+", text: "Restaurants ready to browse." },
+    { label: "Easy cart", value: "Live", text: "Add, review, and checkout quickly." }
+  ];
+  const fallbackRestaurantImages = [
+    "/homepage_images/Restaurant_items.avif",
+    "/homepage_images/meat.avif",
+    "/homepage_images/greek.avif"
+  ];
+  const restaurantBadges = ["Top rated", "Fastest nearby", "Local favorite", "Great value"];
+  const restaurantCuisines = ["Comfort food", "Grill house", "Fresh bowls", "Pizza and sides"];
+  const featuredItem = safePopularItems[0];
+  const featuredRestaurant = safeRestaurants[0];
+  const featuredHeroImage =
+    featuredItem?.image_url ||
+    featuredRestaurant?.banner_url ||
+    "/homepage_images/Restaurant_items.avif";
+  const featuredHeroName = featuredItem?.name || "Dinner favorites";
+  const featuredHeroRestaurant =
+    featuredItem?.restaurant_name ||
+    featuredRestaurant?.name ||
+    "Snack picks";
+%>
+
+<section class="home-hero">
+  <div class="home-hero-copy">
+    <div class="home-hero-topline">
+      <span class="home-kicker">Snack Delivery</span>
+      <span class="home-live-pill">Open now in your area</span>
+    </div>
+
+    <h1>Dinner is closer than you think.</h1>
+    <p class="home-subtitle">
+      Find local restaurants, compare quick picks, and jump straight from search
+      to a menu that is ready for your cart.
+    </p>
+
+    <form class="hero-search" method="GET" action="/restaurants/search">
+      <label class="sr-only" for="homepage-search">Search restaurants</label>
+      <input
+        id="homepage-search"
+        type="text"
+        name="search"
+        value="<%= searchQuery || '' %>"
+        placeholder="Search restaurants near you"
+        aria-label="Search restaurants"
+      />
+      <button type="submit">Find Food</button>
+    </form>
+
+    <% if (restaurantNotFound) { %>
+      <p class="flash flash-error home-search-feedback">
+        No restaurant matched "<%= searchQuery %>". Try another name.
+      </p>
+    <% } %>
+
+    <div class="home-quick-actions" aria-label="Homepage shortcuts">
+      <a href="#featured-restaurants" class="home-primary-action">
+        Browse Restaurants
+      </a>
+      <a href="/cart" class="home-secondary-action">View Cart</a>
+    </div>
+
+    <section class="delivery-address-card" aria-label="Delivery address">
+      <div class="delivery-address-copy">
+        <span class="feature-eyebrow">Deliver to</span>
+        <h2>Set your address once. Move faster every time.</h2>
+        <p>
+          Save a delivery address on this browser so checkout feels ready before
+          the craving gets cold.
+        </p>
+      </div>
+
+      <div class="delivery-address-form">
+        <label class="sr-only" for="saved-delivery-address">
+          Delivery address
+        </label>
+        <div class="delivery-address-input-row">
+          <input
+            id="saved-delivery-address"
+            type="text"
+            placeholder="Street, building, apartment, or landmark"
+            data-delivery-address-input
+          />
+          <button
+            type="button"
+            class="delivery-address-save"
+            data-delivery-address-save
+          >
+            Save
+          </button>
+        </div>
+
+        <div class="delivery-address-actions">
+          <button
+            type="button"
+            class="delivery-address-clear"
+            data-delivery-address-clear
+          >
+            Clear saved address
+          </button>
+        </div>
+
+        <p class="delivery-address-status" data-delivery-address-status>
+          No saved address yet.
+        </p>
+      </div>
+    </section>
+
+    <div class="home-trust-row">
+      <% orderPerks.forEach((perk) => { %>
+        <div class="trust-pill">
+          <strong><%= perk.value %></strong>
+          <span><%= perk.label %></span>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <div class="home-hero-panel">
+    <img
+      src="<%= featuredHeroImage %>"
+      alt="<%= featuredHeroName %>"
+      class="hero-panel-image"
+    />
+
+    <div class="hero-showcase hero-showcase-overlay">
+      <div class="hero-showcase-card hero-showcase-primary hero-order-preview">
+        <div class="hero-feature-head">
+          <span class="showcase-label">Trending near you</span>
+          <span class="hero-feature-meta">25 min average</span>
+        </div>
+
+        <div class="hero-feature-copy">
+          <h2><%= featuredHeroName %></h2>
+          <p>
+            From <%= featuredHeroRestaurant %>. Add a favorite, check your cart,
+            and keep dinner moving.
+          </p>
+        </div>
+
+        <div class="hero-feature-media">
+          <img
+            src="<%= featuredHeroImage %>"
+            alt="<%= featuredHeroName %>"
+            class="hero-feature-image"
+          />
+        </div>
+
+        <div class="hero-live-order">
+          <div>
+            <strong>Order path</strong>
+            <span>Menu to cart to checkout</span>
+          </div>
+          <span class="hero-live-order-eta">Live</span>
+        </div>
+      </div>
+
+      <div class="hero-showcase-card hero-showcase-list">
+        <div class="popular-section-head">
+          <div>
+            <span class="showcase-label">Popular on Snack</span>
+            <h3>Top picks worth adding right now.</h3>
+          </div>
+          <span class="popular-section-meta">Customer favorites</span>
+        </div>
+
+        <% if (safePopularItems.length > 0) { %>
+          <div class="popular-carousel-shell">
+            <button
+              type="button"
+              class="popular-carousel-nav popular-carousel-prev"
+              data-popular-prev
+              aria-label="Scroll popular items left"
+            >
+              &lsaquo;
+            </button>
+
+            <div class="popular-carousel" data-popular-carousel>
+              <% safePopularItems.forEach((item, index) => { %>
+                <article class="popular-item-card">
+                  <a
+                    href="/restaurant/<%= item.restaurant_id %>/menu"
+                    class="popular-item-image-link"
+                  >
+                    <% if (item.image_url) { %>
+                      <img
+                        src="<%= item.image_url %>"
+                        alt="<%= item.name %>"
+                        class="popular-item-image"
+                        loading="lazy"
+                      />
+                    <% } else { %>
+                      <div class="popular-item-image popular-item-image-fallback">
+                        <span>Snack Pick</span>
+                      </div>
+                    <% } %>
+                  </a>
+
+                  <div class="popular-item-content">
+                    <div class="popular-item-topline">
+                      <span class="showcase-rank">0<%= index + 1 %></span>
+                      <span class="popular-item-restaurant">
+                        <%= item.restaurant_name %>
+                      </span>
+                    </div>
+
+                    <h3><%= item.name %></h3>
+
+                    <div class="popular-item-tags">
+                      <span><%= item.category || "Popular" %></span>
+                      <% if (item.description) { %>
+                        <span>Fresh pick</span>
+                      <% } %>
+                    </div>
+
+                    <div class="popular-item-footer">
+                      <span class="popular-item-price">
+                        $<%= Number(item.price).toFixed(2) %>
+                      </span>
+                      <button
+                        type="button"
+                        class="btn popular-add-btn"
+                        data-popular-add
+                        data-id="<%= item.id %>"
+                        data-name="<%= item.name %>"
+                        data-price="<%= item.price %>"
+                        data-restaurant="<%= item.restaurant_id %>"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              <% }) %>
+            </div>
+
+            <button
+              type="button"
+              class="popular-carousel-nav popular-carousel-next"
+              data-popular-next
+              aria-label="Scroll popular items right"
+            >
+              &rsaquo;
+            </button>
+          </div>
+        <% } else { %>
+          <p class="popular-empty-state">
+            Popular items will appear here as soon as menu items are available.
+          </p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="home-category-band home-category-rail" aria-label="Popular food categories">
+  <% categoryShortcuts.forEach((shortcut) => { %>
+    <a href="#featured-restaurants" class="category-chip category-chip-rich">
+      <span
+        class="category-swatch category-swatch-<%= shortcut.tone %>"
+        aria-hidden="true"
+      ></span>
+      <span>
+        <strong><%= shortcut.name %></strong>
+        <small><%= shortcut.detail %></small>
+      </span>
+    </a>
+  <% }) %>
+</section>
+
+<section class="home-offer-strip" aria-label="Snack ordering benefits">
+  <article class="offer-panel offer-panel-main">
+    <div class="offer-copy">
+      <span class="feature-eyebrow">Why customers come back</span>
+      <h2>Less scrolling. More eating.</h2>
+      <p>
+        Snack puts search, saved delivery details, popular items, and restaurant
+        menus close together so customers can move from craving to checkout
+        without friction.
+      </p>
+      <a href="#featured-restaurants" class="home-primary-action">
+        Start an Order
+      </a>
+    </div>
+
+    <div class="offer-image-frame">
+      <img
+        src="/homepage_images/greek.avif"
+        alt="Fresh restaurant meal"
+        loading="lazy"
+      />
+    </div>
+  </article>
+
+  <div class="offer-panel-stack">
+    <% orderPerks.forEach((perk) => { %>
+      <article class="offer-mini-card">
+        <span><%= perk.label %></span>
+        <strong><%= perk.value %></strong>
+        <p><%= perk.text %></p>
+      </article>
+    <% }) %>
+  </div>
+</section>
+
+<section class="home-restaurants" id="featured-restaurants">
+  <div class="home-section-heading">
+    <div>
+      <span class="feature-eyebrow">Featured restaurants</span>
+      <h2>Open a restaurant and jump straight into the menu.</h2>
+    </div>
+    <a href="/cart" class="btn home-section-link">View Cart</a>
+  </div>
+
+  <% if (safeRestaurants.length === 0) { %>
+    <p class="home-empty-state">No restaurants found.</p>
+  <% } %>
+
+  <div class="restaurant-grid home-restaurant-grid">
+    <% safeRestaurants.forEach((r, index) => { %>
+      <% const eta = 18 + index * 4; %>
+      <% const deliveryFee = index === 0 ? "Free delivery" : `$${(index + 1).toFixed(2)} delivery`; %>
+      <% const rating = (4.9 - (index % 3) * 0.1).toFixed(1); %>
+      <% const cuisine = restaurantCuisines[index % restaurantCuisines.length]; %>
+      <% const badge = restaurantBadges[index % restaurantBadges.length]; %>
+      <% const bannerImage = r.banner_url || fallbackRestaurantImages[index % fallbackRestaurantImages.length]; %>
+
+      <a href="/restaurant/<%= r.id %>/menu" class="restaurant-card home-restaurant-card">
+        <div class="home-restaurant-media">
+          <img src="<%= bannerImage %>" alt="<%= r.name %> featured food" loading="lazy">
+          <span class="restaurant-badge"><%= badge %></span>
+          <span class="restaurant-eta"><%= eta %> min</span>
+        </div>
+
+        <div class="home-restaurant-body">
+          <div class="home-restaurant-identity">
+            <div class="restaurant-logo home-restaurant-logo">
+              <% if (r.logo_url) { %>
+                <img src="<%= r.logo_url %>" alt="<%= r.name %> logo" loading="lazy">
+              <% } else { %>
+                <span class="home-logo-fallback">
+                  <%= r.name.charAt(0).toUpperCase() %>
+                </span>
+              <% } %>
+            </div>
+
+            <div class="restaurant-info">
+              <h3><%= r.name %></h3>
+              <p>
+                <%= r.description || "Freshly prepared meals with a smooth ordering flow." %>
+              </p>
+            </div>
+          </div>
+
+          <div class="home-card-stats">
+            <span class="home-card-stat"><%= rating %> rating</span>
+            <span class="home-card-stat"><%= cuisine %></span>
+            <span class="home-card-stat"><%= deliveryFee %></span>
+          </div>
+
+          <div class="home-card-footer">
+            <span class="home-card-meta">Ready in <%= eta %> min</span>
+            <span class="home-card-cta">Open Menu</span>
+          </div>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+</section>
+
+<a href="/cart" class="floating-cart">
+  &#128722;
+</a>
+
+<div id="switch-modal" class="modal">
+  <div class="modal-content">
+    <h3>Switch Restaurant?</h3>
+    <p>You already have items from another restaurant.</p>
+    <p class="warning">Switching will clear your current cart.</p>
+
+    <div class="modal-actions">
+      <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
+      <button id="confirm-switch" class="btn confirm" type="button">
+        Yes, Switch
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const popularCarousel = document.querySelector("[data-popular-carousel]");
+  const popularPrev = document.querySelector("[data-popular-prev]");
+  const popularNext = document.querySelector("[data-popular-next]");
+  const popularButtons = document.querySelectorAll("[data-popular-add]");
+  const cartCountEl = document.getElementById("cart-count");
+  const cartIcon = document.getElementById("cart-icon");
+  const modal = document.getElementById("switch-modal");
+  const confirmBtn = document.getElementById("confirm-switch");
+  const cancelBtn = document.getElementById("cancel-switch");
+
+  let pendingAction = null;
+
+  const openModal = () => modal?.classList.add("show");
+  const closeModal = () => modal?.classList.remove("show");
+
+  function triggerCartBounce() {
+    if (!cartIcon) return;
+
+    cartIcon.classList.remove("cart-bounce");
+    void cartIcon.offsetWidth;
+    cartIcon.classList.add("cart-bounce");
+  }
+
+  function updatePopularButton(button, data) {
+    if (cartCountEl) {
+      cartCountEl.innerText = data.cartCount;
+    }
+
+    triggerCartBounce();
+
+    button.innerText = "Added";
+    button.disabled = true;
+
+    setTimeout(() => {
+      button.innerText = "Add to Cart";
+      button.disabled = false;
+    }, 1200);
+  }
+
+  popularPrev?.addEventListener("click", () => {
+    const card = popularCarousel?.querySelector(".popular-item-card");
+    const amount = card ? card.offsetWidth + 16 : 280;
+
+    popularCarousel?.scrollBy({ left: -amount, behavior: "smooth" });
+  });
+
+  popularNext?.addEventListener("click", () => {
+    const card = popularCarousel?.querySelector(".popular-item-card");
+    const amount = card ? card.offsetWidth + 16 : 280;
+
+    popularCarousel?.scrollBy({ left: amount, behavior: "smooth" });
+  });
+
+  popularButtons.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = button.dataset.id;
+      const name = button.dataset.name;
+      const price = button.dataset.price;
+      const restaurantId = button.dataset.restaurant;
+
+      const sendRequest = async (forceSwitch = false) => {
+        return fetch("/cart/add-ajax", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            name,
+            price,
+            qty: 1,
+            restaurantId,
+            forceSwitch,
+          }),
+        });
+      };
+
+      try {
+        const response = await sendRequest(false);
+        const data = await response.json();
+
+        if (data.switchRequired) {
+          pendingAction = async () => {
+            const retryResponse = await sendRequest(true);
+            const retryData = await retryResponse.json();
+
+            updatePopularButton(button, retryData);
+          };
+
+          openModal();
+          return;
+        }
+
+        updatePopularButton(button, data);
+      } catch (error) {
+        console.error("Cart error:", error);
+      }
+    });
+  });
+
+  confirmBtn?.addEventListener("click", async () => {
+    closeModal();
+
+    if (pendingAction) {
+      await pendingAction();
+      pendingAction = null;
+    }
+  });
+
+  cancelBtn?.addEventListener("click", () => {
+    closeModal();
+    pendingAction = null;
+  });
+</script>
+
+<%- include("partials/footer") %>

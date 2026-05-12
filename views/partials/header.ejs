@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title><%= typeof title !== "undefined" ? title : "Snack" %></title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Main Styles -->
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/pages/admin.css" />
+
+  <!-- Scripts -->
+  <script src="/js/navbar.js" defer></script>
+  <script src="/js/address-memory.js" defer></script>
+
+  <!-- Google Places API -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places">
+  </script>
+</head>
+
+<body>
+
+<header class="navbar">
+  <nav class="nav-container">
+    
+    <!-- Logo -->
+    <a href="/home" class="logo" aria-label="Snack home">
+      <img
+        src="/images/snack-logo.svg"
+        alt="Snack logo"
+        class="logo-mark"
+        width="44"
+        height="44"
+      />
+      <span class="logo-wordmark">Snack</span>
+    </a>
+
+    <!-- 📍 DELIVERY INPUT (FIXED + MODERN) -->
+    <div class="nav-delivery-pill">
+      <span class="nav-delivery-label">Deliver to</span>
+
+      <div class="nav-delivery-input-wrapper">
+        
+        <!-- Icon -->
+        <span class="location-icon">📍</span>
+
+        <!-- Input -->
+        <input
+          type="text"
+          id="delivery-address"
+          class="nav-delivery-input"
+          placeholder="Enter your address"
+          data-delivery-address-input
+        />
+
+        <!-- Clear Button (FIXED + CONNECTED TO JS) -->
+        <button
+          type="button"
+          id="clear-address"
+          class="clear-btn"
+          data-delivery-address-clear
+          aria-label="Clear address"
+        >
+          ✕
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="nav-links" aria-label="Primary">
+      <a href="/home" class="nav-link">Discover</a>
+
+      <% if (typeof currentUser !== "undefined" && currentUser?.role === "driver") { %>
+        <a href="/driver" class="nav-link">Driver Hub</a>
+      <% } else if (typeof currentUser !== "undefined" && currentUser?.role === "owner") { %>
+        <a href="/admin" class="nav-link">Business Hub</a>
+      <% } else { %>
+        <a href="/orders" class="nav-link">Orders</a>
+      <% } %>
+    </div>
+
+    <!-- Right Side -->
+    <div class="nav-right">
+
+      <!-- Cart -->
+      <a href="/cart" class="cart-link" id="cart-icon" aria-label="Open cart">
+        <span class="cart-icon-glyph" aria-hidden="true">&#128722;</span>
+        <span class="cart-link-label">Cart</span>
+        <span class="cart-badge" id="cart-count">
+          <%= typeof cartCount !== "undefined" ? cartCount : 0 %>
+        </span>
+      </a>
+
+      <!-- Burger Menu Button -->
+      <button
+        id="burger-btn"
+        class="burger-btn"
+        aria-label="Open menu"
+        aria-expanded="false"
+      >
+        &#9776;
+      </button>
+
+    </div>
+  </nav>
+</header>
+
+<!-- Overlay -->
+<div id="burger-overlay" class="burger-overlay"></div>
+
+<!-- Burger Menu -->
+<aside
+  id="burger-menu"
+  class="burger-menu"
+  aria-hidden="true"
+>
+  <button id="theme-toggle" class="menu-item">
+    Toggle Theme
+  </button>
+
+  <div class="menu-divider"></div>
+
+  <% if (typeof currentUser !== "undefined" && currentUser) { %>
+
+    <div class="menu-item avatar-row">
+      <div class="avatar">
+        <%= currentUser.email.charAt(0).toUpperCase() %>
+      </div>
+      <span><%= currentUser.email %></span>
+    </div>
+
+    <% if (currentUser.role === "driver") { %>
+      <a href="/driver" class="menu-item">Driver Hub</a>
+    <% } else if (currentUser.role === "owner" || currentUser.role === "admin") { %>
+      <a href="/admin" class="menu-item">Business Hub</a>
+    <% } else { %>
+      <a href="/orders" class="menu-item">Orders</a>
+    <% } %>
+
+    <form action="/auth/logout" method="GET">
+      <button type="submit" class="menu-item logout">
+        Logout
+      </button>
+    </form>
+
+  <% } else { %>
+
+    <a href="/auth/login" class="menu-item">Login</a>
+    <a href="/auth/signup" class="menu-item">Register</a>
+
+  <% } %>
+</aside>
+
+<!-- Page Content -->
+<main class="container">
+
+  <% if (typeof success !== "undefined" && success.length) { %>
+    <div class="flash flash-success">
+      <%= success[0] %>
+    </div>
+  <% } %>
+
+  <% if (typeof error !== "undefined" && error.length) { %>
+    <div class="flash flash-error">
+      <%= error[0] %>
+    </div>
+  <% } %>

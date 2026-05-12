@@ -1,0 +1,180 @@
+<%- include("partials/header") %>
+
+<section class="cart-page">
+  <div class="cart-page-head">
+    <div>
+      <span class="feature-eyebrow">Cart and checkout</span>
+      <h1>Your order is almost moving.</h1>
+      <p>Review items, confirm your delivery details, and complete checkout without breaking momentum.</p>
+
+      <div class="cart-status-pills">
+        <span class="cart-status-pill">Live order summary</span>
+        <span class="cart-status-pill">Address memory on</span>
+      </div>
+    </div>
+
+    <a
+      href="/restaurant/<%= restaurantId || 1 %>/menu"
+      class="btn restaurant-secondary-cta"
+    >
+      Continue Shopping
+    </a>
+  </div>
+
+  <% if (!cartItems || cartItems.length === 0) { %>
+    <section class="cart-empty-state">
+      <h2>Your cart is empty.</h2>
+      <p>Jump back into a restaurant menu and start building an order.</p>
+      <a
+        href="/restaurant/<%= restaurantId || 1 %>/menu"
+        class="btn cart-return-link"
+      >
+        Back to Menu
+      </a>
+    </section>
+  <% } else { %>
+    <div class="cart-layout">
+      <div class="cart-items-stack">
+        <% cartItems.forEach(item => { %>
+          <article class="cart-item-card">
+            <div class="cart-item-main">
+              <div class="cart-item-copy">
+                <span class="menu-category">Restaurant <%= item.restaurantId %></span>
+                <h3><%= item.name %></h3>
+                <p>$<%= Number(item.price).toFixed(2) %> each</p>
+              </div>
+
+              <div class="cart-item-total">
+                $<%= (item.price * item.qty).toFixed(2) %>
+              </div>
+            </div>
+
+            <div class="cart-item-controls">
+              <form method="POST" action="/cart/update" class="qty-form cart-qty-form">
+                <input type="hidden" name="restaurantId" value="<%= item.restaurantId %>">
+                <input type="hidden" name="itemId" value="<%= item.id %>">
+
+                <input
+                  type="number"
+                  name="qty"
+                  value="<%= item.qty %>"
+                  min="0"
+                  class="qty-input cart-qty-input"
+                />
+
+                <button type="submit" class="btn cart-update-btn">
+                  Update
+                </button>
+              </form>
+
+              <form method="POST" action="/cart/update" class="cart-remove-form">
+                <input type="hidden" name="restaurantId" value="<%= item.restaurantId %>">
+                <input type="hidden" name="itemId" value="<%= item.id %>">
+                <input type="hidden" name="qty" value="0">
+
+                <button type="submit" class="btn cart-remove-btn">
+                  Remove
+                </button>
+              </form>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+
+      <aside class="cart-summary-card">
+        <span class="feature-eyebrow">Checkout</span>
+        <h2>Ready to place the order?</h2>
+
+        <div class="cart-summary-stats">
+          <div class="cart-summary-stat">
+            <strong>22-30 min</strong>
+            <span>delivery window</span>
+          </div>
+          <div class="cart-summary-stat">
+            <strong>Saved</strong>
+            <span>address sync</span>
+          </div>
+        </div>
+
+        <div class="cart-summary-breakdown">
+          <div class="cart-summary-row">
+            <span>Subtotal</span>
+            <strong>$<%= total.toFixed(2) %></strong>
+          </div>
+          <div class="cart-summary-row">
+            <span>Delivery</span>
+            <strong>Included</strong>
+          </div>
+        </div>
+
+        <div class="cart-summary-total">
+          <span>Total</span>
+          <strong>$<%= total.toFixed(2) %></strong>
+        </div>
+
+        <form method="POST" action="/restaurant/<%= restaurantId || 1 %>/order" class="checkout-form modern-checkout-form">
+          <div class="checkout-field">
+            <label for="delivery-address"><strong>Delivery Address:</strong></label>
+            <textarea
+              id="delivery-address"
+              name="deliveryAddress"
+              class="checkout-input checkout-textarea"
+              placeholder="Enter your delivery address"
+              data-checkout-address
+            ></textarea>
+            <p class="checkout-address-note">
+              Snack remembers this address on this browser so repeat orders stay quick.
+            </p>
+          </div>
+
+          <div class="checkout-field">
+            <label for="phone"><strong>Phone Number (for M-Pesa):</strong></label>
+            <input
+              type="text"
+              id="phone"
+              name="phone"
+              placeholder="254712345678"
+              pattern="254[0-9]{9}"
+              class="checkout-input"
+            />
+          </div>
+
+          <div class="checkout-field">
+            <label for="tipAmount"><strong>Driver Tip (optional):</strong></label>
+            <input
+              type="number"
+              id="tipAmount"
+              name="tipAmount"
+              min="0"
+              step="0.50"
+              placeholder="0.00"
+              class="checkout-input"
+            />
+          </div>
+
+          <div class="checkout-actions">
+            <button
+              type="submit"
+              name="paymentMethod"
+              value="mpesa"
+              class="btn checkout-primary-btn"
+            >
+              Pay with M-Pesa
+            </button>
+
+            <button
+              type="submit"
+              name="paymentMethod"
+              value="cash"
+              class="btn checkout-secondary-btn"
+            >
+              Pay on Delivery
+            </button>
+          </div>
+        </form>
+      </aside>
+    </div>
+  <% } %>
+</section>
+
+<%- include("partials/footer") %>

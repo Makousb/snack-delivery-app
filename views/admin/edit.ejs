@@ -1,0 +1,117 @@
+<%- include("../partials/header") %>
+
+<div class="container">
+  <h1>Edit Menu Item</h1>
+
+  <form method="POST" enctype="multipart/form-data" class="admin-form">
+
+    <label for="name">Name</label>
+    <input 
+      type="text"
+      id="name"
+      name="name" 
+      value="<%= menuItem.name %>" 
+      required 
+    />
+
+    <label for="description">Description</label>
+    <textarea 
+      id="description"
+      name="description"
+      rows="4"
+    ><%= menuItem.description %></textarea>
+
+    <label for="price">Price</label>
+    <input 
+      type="number" 
+      id="price"
+      step="0.01" 
+      name="price" 
+      value="<%= menuItem.price %>" 
+      required 
+    />
+
+    <label for="category">Category</label>
+    <select id="category" name="category" required>
+      <option value="Starter" <%= menuItem.category === "Starter" ? "selected" : "" %>>Starter</option>
+      <option value="Main" <%= menuItem.category === "Main" ? "selected" : "" %>>Main</option>
+      <option value="Dessert" <%= menuItem.category === "Dessert" ? "selected" : "" %>>Dessert</option>
+      <option value="Drinks" <%= menuItem.category === "Drinks" ? "selected" : "" %>>Drinks</option>
+    </select>
+
+    <label>Current Image</label>
+    <% if (menuItem.image_url) { %>
+      <picture id="currentImageContainer" style="margin-top:10px; max-width:200px; border-radius:6px;">
+        <source id="currentWebp" type="image/webp" srcset="<%= menuItem.image_url %>">
+        <img id="currentImage" src="<%= menuItem.image_url %>" alt="Current Image" style="max-width:100%; border-radius:6px;">
+      </picture>
+    <% } else { %>
+      <p>No image uploaded.</p>
+    <% } %>
+
+    <label for="image">Upload New Image (optional)</label>
+    <input 
+      type="file" 
+      id="image"
+      name="image" 
+      accept="image/*"
+    />
+
+    <!-- Preview for newly selected image -->
+    <picture id="imagePreviewContainer" style="display:none; margin-top:10px; max-width:200px; border-radius:6px;">
+      <source id="webpPreview" type="image/webp">
+      <img id="imagePreview" alt="New image preview" style="max-width:100%; border-radius:6px;">
+    </picture>
+
+    <button type="submit">Save Changes</button>
+
+  </form>
+</div>
+
+<script>
+  const fileInput = document.getElementById("image");
+  const imagePreview = document.getElementById("imagePreview");
+  const webpPreview = document.getElementById("webpPreview");
+  const previewContainer = document.getElementById("imagePreviewContainer");
+  const currentImageContainer = document.getElementById("currentImageContainer");
+
+  fileInput.addEventListener("change", function () {
+    const file = this.files[0];
+
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        // Hide current image
+        if (currentImageContainer) currentImageContainer.style.display = "none";
+
+        // Show new image preview
+        imagePreview.src = e.target.result;
+
+        // Convert to WebP in-browser
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(function(blob) {
+            webpPreview.srcset = URL.createObjectURL(blob);
+          }, "image/webp", 0.8);
+        };
+
+        previewContainer.style.display = "block";
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      // If user cancels new upload, show current image again
+      if (currentImageContainer) currentImageContainer.style.display = "block";
+      previewContainer.style.display = "none";
+    }
+  });
+</script>
+
+<%- include("../partials/footer") %>

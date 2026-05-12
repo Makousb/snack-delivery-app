@@ -1,0 +1,293 @@
+<%- include("partials/header") %>
+
+<section class="menu-page">
+  <div class="menu-page-hero">
+    <div class="menu-page-copy">
+      <span class="feature-eyebrow">Delivery menu</span>
+      <h1><%= restaurant.name %></h1>
+      <p>
+        <%= restaurant.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
+      </p>
+
+      <div class="menu-page-highlights">
+        <span class="menu-highlight-pill">Fast prep</span>
+        <span class="menu-highlight-pill">Most loved items</span>
+        <span class="menu-highlight-pill">Straight to cart</span>
+      </div>
+
+      <div class="menu-page-actions">
+        <a href="/" class="btn restaurant-secondary-cta">Back to Discovery</a>
+        <a href="/cart" class="btn restaurant-primary-cta">Open Cart</a>
+      </div>
+    </div>
+
+    <div class="menu-page-panel">
+      <div class="restaurant-logo restaurant-hero-logo">
+        <% if (restaurant.logo_url) { %>
+          <img src="<%= restaurant.logo_url %>" alt="<%= restaurant.name %> logo" loading="lazy">
+        <% } else { %>
+          <span class="home-logo-fallback"><%= restaurant.name.charAt(0).toUpperCase() %></span>
+        <% } %>
+      </div>
+
+      <div class="menu-page-panel-grid">
+        <div class="restaurant-metric">
+          <strong><%= items.length %></strong>
+          <span>items on this page</span>
+        </div>
+        <div class="restaurant-metric">
+          <strong><%= totalPages %></strong>
+          <span>pages to browse</span>
+        </div>
+        <div class="restaurant-metric">
+          <strong>23 min</strong>
+          <span>average delivery</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="menu-filter-card">
+    <form id="filterForm" method="GET" action="/restaurant/<%= restaurant.id %>/menu" class="menu-filter-form">
+      <div class="menu-filter-input">
+        <label class="sr-only" for="menu-search">Search menu</label>
+        <input
+          id="menu-search"
+          type="text"
+          name="search"
+          placeholder="Search dishes, combos, or drinks"
+          value="<%= searchQuery || '' %>"
+        />
+      </div>
+
+      <div class="menu-filter-select">
+        <label class="sr-only" for="category">Category</label>
+        <select id="category" name="category">
+          <option value="">All categories</option>
+          <option value="Starter" <%= selectedCategory === "Starter" ? "selected" : "" %>>Starter</option>
+          <option value="Main" <%= selectedCategory === "Main" ? "selected" : "" %>>Main</option>
+          <option value="Dessert" <%= selectedCategory === "Dessert" ? "selected" : "" %>>Dessert</option>
+          <option value="Drinks" <%= selectedCategory === "Drinks" ? "selected" : "" %>>Drinks</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn restaurant-primary-cta">Refine Menu</button>
+    </form>
+
+    <div class="menu-results-meta">
+      <span><%= items.length %> results</span>
+      <span>Delivery-ready menu</span>
+    </div>
+  </section>
+
+  <% if (!items || items.length === 0) { %>
+    <section class="menu-empty-state">
+      <h2>No menu items matched that filter.</h2>
+      <p>Try a different search or switch back to all categories.</p>
+    </section>
+  <% } %>
+
+  <div class="menu-grid menu-grid-modern">
+    <% items.forEach((item, index) => { %>
+      <article class="menu-card modern-menu-card">
+        <% if (item.image_url) { %>
+          <% if (item.image_url.includes("-800.jpg")) { %>
+            <% const baseName = item.image_url.replace("-800.jpg", ""); %>
+            <picture>
+              <source srcset="<%= baseName %>.webp" type="image/webp">
+              <img
+                src="<%= item.image_url %>"
+                srcset="<%= baseName %>-400.jpg 400w,
+                        <%= baseName %>-800.jpg 800w,
+                        <%= baseName %>-1200.jpg 1200w"
+                sizes="(max-width: 760px) 100vw, (max-width: 1080px) 50vw, 33vw"
+                alt="<%= item.name %>"
+                class="menu-image"
+                loading="lazy"
+                decoding="async"
+                width="400"
+                height="300"
+              >
+            </picture>
+          <% } else { %>
+            <img
+              src="<%= item.image_url %>"
+              alt="<%= item.name %>"
+              class="menu-image"
+              loading="lazy"
+              decoding="async"
+              width="400"
+              height="300"
+            >
+          <% } %>
+        <% } %>
+
+        <div class="menu-content modern-menu-content">
+          <div class="modern-menu-head">
+            <span class="menu-category"><%= item.category || "Popular" %></span>
+            <span class="menu-price">$<%= Number(item.price).toFixed(2) %></span>
+          </div>
+
+          <h3><%= item.name %></h3>
+          <p class="menu-description"><%= item.description || "Built for fast delivery decisions." %></p>
+
+          <div class="menu-item-meta">
+            <span class="menu-item-badge"><%= index % 3 === 0 ? "Bestseller" : "Quick pick" %></span>
+            <span class="menu-item-meta-text"><%= 12 + (index * 2) %> min prep</span>
+          </div>
+
+          <div class="add-to-cart-form modern-add-to-cart-form">
+            <input
+              type="number"
+              value="1"
+              min="1"
+              class="qty-input"
+              id="qty-<%= item.id %>"
+            />
+
+            <button
+              class="btn add-to-cart-btn"
+              data-id="<%= item.id %>"
+              data-name="<%= item.name %>"
+              data-price="<%= item.price %>"
+              data-restaurant="<%= restaurant.id %>"
+            >
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+
+  <div class="pagination modern-pagination">
+    <% if (currentPage > 1) { %>
+      <a href="/restaurant/<%= restaurant.id %>/menu?page=<%= currentPage - 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
+        &larr; Previous
+      </a>
+    <% } %>
+
+    <span>Page <%= currentPage %> of <%= totalPages %></span>
+
+    <% if (currentPage < totalPages) { %>
+      <a href="/restaurant/<%= restaurant.id %>/menu?page=<%= currentPage + 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
+        Next &rarr;
+      </a>
+    <% } %>
+  </div>
+</section>
+
+<div id="switch-modal" class="modal">
+  <div class="modal-content">
+    <h3>Switch Restaurant?</h3>
+    <p>You already have items from another restaurant.</p>
+    <p class="warning">Switching will clear your current cart.</p>
+
+    <div class="modal-actions">
+      <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
+      <button id="confirm-switch" class="btn confirm" type="button">Yes, Switch</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll(".add-to-cart-btn");
+  const cartCountEl = document.getElementById("cart-count");
+  const cartIcon = document.getElementById("cart-icon");
+
+  const modal = document.getElementById("switch-modal");
+  const confirmBtn = document.getElementById("confirm-switch");
+  const cancelBtn = document.getElementById("cancel-switch");
+
+  let pendingAction = null;
+
+  const openModal = () => modal.classList.add("show");
+  const closeModal = () => modal.classList.remove("show");
+
+  function triggerCartBounce() {
+    if (!cartIcon) return;
+    cartIcon.classList.remove("cart-bounce");
+    void cartIcon.offsetWidth;
+    cartIcon.classList.add("cart-bounce");
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const name = btn.dataset.name;
+      const price = btn.dataset.price;
+      const restaurantId = btn.dataset.restaurant;
+
+      const qtyInput = document.getElementById(`qty-${id}`);
+      const qty = parseInt(qtyInput.value, 10) || 1;
+
+      const sendRequest = async (forceSwitch = false) => {
+        return fetch("/cart/add-ajax", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            name,
+            price,
+            qty,
+            restaurantId,
+            forceSwitch
+          })
+        });
+      };
+
+      try {
+        let res = await sendRequest(false);
+        let data = await res.json();
+
+        if (data.switchRequired) {
+          pendingAction = async () => {
+            const retryRes = await sendRequest(true);
+            const retryData = await retryRes.json();
+            updateUI(retryData, btn);
+          };
+
+          openModal();
+          return;
+        }
+
+        updateUI(data, btn);
+      } catch (err) {
+        console.error("Cart error:", err);
+      }
+    });
+  });
+
+  confirmBtn?.addEventListener("click", async () => {
+    closeModal();
+    if (pendingAction) {
+      await pendingAction();
+      pendingAction = null;
+    }
+  });
+
+  cancelBtn?.addEventListener("click", () => {
+    closeModal();
+    pendingAction = null;
+  });
+
+  function updateUI(data, btn) {
+    if (cartCountEl) {
+      cartCountEl.innerText = data.cartCount;
+    }
+
+    triggerCartBounce();
+
+    btn.innerText = "Added";
+    btn.style.background = "#16a34a";
+    btn.disabled = true;
+
+    setTimeout(() => {
+      btn.innerText = "Add to Cart";
+      btn.style.background = "";
+      btn.disabled = false;
+    }, 1200);
+  }
+</script>
+
+<%- include("partials/footer") %>

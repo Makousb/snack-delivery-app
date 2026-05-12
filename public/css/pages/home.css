@@ -1,0 +1,59 @@
+/* ============================= */
+/* HOME - PARTNERSHIPS SECTION  */
+/* ============================= */
+
+.home-partnerships {
+  padding: 80px 24px;
+  background: #fafafa;
+}
+
+.partnership-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.partnership-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+  margin-top: 32px;
+}
+
+.partner-card {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.partner-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+}
+
+.partner-image-wrapper img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.partner-content {
+  padding: 24px;
+}
+
+.partner-content h3 {
+  margin: 8px 0;
+}
+
+.partner-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+
+.partner-benefits li {
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #444;
+}

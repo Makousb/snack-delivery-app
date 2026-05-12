@@ -1,0 +1,202 @@
+<%- include("../partials/header") %>
+
+<section class="driver-dashboard">
+  <div class="driver-hero">
+    <div class="driver-hero-copy">
+      <span class="feature-eyebrow">Driver workspace</span>
+      <h1><%= driver.full_name || "Driver" %></h1>
+      <p>
+        Accept available orders, move deliveries through each stage, and keep an eye on your tips and completed trips.
+      </p>
+    </div>
+
+    <div class="driver-hero-stats">
+      <div class="driver-stat-card">
+        <span>Active journeys</span>
+        <strong><%= driverStats.activeJobs %></strong>
+      </div>
+      <div class="driver-stat-card">
+        <span>Available jobs</span>
+        <strong><%= driverStats.availableJobs %></strong>
+      </div>
+      <div class="driver-stat-card">
+        <span>Tips earned</span>
+        <strong>$<%= Number(driverStats.totalTips).toFixed(2) %></strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="driver-grid">
+    <section class="driver-panel">
+      <div class="driver-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Profile</span>
+          <h2>Driver profile</h2>
+        </div>
+        <span class="ops-chip"><%= driver.status %></span>
+      </div>
+
+      <div class="driver-profile-list">
+        <div class="driver-profile-row">
+          <span>Vehicle</span>
+          <strong><%= driver.vehicle_type || "Not set" %></strong>
+        </div>
+        <div class="driver-profile-row">
+          <span>Phone</span>
+          <strong><%= driver.phone || "Not set" %></strong>
+        </div>
+        <div class="driver-profile-row">
+          <span>License / ID</span>
+          <strong><%= driver.license_number || "Not set" %></strong>
+        </div>
+        <div class="driver-profile-row">
+          <span>Current location</span>
+          <strong><%= driver.current_location || "Awaiting first route" %></strong>
+        </div>
+        <div class="driver-profile-row">
+          <span>Rating</span>
+          <strong><%= Number(driver.rating || 4.8).toFixed(1) %>/5</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="driver-panel">
+      <div class="driver-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Tips</span>
+          <h2>Tip tracking</h2>
+        </div>
+      </div>
+
+      <div class="driver-tip-grid">
+        <div class="driver-tip-card">
+          <span>Total tips</span>
+          <strong>$<%= Number(driverStats.totalTips).toFixed(2) %></strong>
+        </div>
+        <div class="driver-tip-card">
+          <span>Weekly tips</span>
+          <strong>$<%= Number(driverStats.weeklyTips).toFixed(2) %></strong>
+        </div>
+        <div class="driver-tip-card">
+          <span>Completed jobs</span>
+          <strong><%= driverStats.completedJobs %></strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="driver-panel driver-panel-wide">
+      <div class="driver-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Available orders</span>
+          <h2>Pick up a new delivery</h2>
+        </div>
+      </div>
+
+      <% if (!availableDeliveries.length) { %>
+        <p class="ops-empty">No open deliveries right now. Check back in a moment.</p>
+      <% } else { %>
+        <div class="driver-card-grid">
+          <% availableDeliveries.forEach((delivery) => { %>
+            <article class="driver-order-card">
+              <div class="driver-order-head">
+                <div>
+                  <strong>#<%= delivery.order_id %></strong>
+                  <span><%= delivery.restaurant_name %></span>
+                </div>
+                <strong>$<%= Number(delivery.total).toFixed(2) %></strong>
+              </div>
+              <p><strong>Pickup:</strong> <%= delivery.pickup_location || delivery.restaurant_name %></p>
+              <p><strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %></p>
+              <p><strong>Tip:</strong> $<%= Number(delivery.tips || 0).toFixed(2) %></p>
+              <form action="/driver/deliveries/<%= delivery.id %>/accept" method="POST">
+                <button type="submit" class="btn restaurant-primary-cta">Accept delivery</button>
+              </form>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+    <section class="driver-panel driver-panel-wide">
+      <div class="driver-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Journey board</span>
+          <h2>Active delivery journey</h2>
+        </div>
+      </div>
+
+      <% if (!activeDeliveries.length) { %>
+        <p class="ops-empty">No active journeys. Accept a delivery to begin.</p>
+      <% } else { %>
+        <div class="driver-card-grid">
+          <% activeDeliveries.forEach((delivery) => { %>
+            <article class="driver-order-card driver-order-card-active">
+              <div class="driver-order-head">
+                <div>
+                  <strong>#<%= delivery.order_id %></strong>
+                  <span><%= delivery.restaurant_name %></span>
+                </div>
+                <span class="ops-chip"><%= delivery.current_stage %></span>
+              </div>
+
+              <div class="driver-journey-steps">
+                <span class="driver-step <%= delivery.status === 'Accepted' ? 'driver-step-active' : '' %>">Heading to restaurant</span>
+                <span class="driver-step <%= delivery.status === 'Picked Up' ? 'driver-step-active' : '' %>">Picked up</span>
+                <span class="driver-step <%= delivery.status === 'Out for Delivery' ? 'driver-step-active' : '' %>">On the road</span>
+                <span class="driver-step <%= delivery.status === 'Delivered' ? 'driver-step-active' : '' %>">Delivered</span>
+              </div>
+
+              <p><strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %></p>
+              <p><strong>Customer phone:</strong> <%= delivery.customer_phone || "Not provided" %></p>
+
+              <div class="driver-stage-actions">
+                <form action="/driver/deliveries/<%= delivery.id %>/stage" method="POST">
+                  <input type="hidden" name="stage" value="picked_up" />
+                  <button type="submit" class="btn restaurant-secondary-cta">Picked Up</button>
+                </form>
+                <form action="/driver/deliveries/<%= delivery.id %>/stage" method="POST">
+                  <input type="hidden" name="stage" value="out_for_delivery" />
+                  <button type="submit" class="btn restaurant-secondary-cta">Out for Delivery</button>
+                </form>
+                <form action="/driver/deliveries/<%= delivery.id %>/stage" method="POST">
+                  <input type="hidden" name="stage" value="delivered" />
+                  <button type="submit" class="btn restaurant-primary-cta">Delivered</button>
+                </form>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+    <section class="driver-panel driver-panel-wide">
+      <div class="driver-panel-head">
+        <div>
+          <span class="ops-panel-kicker">History</span>
+          <h2>Completed trips</h2>
+        </div>
+      </div>
+
+      <% if (!completedDeliveries.length) { %>
+        <p class="ops-empty">Completed deliveries will appear here once you finish your first trip.</p>
+      <% } else { %>
+        <div class="ops-orders-table">
+          <% completedDeliveries.forEach((delivery) => { %>
+            <div class="ops-order-row">
+              <div>
+                <strong>#<%= delivery.order_id %></strong>
+                <span><%= delivery.restaurant_name %></span>
+              </div>
+              <div>
+                <span class="ops-order-status">Tip $<%= Number(delivery.tips || 0).toFixed(2) %></span>
+                <strong><%= delivery.completed_at ? new Date(delivery.completed_at).toLocaleString() : "Completed" %></strong>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</section>
+
+<%- include("../partials/footer") %>

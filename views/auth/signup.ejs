@@ -1,0 +1,207 @@
+<%- include("../partials/header", { title: "Create Account" }) %>
+
+<section class="auth-shell">
+  <div class="auth-hero">
+    <span class="feature-eyebrow">Join Snack</span>
+    <h1>Launch a storefront or start delivering.</h1>
+    <p>
+      Create a customer account to order faster, register a business, or sign up
+      for delivery work with Snack.
+    </p>
+  </div>
+
+  <form action="/auth/signup" method="POST" enctype="multipart/form-data" class="auth-form auth-form-card">
+    <div class="auth-segmented">
+      <label class="auth-segment-option">
+        <input type="radio" name="accountType" value="customer" checked data-account-type />
+        <span>Customer</span>
+      </label>
+      <label class="auth-segment-option">
+        <input type="radio" name="accountType" value="owner" data-account-type />
+        <span>Business</span>
+      </label>
+      <label class="auth-segment-option">
+        <input type="radio" name="accountType" value="driver" data-account-type />
+        <span>Driver</span>
+      </label>
+    </div>
+
+    <div class="auth-grid">
+      <div>
+        <label for="fullName">Full Name</label>
+        <input
+          type="text"
+          id="fullName"
+          name="fullName"
+          placeholder="Jordan Blake"
+          required
+        />
+      </div>
+
+      <div>
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="owner@example.com"
+          required
+        />
+      </div>
+    </div>
+
+    <div>
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        required
+      />
+    </div>
+
+    <div class="auth-role-panel" data-role-panel="customer">
+      <div class="auth-section-head">
+        <h2>Customer account</h2>
+        <p>
+          Save your order history, track deliveries, and move through checkout
+          faster when you come back.
+        </p>
+      </div>
+    </div>
+
+    <div class="auth-role-panel auth-role-panel-hidden" data-role-panel="owner">
+      <div class="auth-section-head">
+        <h2>Business profile</h2>
+        <p>Set up a public restaurant page with its own visual identity.</p>
+      </div>
+
+      <div class="auth-grid">
+        <div>
+          <label for="restaurantName">Business Name</label>
+          <input
+            type="text"
+            id="restaurantName"
+            name="restaurantName"
+            placeholder="Green Bowl Kitchen"
+          />
+        </div>
+
+        <div>
+          <label for="businessLogo">Logo</label>
+          <input
+            type="file"
+            id="businessLogo"
+            name="businessLogo"
+            accept="image/*"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label for="businessBanner">Banner</label>
+        <input
+          type="file"
+          id="businessBanner"
+          name="businessBanner"
+          accept="image/*"
+        />
+      </div>
+
+      <div>
+        <label for="restaurantDescription">Business Description</label>
+        <textarea
+          id="restaurantDescription"
+          name="restaurantDescription"
+          rows="4"
+          placeholder="Describe your food style, delivery promise, and what makes the business special."
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="auth-role-panel auth-role-panel-hidden" data-role-panel="driver">
+      <div class="auth-section-head">
+        <h2>Driver profile</h2>
+        <p>Register for orders, track delivery journeys, and monitor tips.</p>
+      </div>
+
+      <div class="auth-grid">
+        <div>
+          <label for="phone">Phone Number</label>
+          <input
+            type="text"
+            id="phone"
+            name="phone"
+            placeholder="254712345678"
+          />
+        </div>
+
+        <div>
+          <label for="vehicleType">Vehicle Type</label>
+          <input
+            type="text"
+            id="vehicleType"
+            name="vehicleType"
+            placeholder="Motorbike"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label for="licenseNumber">License / ID Reference</label>
+        <input
+          type="text"
+          id="licenseNumber"
+          name="licenseNumber"
+          placeholder="DL-20948"
+        />
+      </div>
+    </div>
+
+    <button type="submit">Create Account</button>
+  </form>
+
+  <p class="auth-footer-copy">
+    Already have an account?
+    <a href="/auth/login">Login here</a>
+  </p>
+</section>
+
+<script>
+  const accountTypeInputs = document.querySelectorAll("[data-account-type]");
+  const rolePanels = document.querySelectorAll("[data-role-panel]");
+  const restaurantNameInput = document.getElementById("restaurantName");
+  const requestedAccountType = new URLSearchParams(window.location.search).get("accountType");
+
+  if (
+    requestedAccountType === "customer" ||
+    requestedAccountType === "driver" ||
+    requestedAccountType === "owner"
+  ) {
+    const requestedInput = document.querySelector(`[data-account-type][value="${requestedAccountType}"]`);
+    if (requestedInput) {
+      requestedInput.checked = true;
+    }
+  }
+
+  const syncSignupMode = () => {
+    const selectedType = document.querySelector("[data-account-type]:checked")?.value || "owner";
+
+    rolePanels.forEach((panel) => {
+      const isActive = panel.dataset.rolePanel === selectedType;
+      panel.classList.toggle("auth-role-panel-hidden", !isActive);
+    });
+
+    if (restaurantNameInput) {
+      restaurantNameInput.required = selectedType === "owner";
+    }
+  };
+
+  accountTypeInputs.forEach((input) => {
+    input.addEventListener("change", syncSignupMode);
+  });
+
+  syncSignupMode();
+</script>
+
+<%- include("../partials/footer") %>

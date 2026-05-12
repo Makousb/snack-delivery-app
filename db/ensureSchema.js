@@ -1,0 +1,109 @@
+import { pool } from "./index.js";
+
+function slugify(value) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "store";
+}
+
+async function ensureRestaurantSlugs() {
+  const result = await pool.query(
+    `SELECT id, name, slug
+     FROM restaurants
+     ORDER BY id ASC`
+  );
+
+  const usedSlugs = new Set(
+    result.rows
+      .map((restaurant) => restaurant.slug)
+      .filter(Boolean)
+  );
+
+  for (const restaurant of result.rows) {
+    if (restaurant.slug) continue;
+
+    const baseSlug = slugify(restaurant.name || `store-${restaurant.id}`);
+    let slug = baseSlug;
+    let suffix = 2;
+
+    while (usedSlugs.has(slug)) {
+      slug = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+
+    await pool.query(
+      "UPDATE restaurants SET slug = $1 WHERE id = $2",
+      [slug, restaurant.id]
+    );
+
+    usedSlugs.add(slug);
+  }
+}
+
+export async function ensureSchema() {
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS full_name TEXT
+  `);
+
+  await pool.query(`
+    ALTER TABLE restaurants
+      ADD COLUMN IF NOT EXISTS description TEXT,
+      ADD COLUMN IF NOT EXISTS logo_url TEXT,
+      ADD COLUMN IF NOT EXISTS banner_url TEXT,
+      ADD COLUMN IF NOT EXISTS slug TEXT
+  `);
+
+  await pool.query(`
+    ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS delivery_address TEXT,
+      ADD COLUMN IF NOT EXISTS customer_phone TEXT,
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS drivers (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      phone VARCHAR(50),
+      vehicle_type VARCHAR(80),
+      license_number VARCHAR(120),
+      status VARCHAR(50) NOT NULL DEFAULT 'Available',
+      current_location TEXT,
+      rating NUMERIC(3, 2) NOT NULL DEFAULT 4.80,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deliveries (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER UNIQUE NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      driver_id INTEGER REFERENCES drivers(id) ON DELETE SET NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'Available',
+      current_stage VARCHAR(80) NOT NULL DEFAULT 'Awaiting driver',
+      pickup_location TEXT,
+      dropoff_location TEXT,
+      tips NUMERIC(10, 2) NOT NULL DEFAULT 0,
+      accepted_at TIMESTAMP,
+      completed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS restaurants_slug_key
+      ON restaurants(slug)
+      WHERE slug IS NOT NULL
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS deliveries_status_idx
+      ON deliveries(status)
+  `);
+
+  await ensureRestaurantSlugs();
+}

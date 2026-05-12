@@ -1,0 +1,79 @@
+<%- include("partials/header") %>
+
+<section class="order-page">
+  <div class="order-page-hero">
+    <span class="feature-eyebrow">Order confirmed</span>
+    <h1>Your order is in motion.</h1>
+    <p>We’ll keep this page updated while the kitchen and delivery flow progress.</p>
+
+    <div class="order-status-pill">
+      <span>Current status</span>
+      <strong id="order-status"><%= order.status %></strong>
+    </div>
+  </div>
+
+  <div class="order-page-layout">
+    <section class="order-card order-items-card">
+      <div class="order-card-head">
+        <h2>Order details</h2>
+        <span class="menu-category"><%= order.restaurant_name %></span>
+      </div>
+
+      <div class="order-item-list">
+        <% items.forEach(item => { %>
+          <article class="order-item-row">
+            <div>
+              <h3><%= item.name %></h3>
+              <p><%= item.quantity %> x $<%= Number(item.price).toFixed(2) %></p>
+            </div>
+            <strong>$<%= (item.price * item.quantity).toFixed(2) %></strong>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+
+    <aside class="order-card order-summary-card">
+      <span class="feature-eyebrow">Summary</span>
+      <h2>Everything looks good.</h2>
+      <div class="cart-summary-total">
+        <span>Total</span>
+        <strong>$<%= Number(order.total).toFixed(2) %></strong>
+      </div>
+
+      <div class="order-summary-meta">
+        <span>Order #<%= order.id %></span>
+        <span><%= order.restaurant_name %></span>
+      </div>
+
+      <div class="order-summary-actions">
+        <a href="/restaurant/<%= order.restaurant_id %>/menu" class="btn restaurant-primary-cta">
+          Back to Menu
+        </a>
+        <a href="/orders" class="btn restaurant-secondary-cta">
+          View Orders
+        </a>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const orderId = "<%= order.id %>";
+
+  socket.on("orderUpdated", (data) => {
+    if (String(data.orderId) === orderId) {
+      const statusEl = document.getElementById("order-status");
+      statusEl.innerText = data.status;
+      statusEl.style.transition = "color 0.25s ease";
+      statusEl.style.color = "#bbf7d0";
+
+      setTimeout(() => {
+        statusEl.style.color = "";
+      }, 500);
+    }
+  });
+</script>
+
+<%- include("partials/footer") %>

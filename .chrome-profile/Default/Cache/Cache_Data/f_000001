@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Browse Restaurants</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Main Styles -->
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/pages/admin.css" />
+
+  <!-- Scripts -->
+  <script src="/js/navbar.js" defer></script>
+  <script src="/js/address-memory.js" defer></script>
+
+  <!-- Google Places API -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places">
+  </script>
+</head>
+
+<body>
+
+<header class="navbar">
+  <nav class="nav-container">
+    
+    <!-- Logo -->
+    <a href="/" class="logo" aria-label="Snack home">
+      <img
+        src="/images/snack-logo.svg"
+        alt="Snack logo"
+        class="logo-mark"
+        width="44"
+        height="44"
+      />
+      <span class="logo-wordmark">Snack</span>
+    </a>
+
+    <!-- 📍 DELIVERY INPUT (FIXED + MODERN) -->
+    <div class="nav-delivery-pill">
+      <span class="nav-delivery-label">Deliver to</span>
+
+      <div class="nav-delivery-input-wrapper">
+        
+        <!-- Icon -->
+        <span class="location-icon">📍</span>
+
+        <!-- Input -->
+        <input
+          type="text"
+          id="delivery-address"
+          class="nav-delivery-input"
+          placeholder="Enter your address"
+          data-delivery-address-input
+        />
+
+        <!-- Clear Button (FIXED + CONNECTED TO JS) -->
+        <button
+          type="button"
+          id="clear-address"
+          class="clear-btn"
+          data-delivery-address-clear
+          aria-label="Clear address"
+        >
+          ✕
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="nav-links" aria-label="Primary">
+      <a href="/" class="nav-link">Discover</a>
+
+      
+        <a href="/orders" class="nav-link">Orders</a>
+      
+    </div>
+
+    <!-- Right Side -->
+    <div class="nav-right">
+
+      <!-- Cart -->
+      <a href="/cart" class="cart-link" id="cart-icon" aria-label="Open cart">
+        <span class="cart-icon-glyph" aria-hidden="true">&#128722;</span>
+        <span class="cart-link-label">Cart</span>
+        <span class="cart-badge" id="cart-count">
+          0
+        </span>
+      </a>
+
+      <!-- Burger Menu Button -->
+      <button
+        id="burger-btn"
+        class="burger-btn"
+        aria-label="Open menu"
+        aria-expanded="false"
+      >
+        &#9776;
+      </button>
+
+    </div>
+  </nav>
+</header>
+
+<!-- Overlay -->
+<div id="burger-overlay" class="burger-overlay"></div>
+
+<!-- Burger Menu -->
+<aside
+  id="burger-menu"
+  class="burger-menu"
+  aria-hidden="true"
+>
+  <button id="theme-toggle" class="menu-item">
+    Toggle Theme
+  </button>
+
+  <div class="menu-divider"></div>
+
+  
+
+    <a href="/auth/login" class="menu-item">Login</a>
+    <a href="/auth/signup" class="menu-item">Register</a>
+
+  
+</aside>
+
+<!-- Page Content -->
+<main class="container">
+
+  
+
+  
+
+
+
+<section class="home-hero">
+  <div class="home-hero-copy">
+    <div class="home-hero-topline">
+      <span class="home-kicker">Snack Delivery</span>
+      <span class="home-live-pill">Open now in your area</span>
+    </div>
+
+    <h1>Dinner is closer than you think.</h1>
+    <p class="home-subtitle">
+      Find local restaurants, compare quick picks, and jump straight from search
+      to a menu that is ready for your cart.
+    </p>
+
+    <form class="hero-search" method="GET" action="/restaurants/search">
+      <label class="sr-only" for="homepage-search">Search restaurants</label>
+      <input
+        id="homepage-search"
+        type="text"
+        name="search"
+        value=""
+        placeholder="Search restaurants near you"
+        aria-label="Search restaurants"
+      />
+      <button type="submit">Find Food</button>
+    </form>
+
+    
+
+    <div class="home-quick-actions" aria-label="Homepage shortcuts">
+      <a href="#featured-restaurants" class="home-primary-action">
+        Browse Restaurants
+      </a>
+      <a href="/cart" class="home-secondary-action">View Cart</a>
+    </div>
+
+    <section class="delivery-address-card" aria-label="Delivery address">
+      <div class="delivery-address-copy">
+        <span class="feature-eyebrow">Deliver to</span>
+        <h2>Set your address once. Move faster every time.</h2>
+        <p>
+          Save a delivery address on this browser so checkout feels ready before
+          the craving gets cold.
+        </p>
+      </div>
+
+      <div class="delivery-address-form">
+        <label class="sr-only" for="saved-delivery-address">
+          Delivery address
+        </label>
+        <div class="delivery-address-input-row">
+          <input
+            id="saved-delivery-address"
+            type="text"
+            placeholder="Street, building, apartment, or landmark"
+            data-delivery-address-input
+          />
+          <button
+            type="button"
+            class="delivery-address-save"
+            data-delivery-address-save
+          >
+            Save
+          </button>
+        </div>
+
+        <div class="delivery-address-actions">
+          <button
+            type="button"
+            class="delivery-address-clear"
+            data-delivery-address-clear
+          >
+            Clear saved address
+          </button>
+        </div>
+
+        <p class="delivery-address-status" data-delivery-address-status>
+          No saved address yet.
+        </p>
+      </div>
+    </section>
+
+    <div class="home-trust-row">
+      
+        <div class="trust-pill">
+          <strong>25 min</strong>
+          <span>Fast handoff</span>
+        </div>
+      
+        <div class="trust-pill">
+          <strong>3+</strong>
+          <span>Local picks</span>
+        </div>
+      
+        <div class="trust-pill">
+          <strong>Live</strong>
+          <span>Easy cart</span>
+        </div>
+      
+    </div>
+  </div>
+
+  <div class="home-hero-panel">
+    <img
+      src="/images/1774872240236-stacked-slices-of-sourdough-grilled-cheese-800.jpg"
+      alt="Grilled Cheese Sandwich "
+      class="hero-panel-image"
+    />
+
+    <div class="hero-showcase hero-showcase-overlay">
+      <div class="hero-showcase-card hero-showcase-primary hero-order-preview">
+        <div class="hero-feature-head">
+          <span class="showcase-label">Trending near you</span>
+          <span class="hero-feature-meta">25 min average</span>
+        </div>
+
+        <div class="hero-feature-copy">
+          <h2>Grilled Cheese Sandwich </h2>
+          <p>
+            From Default Restaurant. Add a favorite, check your cart,
+            and keep dinner moving.
+          </p>
+        </div>
+
+        <div class="hero-feature-media">
+          <img
+            src="/images/1774872240236-stacked-slices-of-sourdough-grilled-cheese-800.jpg"
+            alt="Grilled Cheese Sandwich "
+            class="hero-feature-image"
+          />
+        </div>
+
+        <div class="hero-live-order">
+          <div>
+            <strong>Order path</strong>
+            <span>Menu to cart to checkout</span>
+          </div>
+          <span class="hero-live-order-eta">Live</span>
+        </div>
+      </div>
+
+      <div class="hero-showcase-card hero-showcase-list">
+        <div class="popular-section-head">
+          <div>
+            <span class="showcase-label">Popular on Snack</span>
+            <h3>Top picks worth adding right now.</h3>
+          </div>
+          <span class="popular-section-meta">Customer favorites</span>
+        </div>
+
+        
+          <div class="popular-carousel-shell">
+            <button
+              type="button"
+              class="popular-carousel-nav popular-carousel-prev"
+              data-popular-prev
+              aria-label="Scroll popular items left"
+            >
+              &lsaquo;
+            </button>
+
+            <div class="popular-carousel" data-popular-carousel>
+              
+                <article class="popular-item-card">
+                  <a
+                    href="/restaurant/1/menu"
+                    class="popular-item-image-link"
+                  >
+                    
+                      <img
+                        src="/images/1774872240236-stacked-slices-of-sourdough-grilled-cheese-800.jpg"
+                        alt="Grilled Cheese Sandwich "
+                        class="popular-item-image"
+                        loading="lazy"
+                      />
+                    
+                  </a>
+
+                  <div class="popular-item-content">
+                    <div class="popular-item-topline">
+                      <span class="showcase-rank">01</span>
+                      <span class="popular-item-restaurant">
+                        Default Restaurant
+                      </span>
+                    </div>
+
+                    <h3>Grilled Cheese Sandwich </h3>
+
+                    <div class="popular-item-tags">
+                      <span>Popular</span>
+                      
+                        <span>Fresh pick</span>
+                      
+                    </div>
+
+                    <div class="popular-item-footer">
+                      <span class="popular-item-price">
+                        $15.00
+                      </span>
+                      <button
+                        type="button"
+                        class="btn popular-add-btn"
+                        data-popular-add
+                        data-id="5"
+                        data-name="Grilled Cheese Sandwich "
+                        data-price="15.00"
+                        data-restaurant="1"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              
+                <article class="popular-item-card">
+                  <a
+                    href="/restaurant/1/menu"
+                    class="popular-item-image-link"
+                  >
+                    
+                      <img
+                        src="/images/1777022534500-burger_0__FocusFillWyIwLjAwIiwiMC4wMCIsODAwLDQ3OF0_CompressedW10-800.jpg"
+                        alt="Bacon Cheese Burger "
+                        class="popular-item-image"
+                        loading="lazy"
+                      />
+                    
+                  </a>
+
+                  <div class="popular-item-content">
+                    <div class="popular-item-topline">
+                      <span class="showcase-rank">02</span>
+                      <span class="popular-item-restaurant">
+                        Default Restaurant
+                      </span>
+                    </div>
+
+                    <h3>Bacon Cheese Burger </h3>
+
+                    <div class="popular-item-tags">
+                      <span>Popular</span>
+                      
+                        <span>Fresh pick</span>
+                      
+                    </div>
+
+                    <div class="popular-item-footer">
+                      <span class="popular-item-price">
+                        $9.00
+                      </span>
+                      <button
+                        type="button"
+                        class="btn popular-add-btn"
+                        data-popular-add
+                        data-id="7"
+                        data-name="Bacon Cheese Burger "
+                        data-price="9.00"
+                        data-restaurant="1"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              
+                <article class="popular-item-card">
+                  <a
+                    href="/restaurant/3/menu"
+                    class="popular-item-image-link"
+                  >
+                    
+                      <img
+                        src="/images/1777896423017-kfc-strip-800.jpg"
+                        alt="6  Strip Chicken Tenders"
+                        class="popular-item-image"
+                        loading="lazy"
+                      />
+                    
+                  </a>
+
+                  <div class="popular-item-content">
+                    <div class="popular-item-topline">
+                      <span class="showcase-rank">03</span>
+                      <span class="popular-item-restaurant">
+                        KFC
+                      </span>
+                    </div>
+
+                    <h3>6  Strip Chicken Tenders</h3>
+
+                    <div class="popular-item-tags">
+                      <span>Popular</span>
+                      
+                        <span>Fresh pick</span>
+                      
+                    </div>
+
+                    <div class="popular-item-footer">
+                      <span class="popular-item-price">
+                        $7.00
+                      </span>
+                      <button
+                        type="button"
+                        class="btn popular-add-btn"
+                        data-popular-add
+                        data-id="8"
+                        data-name="6  Strip Chicken Tenders"
+                        data-price="7.00"
+                        data-restaurant="3"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              
+                <article class="popular-item-card">
+                  <a
+                    href="/restaurant/2/menu"
+                    class="popular-item-image-link"
+                  >
+                    
+                      <img
+                        src="/images/1776412873400-images (1)-800.jpg"
+                        alt="Meat Pizza"
+                        class="popular-item-image"
+                        loading="lazy"
+                      />
+                    
+                  </a>
+
+                  <div class="popular-item-content">
+                    <div class="popular-item-topline">
+                      <span class="showcase-rank">04</span>
+                      <span class="popular-item-restaurant">
+                        Marcus&#39;
+                      </span>
+                    </div>
+
+                    <h3>Meat Pizza</h3>
+
+                    <div class="popular-item-tags">
+                      <span>Popular</span>
+                      
+                        <span>Fresh pick</span>
+                      
+                    </div>
+
+                    <div class="popular-item-footer">
+                      <span class="popular-item-price">
+                        $25.00
+                      </span>
+                      <button
+                        type="button"
+                        class="btn popular-add-btn"
+                        data-popular-add
+                        data-id="6"
+                        data-name="Meat Pizza"
+                        data-price="25.00"
+                        data-restaurant="2"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              
+            </div>
+
+            <button
+              type="button"
+              class="popular-carousel-nav popular-carousel-next"
+              data-popular-next
+              aria-label="Scroll popular items right"
+            >
+              &rsaquo;
+            </button>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="home-category-band home-category-rail" aria-label="Popular food categories">
+  
+    <a href="#featured-restaurants" class="category-chip category-chip-rich">
+      <span
+        class="category-swatch category-swatch-green"
+        aria-hidden="true"
+      ></span>
+      <span>
+        <strong>Burgers</strong>
+        <small>Stacked, crispy, saucy</small>
+      </span>
+    </a>
+  
+    <a href="#featured-restaurants" class="category-chip category-chip-rich">
+      <span
+        class="category-swatch category-swatch-red"
+        aria-hidden="true"
+      ></span>
+      <span>
+        <strong>Pizza</strong>
+        <small>Big slices, hot boxes</small>
+      </span>
+    </a>
+  
+    <a href="#featured-restaurants" class="category-chip category-chip-rich">
+      <span
+        class="category-swatch category-swatch-amber"
+        aria-hidden="true"
+      ></span>
+      <span>
+        <strong>Chicken</strong>
+        <small>Crunchy favorites</small>
+      </span>
+    </a>
+  
+    <a href="#featured-restaurants" class="category-chip category-chip-rich">
+      <span
+        class="category-swatch category-swatch-blue"
+        aria-hidden="true"
+      ></span>
+      <span>
+        <strong>Healthy</strong>
+        <small>Bowls, salads, wraps</small>
+      </span>
+    </a>
+  
+    <a href="#featured-restaurants" class="category-chip category-chip-rich">
+      <span
+        class="category-swatch category-swatch-pink"
+        aria-hidden="true"
+      ></span>
+      <span>
+        <strong>Dessert</strong>
+        <small>Sweet finishes</small>
+      </span>
+    </a>
+  
+</section>
+
+<section class="home-offer-strip" aria-label="Snack ordering benefits">
+  <article class="offer-panel offer-panel-main">
+    <div class="offer-copy">
+      <span class="feature-eyebrow">Why customers come back</span>
+      <h2>Less scrolling. More eating.</h2>
+      <p>
+        Snack puts search, saved delivery details, popular items, and restaurant
+        menus close together so customers can move from craving to checkout
+        without friction.
+      </p>
+      <a href="#featured-restaurants" class="home-primary-action">
+        Start an Order
+      </a>
+    </div>
+
+    <div class="offer-image-frame">
+      <img
+        src="/homepage_images/greek.avif"
+        alt="Fresh restaurant meal"
+        loading="lazy"
+      />
+    </div>
+  </article>
+
+  <div class="offer-panel-stack">
+    
+      <article class="offer-mini-card">
+        <span>Fast handoff</span>
+        <strong>25 min</strong>
+        <p>Clear timing before you commit.</p>
+      </article>
+    
+      <article class="offer-mini-card">
+        <span>Local picks</span>
+        <strong>3+</strong>
+        <p>Restaurants ready to browse.</p>
+      </article>
+    
+      <article class="offer-mini-card">
+        <span>Easy cart</span>
+        <strong>Live</strong>
+        <p>Add, review, and checkout quickly.</p>
+      </article>
+    
+  </div>
+</section>
+
+<section class="home-restaurants" id="featured-restaurants">
+  <div class="home-section-heading">
+    <div>
+      <span class="feature-eyebrow">Featured restaurants</span>
+      <h2>Open a restaurant and jump straight into the menu.</h2>
+    </div>
+    <a href="/cart" class="btn home-section-link">View Cart</a>
+  </div>
+
+  
+
+  <div class="restaurant-grid home-restaurant-grid">
+    
+      
+      
+      
+      
+      
+      
+
+      <a href="/restaurant/1/menu" class="restaurant-card home-restaurant-card">
+        <div class="home-restaurant-media">
+          <img src="/homepage_images/Restaurant_items.avif" alt="Default Restaurant featured food" loading="lazy">
+          <span class="restaurant-badge">Top rated</span>
+          <span class="restaurant-eta">18 min</span>
+        </div>
+
+        <div class="home-restaurant-body">
+          <div class="home-restaurant-identity">
+            <div class="restaurant-logo home-restaurant-logo">
+              
+                <span class="home-logo-fallback">
+                  D
+                </span>
+              
+            </div>
+
+            <div class="restaurant-info">
+              <h3>Default Restaurant</h3>
+              <p>
+                Freshly prepared meals with a smooth ordering flow.
+              </p>
+            </div>
+          </div>
+
+          <div class="home-card-stats">
+            <span class="home-card-stat">4.9 rating</span>
+            <span class="home-card-stat">Comfort food</span>
+            <span class="home-card-stat">Free delivery</span>
+          </div>
+
+          <div class="home-card-footer">
+            <span class="home-card-meta">Ready in 18 min</span>
+            <span class="home-card-cta">Open Menu</span>
+          </div>
+        </div>
+      </a>
+    
+      
+      
+      
+      
+      
+      
+
+      <a href="/restaurant/3/menu" class="restaurant-card home-restaurant-card">
+        <div class="home-restaurant-media">
+          <img src="/images/1777896064265-ce87864f-bc4a-45c5-8cfc-6526cfc7808b.jpg" alt="KFC featured food" loading="lazy">
+          <span class="restaurant-badge">Fastest nearby</span>
+          <span class="restaurant-eta">22 min</span>
+        </div>
+
+        <div class="home-restaurant-body">
+          <div class="home-restaurant-identity">
+            <div class="restaurant-logo home-restaurant-logo">
+              
+                <img src="/images/1777896064263-KFC.png" alt="KFC logo" loading="lazy">
+              
+            </div>
+
+            <div class="restaurant-info">
+              <h3>KFC</h3>
+              <p>
+                KFC (Kentucky Fried Chicken) is a global fast-food restaurant chain specializing in fried chicken, famous for its &#34;Original Recipe&#34; of 11 herbs and spices created by Colonel Harland Sanders.
+              </p>
+            </div>
+          </div>
+
+          <div class="home-card-stats">
+            <span class="home-card-stat">4.8 rating</span>
+            <span class="home-card-stat">Grill house</span>
+            <span class="home-card-stat">$2.00 delivery</span>
+          </div>
+
+          <div class="home-card-footer">
+            <span class="home-card-meta">Ready in 22 min</span>
+            <span class="home-card-cta">Open Menu</span>
+          </div>
+        </div>
+      </a>
+    
+      
+      
+      
+      
+      
+      
+
+      <a href="/restaurant/2/menu" class="restaurant-card home-restaurant-card">
+        <div class="home-restaurant-media">
+          <img src="/homepage_images/greek.avif" alt="Marcus&#39; featured food" loading="lazy">
+          <span class="restaurant-badge">Local favorite</span>
+          <span class="restaurant-eta">26 min</span>
+        </div>
+
+        <div class="home-restaurant-body">
+          <div class="home-restaurant-identity">
+            <div class="restaurant-logo home-restaurant-logo">
+              
+                <span class="home-logo-fallback">
+                  M
+                </span>
+              
+            </div>
+
+            <div class="restaurant-info">
+              <h3>Marcus&#39;</h3>
+              <p>
+                Freshly prepared meals with a smooth ordering flow.
+              </p>
+            </div>
+          </div>
+
+          <div class="home-card-stats">
+            <span class="home-card-stat">4.7 rating</span>
+            <span class="home-card-stat">Fresh bowls</span>
+            <span class="home-card-stat">$3.00 delivery</span>
+          </div>
+
+          <div class="home-card-footer">
+            <span class="home-card-meta">Ready in 26 min</span>
+            <span class="home-card-cta">Open Menu</span>
+          </div>
+        </div>
+      </a>
+    
+  </div>
+</section>
+
+<section class="home-partnerships" aria-labelledby="partnership-title">
+  <div class="partnership-intro">
+    <span class="feature-eyebrow">Partner with Snack</span>
+    <h2 id="partnership-title">Bring more food to more doors.</h2>
+    <p>
+      Snack works for the teams preparing the food and the drivers moving every
+      order across town.
+    </p>
+  </div>
+
+  <div class="partnership-grid">
+    <article class="partner-card partner-card-business">
+      <div class="partner-card-copy">
+        <span class="partner-role">For restaurants and food businesses</span>
+        <h3>Register your business and start taking orders.</h3>
+        <p>
+          Create a branded restaurant page, upload your menu, and manage orders
+          from a focused business dashboard.
+        </p>
+      </div>
+
+      <ul class="partner-benefits">
+        <li>Business profile with logo, banner, and description</li>
+        <li>Menu tools for adding and updating items</li>
+        <li>Order visibility from request through delivery</li>
+      </ul>
+
+      <a href="/auth/signup?accountType=owner" class="partner-cta">
+        Register Business
+      </a>
+    </article>
+
+    <article class="partner-card partner-card-driver">
+      <div class="partner-card-copy">
+        <span class="partner-role">For delivery drivers</span>
+        <h3>Deliver with Snack and keep every route organized.</h3>
+        <p>
+          Sign up as a driver to accept delivery jobs, update each journey stage,
+          and track active work from your driver hub.
+        </p>
+      </div>
+
+      <ul class="partner-benefits">
+        <li>Driver profile with phone, vehicle, and license details</li>
+        <li>Available delivery jobs in one dashboard</li>
+        <li>Route status updates for pickup and drop-off</li>
+      </ul>
+
+      <a href="/auth/signup?accountType=driver" class="partner-cta partner-cta-alt">
+        Apply to Drive
+      </a>
+    </article>
+  </div>
+</section>
+
+<a href="/cart" class="floating-cart">
+  &#128722;
+</a>
+
+<div id="switch-modal" class="modal">
+  <div class="modal-content">
+    <h3>Switch Restaurant?</h3>
+    <p>You already have items from another restaurant.</p>
+    <p class="warning">Switching will clear your current cart.</p>
+
+    <div class="modal-actions">
+      <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
+      <button id="confirm-switch" class="btn confirm" type="button">
+        Yes, Switch
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const popularCarousel = document.querySelector("[data-popular-carousel]");
+  const popularPrev = document.querySelector("[data-popular-prev]");
+  const popularNext = document.querySelector("[data-popular-next]");
+  const popularButtons = document.querySelectorAll("[data-popular-add]");
+  const cartCountEl = document.getElementById("cart-count");
+  const cartIcon = document.getElementById("cart-icon");
+  const modal = document.getElementById("switch-modal");
+  const confirmBtn = document.getElementById("confirm-switch");
+  const cancelBtn = document.getElementById("cancel-switch");
+
+  let pendingAction = null;
+
+  const openModal = () => modal?.classList.add("show");
+  const closeModal = () => modal?.classList.remove("show");
+
+  function triggerCartBounce() {
+    if (!cartIcon) return;
+
+    cartIcon.classList.remove("cart-bounce");
+    void cartIcon.offsetWidth;
+    cartIcon.classList.add("cart-bounce");
+  }
+
+  function updatePopularButton(button, data) {
+    if (cartCountEl) {
+      cartCountEl.innerText = data.cartCount;
+    }
+
+    triggerCartBounce();
+
+    button.innerText = "Added";
+    button.disabled = true;
+
+    setTimeout(() => {
+      button.innerText = "Add to Cart";
+      button.disabled = false;
+    }, 1200);
+  }
+
+  popularPrev?.addEventListener("click", () => {
+    const card = popularCarousel?.querySelector(".popular-item-card");
+    const amount = card ? card.offsetWidth + 16 : 280;
+
+    popularCarousel?.scrollBy({ left: -amount, behavior: "smooth" });
+  });
+
+  popularNext?.addEventListener("click", () => {
+    const card = popularCarousel?.querySelector(".popular-item-card");
+    const amount = card ? card.offsetWidth + 16 : 280;
+
+    popularCarousel?.scrollBy({ left: amount, behavior: "smooth" });
+  });
+
+  popularButtons.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = button.dataset.id;
+      const name = button.dataset.name;
+      const price = button.dataset.price;
+      const restaurantId = button.dataset.restaurant;
+
+      const sendRequest = async (forceSwitch = false) => {
+        return fetch("/cart/add-ajax", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            name,
+            price,
+            qty: 1,
+            restaurantId,
+            forceSwitch,
+          }),
+        });
+      };
+
+      try {
+        const response = await sendRequest(false);
+        const data = await response.json();
+
+        if (data.switchRequired) {
+          pendingAction = async () => {
+            const retryResponse = await sendRequest(true);
+            const retryData = await retryResponse.json();
+
+            updatePopularButton(button, retryData);
+          };
+
+          openModal();
+          return;
+        }
+
+        updatePopularButton(button, data);
+      } catch (error) {
+        console.error("Cart error:", error);
+      }
+    });
+  });
+
+  confirmBtn?.addEventListener("click", async () => {
+    closeModal();
+
+    if (pendingAction) {
+      await pendingAction();
+      pendingAction = null;
+    }
+  });
+
+  cancelBtn?.addEventListener("click", () => {
+    closeModal();
+    pendingAction = null;
+  });
+</script>
+
+</main>
+
+<footer class="app-footer">
+  <div class="app-footer-inner">
+    <div class="app-footer-brand">
+      <span class="app-footer-kicker">Snack Delivery</span>
+      <h2>Fast discovery, clean menus, and checkout that feels ready to move.</h2>
+      <p>
+        Built with the same sharp, mobile-first energy that makes the best delivery apps feel effortless.
+      </p>
+    </div>
+
+    <div class="app-footer-links">
+      <a href="/">Discover restaurants</a>
+      <a href="/cart">Open cart</a>
+      <a href="/orders">Track orders</a>
+      <a href="/contact">Support</a>
+    </div>
+  </div>
+
+  <div class="app-footer-bottom">
+    <span>&copy; 2026 Snack</span>
+    <span>Delivery marketplace interface.</span>
+  </div>
+</footer>
+
+</body>
+</html>
+
