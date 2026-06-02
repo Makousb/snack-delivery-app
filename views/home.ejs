@@ -1,389 +1,305 @@
-<%- include("partials/header") %>
+<%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
 
 <%
   const safeRestaurants = restaurants || [];
   const safePopularItems = popularItems || [];
-  const categoryShortcuts = [
-    { name: "Burgers", detail: "Stacked, crispy, saucy", tone: "green" },
-    { name: "Pizza", detail: "Big slices, hot boxes", tone: "red" },
-    { name: "Chicken", detail: "Crunchy favorites", tone: "amber" },
-    { name: "Healthy", detail: "Bowls, salads, wraps", tone: "blue" },
-    { name: "Dessert", detail: "Sweet finishes", tone: "pink" }
-  ];
-  const orderPerks = [
-    { label: "Fast handoff", value: "25 min", text: "Clear timing before you commit." },
-    { label: "Local picks", value: safeRestaurants.length + "+", text: "Restaurants ready to browse." },
-    { label: "Easy cart", value: "Live", text: "Add, review, and checkout quickly." }
-  ];
   const fallbackRestaurantImages = [
     "/homepage_images/Restaurant_items.avif",
+    "/homepage_images/papa-johns-banner.webp",
+    "/homepage_images/PizzaInnBanner.jpg",
     "/homepage_images/meat.avif",
     "/homepage_images/greek.avif"
   ];
-  const restaurantBadges = ["Top rated", "Fastest nearby", "Local favorite", "Great value"];
-  const restaurantCuisines = ["Comfort food", "Grill house", "Fresh bowls", "Pizza and sides"];
-  const featuredItem = safePopularItems[0];
-  const featuredRestaurant = safeRestaurants[0];
-  const featuredHeroImage =
-    featuredItem?.image_url ||
-    featuredRestaurant?.banner_url ||
+  const marketplaceCategories = [
+    { name: "Asian", detail: "Noodles, rice, and more", tone: "red", image: "/homepage_images/Noodles_Icon.png" },
+    { name: "Pizza", detail: "Slices and sides", tone: "orange", image: "/homepage_images/Pizza_Icon.jpg" },
+    { name: "Chicken", detail: "Crispy favorites", tone: "gold", image: "/homepage_images/Chicken_Icon.jpg" },
+    { name: "Burgers", detail: "Stacked and saucy", tone: "green", image: "/homepage_images/Burger_Icon.jpg" },
+    { name: "Healthy", detail: "Bowls and salads", tone: "teal", image: "/homepage_images/Salad_Icon.jpg" },
+    { name: "Dessert", detail: "Sweet finishes", tone: "pink", image: "/homepage_images/Cake_Icon.jpg" }
+  ];
+  const filterChips = [
+    "Fastest nearby",
+    "Offers",
+    "Top rated",
+    "Under 30 min",
+    "Pickup",
+    "New on Snack"
+  ];
+  const restaurantBadges = ["$0 delivery fee", "Top rated", "Great value", "Fast delivery"];
+  const restaurantCuisines = ["Pizza", "Chicken", "Burgers", "Comfort food", "Fresh bowls"];
+  const restaurantItems = safePopularItems.reduce((groups, item) => {
+    const key = String(item.restaurant_id);
+    groups[key] = groups[key] || [];
+    groups[key].push(item);
+    return groups;
+  }, {});
+  const heroRestaurant = safeRestaurants[0] || {};
+  const heroImage =
+    heroRestaurant.banner_url ||
+    safePopularItems[0]?.image_url ||
     "/homepage_images/Restaurant_items.avif";
-  const featuredHeroName = featuredItem?.name || "Dinner favorites";
-  const featuredHeroRestaurant =
-    featuredItem?.restaurant_name ||
-    featuredRestaurant?.name ||
-    "Snack picks";
+  const spotlightItems = safePopularItems.slice(0, 8);
 %>
 
-<section class="home-hero">
-  <div class="home-hero-copy">
-    <div class="home-hero-topline">
-      <span class="home-kicker">Snack Delivery</span>
-      <span class="home-live-pill">Open now in your area</span>
+<div class="marketplace-home-layout">
+  <aside class="marketplace-side-menu" aria-label="Snack menu">
+    <nav class="side-menu-section" aria-label="Home sections">
+      <span class="side-menu-section-title">Menu</span>
+      <a href="#marketplace-top" class="side-menu-link side-menu-link-active">
+        <span class="side-menu-icon" aria-hidden="true">H</span>
+        <span>Home</span>
+      </a>
+      <a href="#marketplace-categories" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">C</span>
+        <span>Categories</span>
+      </a>
+      <a href="#marketplace-highlights" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">%</span>
+        <span>Offers</span>
+      </a>
+      <a href="#popular-now" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">*</span>
+        <span>Popular</span>
+      </a>
+      <a href="#featured-restaurants" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">R</span>
+        <span>Restaurants</span>
+      </a>
+    </nav>
+
+    <nav class="side-menu-section" aria-label="Account links">
+      <span class="side-menu-section-title">Account</span>
+      <a href="/orders" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">O</span>
+        <span>Orders</span>
+      </a>
+      <a href="/cart" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">B</span>
+        <span>Cart</span>
+      </a>
+      <% if (typeof currentUser !== "undefined" && currentUser?.role === "driver") { %>
+        <a href="/driver" class="side-menu-link">
+          <span class="side-menu-icon" aria-hidden="true">D</span>
+          <span>Driver Hub</span>
+        </a>
+      <% } else if (typeof currentUser !== "undefined" && ["owner", "admin"].includes(currentUser?.role)) { %>
+        <a href="/admin" class="side-menu-link">
+          <span class="side-menu-icon" aria-hidden="true">B</span>
+          <span>Business Hub</span>
+        </a>
+      <% } %>
+      <button type="button" class="side-menu-link" data-theme-toggle>
+        <span class="side-menu-icon" aria-hidden="true">T</span>
+        <span>Dark Mode</span>
+      </button>
+    </nav>
+
+    <div class="side-menu-account">
+      <% if (typeof currentUser !== "undefined" && currentUser) { %>
+        <span class="side-menu-avatar" aria-hidden="true"><%= currentUser.email.charAt(0).toUpperCase() %></span>
+        <div>
+          <strong><%= currentUser.email %></strong>
+          <a href="/auth/logout">Logout</a>
+        </div>
+      <% } else { %>
+        <a href="/auth/login" class="side-menu-auth">Sign In</a>
+        <a href="/auth/signup" class="side-menu-auth side-menu-auth-primary">Register</a>
+      <% } %>
+    </div>
+  </aside>
+
+<section class="marketplace-page" id="marketplace-top">
+  <section class="marketplace-hero" aria-label="Food delivery marketplace">
+    <div class="marketplace-hero-copy">
+      <span class="marketplace-kicker">Snack marketplace</span>
+      <h1>Food delivery from restaurants near you.</h1>
+
+      <form class="marketplace-search" method="GET" action="/restaurants/search">
+        <label class="sr-only" for="marketplace-search-input">Search restaurants</label>
+        <span class="marketplace-search-icon" aria-hidden="true">Search</span>
+        <input
+          id="marketplace-search-input"
+          type="text"
+          name="search"
+          value="<%= searchQuery || "" %>"
+          placeholder="Search restaurants or dishes"
+          aria-label="Search restaurants or dishes"
+        />
+        <button type="submit">Find Food</button>
+      </form>
+
+      <% if (restaurantNotFound) { %>
+        <p class="flash flash-error home-search-feedback">
+          No restaurant matched "<%= searchQuery %>". Try another name.
+        </p>
+      <% } %>
+
+      <div class="marketplace-order-controls" aria-label="Order options">
+        <button class="marketplace-control-active" type="button">Delivery</button>
+        <button type="button">Pickup</button>
+        <span>ASAP</span>
+      </div>
     </div>
 
-    <h1>Dinner is closer than you think.</h1>
-    <p class="home-subtitle">
-      Find local restaurants, compare quick picks, and jump straight from search
-      to a menu that is ready for your cart.
-    </p>
+    <a href="<%= heroRestaurant.id ? `/restaurant/${heroRestaurant.id}/menu` : "#featured-restaurants" %>" class="marketplace-hero-card">
+      <img src="<%= heroImage %>" alt="<%= heroRestaurant.name || "Featured restaurant food" %>" />
+      <div>
+        <span>Featured near you</span>
+        <strong><%= heroRestaurant.name || "Local restaurant picks" %></strong>
+        <small>Explore menus, prices, and fast checkout.</small>
+      </div>
+    </a>
+  </section>
 
-    <form class="hero-search" method="GET" action="/restaurants/search">
-      <label class="sr-only" for="homepage-search">Search restaurants</label>
-      <input
-        id="homepage-search"
-        type="text"
-        name="search"
-        value="<%= searchQuery || '' %>"
-        placeholder="Search restaurants near you"
-        aria-label="Search restaurants"
-      />
-      <button type="submit">Find Food</button>
-    </form>
+  <section class="marketplace-category-rail" id="marketplace-categories" aria-label="Popular categories">
+    <% marketplaceCategories.forEach((category) => { %>
+      <a href="#featured-restaurants" class="marketplace-category-card">
+        <span class="marketplace-category-art marketplace-category-<%= category.tone %> <%= category.image ? "marketplace-category-image" : "" %>">
+          <% if (category.image) { %>
+            <img src="<%= category.image %>" alt="" loading="lazy" />
+          <% } %>
+        </span>
+        <strong><%= category.name %></strong>
+        <small><%= category.detail %></small>
+      </a>
+    <% }) %>
+  </section>
 
-    <% if (restaurantNotFound) { %>
-      <p class="flash flash-error home-search-feedback">
-        No restaurant matched "<%= searchQuery %>". Try another name.
-      </p>
+  <section class="marketplace-filter-bar" aria-label="Restaurant filters">
+    <% filterChips.forEach((chip, index) => { %>
+      <a href="#featured-restaurants" class="<%= index === 0 ? "marketplace-filter-active" : "" %>">
+        <%= chip %>
+      </a>
+    <% }) %>
+  </section>
+
+  <section class="marketplace-deals" id="marketplace-highlights" aria-label="Marketplace highlights">
+    <article>
+      <span>Featured offer</span>
+      <strong>$0 delivery fee on selected restaurants</strong>
+      <a href="#featured-restaurants">Browse offers</a>
+    </article>
+    <article>
+      <span>Order faster</span>
+      <strong>Popular dishes are ready to add from the home page</strong>
+      <a href="#popular-now">See popular picks</a>
+    </article>
+    <article>
+      <span>Local favorites</span>
+      <strong><%= safeRestaurants.length %> restaurants available now</strong>
+      <a href="#featured-restaurants">View restaurants</a>
+    </article>
+  </section>
+
+  <section class="marketplace-section" id="popular-now">
+    <div class="marketplace-section-head">
+      <div>
+        <span>Popular now</span>
+        <h2>Most ordered near you</h2>
+      </div>
+      <a href="/cart">View cart</a>
+    </div>
+
+    <% if (spotlightItems.length > 0) { %>
+      <div class="marketplace-item-row">
+        <% spotlightItems.forEach((item, index) => { %>
+          <article class="marketplace-item-card">
+            <a href="/restaurant/<%= item.restaurant_id %>/menu" class="marketplace-item-image">
+              <% if (item.image_url) { %>
+                <img src="<%= item.image_url %>" alt="<%= item.name %>" loading="lazy" />
+              <% } else { %>
+                <span>Popular pick</span>
+              <% } %>
+            </a>
+
+            <div class="marketplace-item-body">
+              <span><%= item.restaurant_name %></span>
+              <h3><%= item.name %></h3>
+              <p><%= item.category || "Customer favorite" %> · <%= 18 + (index % 4) * 4 %>-<%= 26 + (index % 4) * 4 %> min</p>
+              <div>
+                <strong>$<%= Number(item.price).toFixed(2) %></strong>
+                <button
+                  type="button"
+                  data-popular-add
+                  data-id="<%= item.id %>"
+                  data-name="<%= item.name %>"
+                  data-price="<%= item.price %>"
+                  data-restaurant="<%= item.restaurant_id %>"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="home-empty-state">Popular items will appear here after menu items are added.</p>
+    <% } %>
+  </section>
+
+  <section class="marketplace-section" id="featured-restaurants">
+    <div class="marketplace-section-head">
+      <div>
+        <span>Restaurants near you</span>
+        <h2>Order from local favorites</h2>
+      </div>
+      <a href="/cart">Open cart</a>
+    </div>
+
+    <% if (safeRestaurants.length === 0) { %>
+      <p class="home-empty-state">No restaurants found.</p>
     <% } %>
 
-    <div class="home-quick-actions" aria-label="Homepage shortcuts">
-      <a href="#featured-restaurants" class="home-primary-action">
-        Browse Restaurants
-      </a>
-      <a href="/cart" class="home-secondary-action">View Cart</a>
-    </div>
+    <div class="marketplace-restaurant-grid">
+      <% safeRestaurants.forEach((restaurant, index) => { %>
+        <%
+          const etaStart = 18 + (index % 5) * 3;
+          const etaEnd = etaStart + 10;
+          const rating = (4.8 - (index % 4) * 0.1).toFixed(1);
+          const cuisine = restaurantCuisines[index % restaurantCuisines.length];
+          const badge = restaurantBadges[index % restaurantBadges.length];
+          const bannerImage = restaurant.banner_url || fallbackRestaurantImages[index % fallbackRestaurantImages.length];
+          const previewItems = restaurantItems[String(restaurant.id)] || [];
+        %>
 
-    <section class="delivery-address-card" aria-label="Delivery address">
-      <div class="delivery-address-copy">
-        <span class="feature-eyebrow">Deliver to</span>
-        <h2>Set your address once. Move faster every time.</h2>
-        <p>
-          Save a delivery address on this browser so checkout feels ready before
-          the craving gets cold.
-        </p>
-      </div>
+        <a href="/restaurant/<%= restaurant.id %>/menu" class="marketplace-restaurant-card">
+          <div class="marketplace-restaurant-media">
+            <img src="<%= bannerImage %>" alt="<%= restaurant.name %> food" loading="lazy" />
+            <span class="marketplace-store-badge"><%= badge %></span>
+          </div>
 
-      <div class="delivery-address-form">
-        <label class="sr-only" for="saved-delivery-address">
-          Delivery address
-        </label>
-        <div class="delivery-address-input-row">
-          <input
-            id="saved-delivery-address"
-            type="text"
-            placeholder="Street, building, apartment, or landmark"
-            data-delivery-address-input
-          />
-          <button
-            type="button"
-            class="delivery-address-save"
-            data-delivery-address-save
-          >
-            Save
-          </button>
-        </div>
+          <div class="marketplace-restaurant-content">
+            <div class="marketplace-restaurant-title">
+              <div>
+                <h3><%= restaurant.name %></h3>
+                <p><%= cuisine %> · <%= etaStart %>-<%= etaEnd %> min · <%= index % 2 === 0 ? "$0" : "$" + (index + 1).toFixed(2) %> delivery</p>
+              </div>
+              <strong><%= rating %></strong>
+            </div>
 
-        <div class="delivery-address-actions">
-          <button
-            type="button"
-            class="delivery-address-clear"
-            data-delivery-address-clear
-          >
-            Clear saved address
-          </button>
-        </div>
+            <p class="marketplace-restaurant-description">
+              <%= restaurant.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
+            </p>
 
-        <p class="delivery-address-status" data-delivery-address-status>
-          No saved address yet.
-        </p>
-      </div>
-    </section>
-
-    <div class="home-trust-row">
-      <% orderPerks.forEach((perk) => { %>
-        <div class="trust-pill">
-          <strong><%= perk.value %></strong>
-          <span><%= perk.label %></span>
-        </div>
+            <% if (previewItems.length > 0) { %>
+              <div class="marketplace-menu-preview">
+                <% previewItems.slice(0, 2).forEach((item) => { %>
+                  <span><%= item.name %></span>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        </a>
       <% }) %>
     </div>
-  </div>
-
-  <div class="home-hero-panel">
-    <img
-      src="<%= featuredHeroImage %>"
-      alt="<%= featuredHeroName %>"
-      class="hero-panel-image"
-    />
-
-    <div class="hero-showcase hero-showcase-overlay">
-      <div class="hero-showcase-card hero-showcase-primary hero-order-preview">
-        <div class="hero-feature-head">
-          <span class="showcase-label">Trending near you</span>
-          <span class="hero-feature-meta">25 min average</span>
-        </div>
-
-        <div class="hero-feature-copy">
-          <h2><%= featuredHeroName %></h2>
-          <p>
-            From <%= featuredHeroRestaurant %>. Add a favorite, check your cart,
-            and keep dinner moving.
-          </p>
-        </div>
-
-        <div class="hero-feature-media">
-          <img
-            src="<%= featuredHeroImage %>"
-            alt="<%= featuredHeroName %>"
-            class="hero-feature-image"
-          />
-        </div>
-
-        <div class="hero-live-order">
-          <div>
-            <strong>Order path</strong>
-            <span>Menu to cart to checkout</span>
-          </div>
-          <span class="hero-live-order-eta">Live</span>
-        </div>
-      </div>
-
-      <div class="hero-showcase-card hero-showcase-list">
-        <div class="popular-section-head">
-          <div>
-            <span class="showcase-label">Popular on Snack</span>
-            <h3>Top picks worth adding right now.</h3>
-          </div>
-          <span class="popular-section-meta">Customer favorites</span>
-        </div>
-
-        <% if (safePopularItems.length > 0) { %>
-          <div class="popular-carousel-shell">
-            <button
-              type="button"
-              class="popular-carousel-nav popular-carousel-prev"
-              data-popular-prev
-              aria-label="Scroll popular items left"
-            >
-              &lsaquo;
-            </button>
-
-            <div class="popular-carousel" data-popular-carousel>
-              <% safePopularItems.forEach((item, index) => { %>
-                <article class="popular-item-card">
-                  <a
-                    href="/restaurant/<%= item.restaurant_id %>/menu"
-                    class="popular-item-image-link"
-                  >
-                    <% if (item.image_url) { %>
-                      <img
-                        src="<%= item.image_url %>"
-                        alt="<%= item.name %>"
-                        class="popular-item-image"
-                        loading="lazy"
-                      />
-                    <% } else { %>
-                      <div class="popular-item-image popular-item-image-fallback">
-                        <span>Snack Pick</span>
-                      </div>
-                    <% } %>
-                  </a>
-
-                  <div class="popular-item-content">
-                    <div class="popular-item-topline">
-                      <span class="showcase-rank">0<%= index + 1 %></span>
-                      <span class="popular-item-restaurant">
-                        <%= item.restaurant_name %>
-                      </span>
-                    </div>
-
-                    <h3><%= item.name %></h3>
-
-                    <div class="popular-item-tags">
-                      <span><%= item.category || "Popular" %></span>
-                      <% if (item.description) { %>
-                        <span>Fresh pick</span>
-                      <% } %>
-                    </div>
-
-                    <div class="popular-item-footer">
-                      <span class="popular-item-price">
-                        $<%= Number(item.price).toFixed(2) %>
-                      </span>
-                      <button
-                        type="button"
-                        class="btn popular-add-btn"
-                        data-popular-add
-                        data-id="<%= item.id %>"
-                        data-name="<%= item.name %>"
-                        data-price="<%= item.price %>"
-                        data-restaurant="<%= item.restaurant_id %>"
-                      >
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              <% }) %>
-            </div>
-
-            <button
-              type="button"
-              class="popular-carousel-nav popular-carousel-next"
-              data-popular-next
-              aria-label="Scroll popular items right"
-            >
-              &rsaquo;
-            </button>
-          </div>
-        <% } else { %>
-          <p class="popular-empty-state">
-            Popular items will appear here as soon as menu items are available.
-          </p>
-        <% } %>
-      </div>
-    </div>
-  </div>
+  </section>
 </section>
+</div>
 
-<section class="home-category-band home-category-rail" aria-label="Popular food categories">
-  <% categoryShortcuts.forEach((shortcut) => { %>
-    <a href="#featured-restaurants" class="category-chip category-chip-rich">
-      <span
-        class="category-swatch category-swatch-<%= shortcut.tone %>"
-        aria-hidden="true"
-      ></span>
-      <span>
-        <strong><%= shortcut.name %></strong>
-        <small><%= shortcut.detail %></small>
-      </span>
-    </a>
-  <% }) %>
-</section>
-
-<section class="home-offer-strip" aria-label="Snack ordering benefits">
-  <article class="offer-panel offer-panel-main">
-    <div class="offer-copy">
-      <span class="feature-eyebrow">Why customers come back</span>
-      <h2>Less scrolling. More eating.</h2>
-      <p>
-        Snack puts search, saved delivery details, popular items, and restaurant
-        menus close together so customers can move from craving to checkout
-        without friction.
-      </p>
-      <a href="#featured-restaurants" class="home-primary-action">
-        Start an Order
-      </a>
-    </div>
-
-    <div class="offer-image-frame">
-      <img
-        src="/homepage_images/greek.avif"
-        alt="Fresh restaurant meal"
-        loading="lazy"
-      />
-    </div>
-  </article>
-
-  <div class="offer-panel-stack">
-    <% orderPerks.forEach((perk) => { %>
-      <article class="offer-mini-card">
-        <span><%= perk.label %></span>
-        <strong><%= perk.value %></strong>
-        <p><%= perk.text %></p>
-      </article>
-    <% }) %>
-  </div>
-</section>
-
-<section class="home-restaurants" id="featured-restaurants">
-  <div class="home-section-heading">
-    <div>
-      <span class="feature-eyebrow">Featured restaurants</span>
-      <h2>Open a restaurant and jump straight into the menu.</h2>
-    </div>
-    <a href="/cart" class="btn home-section-link">View Cart</a>
-  </div>
-
-  <% if (safeRestaurants.length === 0) { %>
-    <p class="home-empty-state">No restaurants found.</p>
-  <% } %>
-
-  <div class="restaurant-grid home-restaurant-grid">
-    <% safeRestaurants.forEach((r, index) => { %>
-      <% const eta = 18 + index * 4; %>
-      <% const deliveryFee = index === 0 ? "Free delivery" : `$${(index + 1).toFixed(2)} delivery`; %>
-      <% const rating = (4.9 - (index % 3) * 0.1).toFixed(1); %>
-      <% const cuisine = restaurantCuisines[index % restaurantCuisines.length]; %>
-      <% const badge = restaurantBadges[index % restaurantBadges.length]; %>
-      <% const bannerImage = r.banner_url || fallbackRestaurantImages[index % fallbackRestaurantImages.length]; %>
-
-      <a href="/restaurant/<%= r.id %>/menu" class="restaurant-card home-restaurant-card">
-        <div class="home-restaurant-media">
-          <img src="<%= bannerImage %>" alt="<%= r.name %> featured food" loading="lazy">
-          <span class="restaurant-badge"><%= badge %></span>
-          <span class="restaurant-eta"><%= eta %> min</span>
-        </div>
-
-        <div class="home-restaurant-body">
-          <div class="home-restaurant-identity">
-            <div class="restaurant-logo home-restaurant-logo">
-              <% if (r.logo_url) { %>
-                <img src="<%= r.logo_url %>" alt="<%= r.name %> logo" loading="lazy">
-              <% } else { %>
-                <span class="home-logo-fallback">
-                  <%= r.name.charAt(0).toUpperCase() %>
-                </span>
-              <% } %>
-            </div>
-
-            <div class="restaurant-info">
-              <h3><%= r.name %></h3>
-              <p>
-                <%= r.description || "Freshly prepared meals with a smooth ordering flow." %>
-              </p>
-            </div>
-          </div>
-
-          <div class="home-card-stats">
-            <span class="home-card-stat"><%= rating %> rating</span>
-            <span class="home-card-stat"><%= cuisine %></span>
-            <span class="home-card-stat"><%= deliveryFee %></span>
-          </div>
-
-          <div class="home-card-footer">
-            <span class="home-card-meta">Ready in <%= eta %> min</span>
-            <span class="home-card-cta">Open Menu</span>
-          </div>
-        </div>
-      </a>
-    <% }) %>
-  </div>
-</section>
-
-<a href="/cart" class="floating-cart">
-  &#128722;
+<a href="/cart" class="floating-cart" aria-label="Open cart">
+  Cart
 </a>
 
 <div id="switch-modal" class="modal">
@@ -402,9 +318,6 @@
 </div>
 
 <script>
-  const popularCarousel = document.querySelector("[data-popular-carousel]");
-  const popularPrev = document.querySelector("[data-popular-prev]");
-  const popularNext = document.querySelector("[data-popular-next]");
   const popularButtons = document.querySelectorAll("[data-popular-add]");
   const cartCountEl = document.getElementById("cart-count");
   const cartIcon = document.getElementById("cart-icon");
@@ -436,24 +349,10 @@
     button.disabled = true;
 
     setTimeout(() => {
-      button.innerText = "Add to Cart";
+      button.innerText = "Add";
       button.disabled = false;
     }, 1200);
   }
-
-  popularPrev?.addEventListener("click", () => {
-    const card = popularCarousel?.querySelector(".popular-item-card");
-    const amount = card ? card.offsetWidth + 16 : 280;
-
-    popularCarousel?.scrollBy({ left: -amount, behavior: "smooth" });
-  });
-
-  popularNext?.addEventListener("click", () => {
-    const card = popularCarousel?.querySelector(".popular-item-card");
-    const amount = card ? card.offsetWidth + 16 : 280;
-
-    popularCarousel?.scrollBy({ left: amount, behavior: "smooth" });
-  });
 
   popularButtons.forEach((button) => {
     button.addEventListener("click", async () => {

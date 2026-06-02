@@ -235,7 +235,7 @@ a.btn {
   height: 44px;
   display: block;
   flex-shrink: 0;
-  filter: drop-shadow(0 10px 18px rgba(255, 106, 61, 0.16));
+  filter: drop-shadow(0 10px 18px rgba(22, 163, 74, 0.18));
 }
 
 .logo-wordmark {
@@ -773,7 +773,7 @@ body.dark .menu-item:hover {
 
 /* Focus effect (🔥 premium feel) */
 .nav-delivery-pill:focus-within {
-  box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.2),
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2),
               0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
@@ -793,4 +793,3 @@ body.dark .nav-delivery-input::placeholder {
 .nav-delivery-pill:focus-within {
   min-width: 280px;
 }
-

@@ -27,7 +27,7 @@
   </script>
 </head>
 
-<body>
+<body class="<%= typeof bodyClass !== "undefined" ? bodyClass : "" %>">
 
 <header class="navbar">
   <nav class="nav-container">
@@ -82,7 +82,7 @@
 
       <% if (typeof currentUser !== "undefined" && currentUser?.role === "driver") { %>
         <a href="/driver" class="nav-link">Driver Hub</a>
-      <% } else if (typeof currentUser !== "undefined" && currentUser?.role === "owner") { %>
+      <% } else if (typeof currentUser !== "undefined" && ["owner", "admin"].includes(currentUser?.role)) { %>
         <a href="/admin" class="nav-link">Business Hub</a>
       <% } else { %>
         <a href="/orders" class="nav-link">Orders</a>
@@ -143,6 +143,7 @@
       <a href="/driver" class="menu-item">Driver Hub</a>
     <% } else if (currentUser.role === "owner" || currentUser.role === "admin") { %>
       <a href="/admin" class="menu-item">Business Hub</a>
+      <a href="/admin/profile" class="menu-item">Business Profile</a>
     <% } else { %>
       <a href="/orders" class="menu-item">Orders</a>
     <% } %>

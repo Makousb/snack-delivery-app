@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const burgerBtn = document.getElementById("burger-btn");
   const burgerMenu = document.getElementById("burger-menu");
   const overlay = document.getElementById("burger-overlay");
-  const themeToggle = document.getElementById("theme-toggle");
+  const themeToggles = document.querySelectorAll("#theme-toggle, [data-theme-toggle]");
 
   if (!burgerBtn || !burgerMenu) return;
 
@@ -39,17 +39,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const applyTheme = (theme) => {
     document.body.classList.toggle("dark", theme === "dark");
 
-    if (themeToggle) {
-      themeToggle.innerText = theme === "dark" ? "Light Mode" : "Dark Mode";
-    }
+    themeToggles.forEach((themeToggle) => {
+      const label = themeToggle.querySelector("span:last-child") || themeToggle;
+      label.innerText = theme === "dark" ? "Light Mode" : "Dark Mode";
+    });
   };
 
   const savedTheme = localStorage.getItem("theme") || "light";
   applyTheme(savedTheme);
 
-  themeToggle?.addEventListener("click", () => {
-    const newTheme = document.body.classList.contains("dark") ? "light" : "dark";
-    localStorage.setItem("theme", newTheme);
-    applyTheme(newTheme);
+  themeToggles.forEach((themeToggle) => {
+    themeToggle.addEventListener("click", () => {
+      const newTheme = document.body.classList.contains("dark") ? "light" : "dark";
+      localStorage.setItem("theme", newTheme);
+      applyTheme(newTheme);
+    });
   });
 });
