@@ -1,5 +1,14 @@
 import { pool } from "../db/index.js";
 import { createMessage } from "../db/queries/messages.js";
+import { VENDOR_TYPES } from "../utils/vendorTypes.js";
+
+function vendorTypeLabel(vendorType) {
+  return VENDOR_TYPES.find((type) => type.value === vendorType)?.label || vendorType;
+}
+
+function withVendorTypeLabel(vendor) {
+  return { ...vendor, vendor_type_label: vendorTypeLabel(vendor.vendor_type) };
+}
 
 export const renderLanding = (req, res) => {
   res.render("landing", {
@@ -10,9 +19,9 @@ export const renderLanding = (req, res) => {
 export const renderHome = async (req, res, next) => {
   try {
     const searchQuery = (req.query.search || "").trim();
-    const restaurantNotFound = req.query.notFound === "1";
-    const [restaurantsResult, popularItemsResult] = await Promise.all([
-      pool.query("SELECT * FROM restaurants ORDER BY name ASC"),
+    const vendorNotFound = req.query.notFound === "1";
+    const [vendorsResult, popularItemsResult] = await Promise.all([
+      pool.query("SELECT * FROM vendors ORDER BY name ASC"),
       pool.query(`
         SELECT
           mi.id,
@@ -21,21 +30,22 @@ export const renderHome = async (req, res, next) => {
           mi.price,
           mi.category,
           mi.image_url,
-          mi.restaurant_id,
-          r.name AS restaurant_name
+          mi.vendor_id,
+          v.name AS vendor_name
         FROM menu_items mi
-        JOIN restaurants r ON r.id = mi.restaurant_id
-        ORDER BY r.name ASC, mi.display_order ASC, mi.id ASC
+        JOIN vendors v ON v.id = mi.vendor_id
+        ORDER BY v.name ASC, mi.display_order ASC, mi.id ASC
         LIMIT 10
       `)
     ]);
 
     res.render("home", {
-      title: "Browse Restaurants",
-      restaurants: restaurantsResult.rows,
+      title: "Browse Vendors",
+      vendors: vendorsResult.rows.map(withVendorTypeLabel),
+      vendorTypes: VENDOR_TYPES,
       popularItems: popularItemsResult.rows,
       searchQuery,
-      restaurantNotFound
+      vendorNotFound
     });
   } catch (err) {
     console.error(err);
@@ -43,7 +53,7 @@ export const renderHome = async (req, res, next) => {
   }
 };
 
-export const searchRestaurant = async (req, res, next) => {
+export const searchVendors = async (req, res, next) => {
   try {
     const query = (req.query.search || "").trim();
 
@@ -54,7 +64,7 @@ export const searchRestaurant = async (req, res, next) => {
     const result = await pool.query(
       `
         SELECT id, name
-        FROM restaurants
+        FROM vendors
         WHERE LOWER(name) LIKE LOWER($1)
         ORDER BY
           CASE
@@ -75,7 +85,7 @@ export const searchRestaurant = async (req, res, next) => {
       return res.redirect(`/home?search=${encodeURIComponent(query)}&notFound=1`);
     }
 
-    return res.redirect(`/restaurant/${match.id}/menu`);
+    return res.redirect(`/vendor/${match.id}/menu`);
   } catch (err) {
     console.error(err);
     next(err);
@@ -84,7 +94,7 @@ export const searchRestaurant = async (req, res, next) => {
 
 export const renderMenu = async (req, res, next) => {
   try {
-    const { id } = req.params; // restaurant ID
+    const { id } = req.params; // vendor ID
 
     const page = parseInt(req.query.page) || 1;
     const limit = 6;
@@ -93,7 +103,7 @@ export const renderMenu = async (req, res, next) => {
     const searchQuery = req.query.search || "";
     const selectedCategory = req.query.category || "";
 
-    let baseQuery = "FROM menu_items WHERE restaurant_id = $1";
+    let baseQuery = "FROM menu_items WHERE vendor_id = $1";
     let values = [id];
 
     if (searchQuery) {
@@ -106,7 +116,7 @@ export const renderMenu = async (req, res, next) => {
       baseQuery += ` AND category = $${values.length}`;
     }
 
-    // Fetch menu items for this restaurant
+    // Fetch items for this vendor
     const itemsResult = await pool.query(
       `SELECT * ${baseQuery} ORDER BY display_order ASC LIMIT ${limit} OFFSET ${offset}`,
       values
@@ -117,22 +127,22 @@ export const renderMenu = async (req, res, next) => {
     const totalItems = parseInt(countResult.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Fetch restaurant info
-    const restaurantResult = await pool.query("SELECT * FROM restaurants WHERE id = $1", [id]);
-    const restaurant = restaurantResult.rows[0];
+    // Fetch vendor info
+    const vendorResult = await pool.query("SELECT * FROM vendors WHERE id = $1", [id]);
+    const vendor = vendorResult.rows[0];
 
-    if (!restaurant) {
-      return res.status(404).render("404", { title: "Restaurant Not Found" });
+    if (!vendor) {
+      return res.status(404).render("404", { title: "Vendor Not Found" });
     }
 
     res.render("menu", {
-      title: restaurant.name,
+      title: vendor.name,
       items: itemsResult.rows,
       currentPage: page,
       totalPages,
       searchQuery,
       selectedCategory,
-      restaurant
+      vendor
     });
   } catch (err) {
     console.error(err);
@@ -140,27 +150,27 @@ export const renderMenu = async (req, res, next) => {
   }
 };
 
-export const showRestaurant = async (req, res, next) => {
+export const showVendor = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const restaurantResult = await pool.query("SELECT * FROM restaurants WHERE id = $1", [id]);
-    const restaurant = restaurantResult.rows[0];
+    const vendorResult = await pool.query("SELECT * FROM vendors WHERE id = $1", [id]);
+    const vendor = vendorResult.rows[0];
 
-    if (!restaurant) {
-      return res.status(404).render("404", { title: "Restaurant Not Found" });
+    if (!vendor) {
+      return res.status(404).render("404", { title: "Vendor Not Found" });
     }
 
     const menuResult = await pool.query(
-      `SELECT * FROM menu_items WHERE restaurant_id = $1 ORDER BY display_order ASC LIMIT 3`,
+      `SELECT * FROM menu_items WHERE vendor_id = $1 ORDER BY display_order ASC LIMIT 3`,
       [id]
     );
 
     const featuredItems = menuResult.rows;
 
-    res.render("restaurant", {
-      title: restaurant.name,
-      restaurant,
+    res.render("vendor", {
+      title: vendor.name,
+      vendor: withVendorTypeLabel(vendor),
       featuredItems
     });
   } catch (err) {

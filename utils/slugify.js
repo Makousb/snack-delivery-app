@@ -9,17 +9,17 @@ export function slugify(value, fallback = "store") {
   return slug || fallback;
 }
 
-export async function buildUniqueRestaurantSlug(db, name, ignoredRestaurantId = null) {
+export async function buildUniqueVendorSlug(db, name, ignoredVendorId = null) {
   const baseSlug = slugify(name);
   let slug = baseSlug;
   let suffix = 2;
 
   while (true) {
     const values = [slug];
-    let query = "SELECT 1 FROM restaurants WHERE slug = $1";
+    let query = "SELECT 1 FROM vendors WHERE slug = $1";
 
-    if (ignoredRestaurantId) {
-      values.push(ignoredRestaurantId);
+    if (ignoredVendorId) {
+      values.push(ignoredVendorId);
       query += " AND id <> $2";
     }
 

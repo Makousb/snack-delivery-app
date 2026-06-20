@@ -1,7 +1,7 @@
 {
   "name": "snack-delivery-app",
   "version": "1.0.0",
-  "description": "Multi-restaurant food delivery marketplace with customer, owner, and driver roles, built with Express, EJS, and PostgreSQL.",
+  "description": "Multi-vendor delivery marketplace (restaurants, stores, and street vendors) with customer, owner, and driver roles, built with Express, EJS, and PostgreSQL.",
   "type": "module",
   "main": "app.js",
   "repository": {

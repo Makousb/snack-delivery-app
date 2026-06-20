@@ -11,9 +11,9 @@ import {
 
 const router = express.Router();
 
-router.get("/restaurant/:id/cart", viewCart);
-router.post("/restaurant/:id/cart/add", addToCart);
-router.post("/restaurant/:id/cart/remove", removeFromCart);
+router.get("/vendor/:id/cart", viewCart);
+router.post("/vendor/:id/cart/add", addToCart);
+router.post("/vendor/:id/cart/remove", removeFromCart);
 
 router.get("/cart", viewGlobalCart);
 router.post("/cart/add-ajax", addToCartAjax);

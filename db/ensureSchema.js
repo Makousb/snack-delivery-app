@@ -1,23 +1,37 @@
 import { pool } from "./index.js";
 import { slugify } from "../utils/slugify.js";
 
-async function ensureRestaurantSlugs() {
+async function renameColumnIfNeeded(table, oldColumn, newColumn) {
+  const result = await pool.query(
+    `SELECT 1 FROM information_schema.columns
+     WHERE table_name = $1 AND column_name = $2`,
+    [table, oldColumn]
+  );
+
+  if (result.rows.length > 0) {
+    await pool.query(
+      `ALTER TABLE ${table} RENAME COLUMN ${oldColumn} TO ${newColumn}`
+    );
+  }
+}
+
+async function ensureVendorSlugs() {
   const result = await pool.query(
     `SELECT id, name, slug
-     FROM restaurants
+     FROM vendors
      ORDER BY id ASC`
   );
 
   const usedSlugs = new Set(
     result.rows
-      .map((restaurant) => restaurant.slug)
+      .map((vendor) => vendor.slug)
       .filter(Boolean)
   );
 
-  for (const restaurant of result.rows) {
-    if (restaurant.slug) continue;
+  for (const vendor of result.rows) {
+    if (vendor.slug) continue;
 
-    const baseSlug = slugify(restaurant.name || `store-${restaurant.id}`);
+    const baseSlug = slugify(vendor.name || `vendor-${vendor.id}`);
     let slug = baseSlug;
     let suffix = 2;
 
@@ -27,8 +41,8 @@ async function ensureRestaurantSlugs() {
     }
 
     await pool.query(
-      "UPDATE restaurants SET slug = $1 WHERE id = $2",
-      [slug, restaurant.id]
+      "UPDATE vendors SET slug = $1 WHERE id = $2",
+      [slug, vendor.id]
     );
 
     usedSlugs.add(slug);
@@ -41,12 +55,33 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS full_name TEXT
   `);
 
+  await pool.query(`ALTER TABLE IF EXISTS restaurants RENAME TO vendors`);
+  await pool.query(`ALTER INDEX IF EXISTS restaurants_slug_key RENAME TO vendors_slug_key`);
+
+  await renameColumnIfNeeded("menu_items", "restaurant_id", "vendor_id");
+  await renameColumnIfNeeded("orders", "restaurant_id", "vendor_id");
+  await renameColumnIfNeeded("users", "restaurant_id", "vendor_id");
+
   await pool.query(`
-    ALTER TABLE restaurants
+    ALTER TABLE vendors
       ADD COLUMN IF NOT EXISTS description TEXT,
       ADD COLUMN IF NOT EXISTS logo_url TEXT,
       ADD COLUMN IF NOT EXISTS banner_url TEXT,
-      ADD COLUMN IF NOT EXISTS slug TEXT
+      ADD COLUMN IF NOT EXISTS slug TEXT,
+      ADD COLUMN IF NOT EXISTS vendor_type TEXT NOT NULL DEFAULT 'restaurant'
+  `);
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'vendors_vendor_type_check'
+      ) THEN
+        ALTER TABLE vendors
+          ADD CONSTRAINT vendors_vendor_type_check
+          CHECK (vendor_type IN ('restaurant', 'store', 'street_vendor'));
+      END IF;
+    END $$;
   `);
 
   await pool.query(`
@@ -91,8 +126,8 @@ export async function ensureSchema() {
   `);
 
   await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS restaurants_slug_key
-      ON restaurants(slug)
+    CREATE UNIQUE INDEX IF NOT EXISTS vendors_slug_key
+      ON vendors(slug)
       WHERE slug IS NOT NULL
   `);
 
@@ -112,5 +147,5 @@ export async function ensureSchema() {
     )
   `);
 
-  await ensureRestaurantSlugs();
+  await ensureVendorSlugs();
 }

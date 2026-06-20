@@ -35,7 +35,7 @@
     <section class="order-card order-items-card">
       <div class="order-card-head">
         <h2>Order details</h2>
-        <span class="menu-category"><%= order.restaurant_name %></span>
+        <span class="menu-category"><%= order.vendor_name %></span>
       </div>
 
       <div class="order-item-list">
@@ -61,14 +61,14 @@
 
       <div class="order-summary-meta">
         <span>Order #<%= order.id %></span>
-        <span><%= order.restaurant_name %></span>
+        <span><%= order.vendor_name %></span>
       </div>
 
       <div class="order-summary-actions">
-        <a href="/restaurant/<%= order.restaurant_id %>/menu" class="btn restaurant-primary-cta">
+        <a href="/vendor/<%= order.vendor_id %>/menu" class="btn vendor-primary-cta">
           Back to Menu
         </a>
-        <a href="/orders" class="btn restaurant-secondary-cta">
+        <a href="/orders" class="btn vendor-secondary-cta">
           View Orders
         </a>
       </div>

@@ -7,7 +7,7 @@ function parseCoordinate(value, max) {
 }
 
 export const createOrder = async (req, res) => {
-  const { restaurantId } = req.params;
+  const { vendorId } = req.params;
   const userId = req.session.user?.id || null;
   const { phone, paymentMethod, deliveryAddress, tipAmount, deliveryLat, deliveryLng } = req.body;
   const parsedLat = parseCoordinate(deliveryLat, 90);
@@ -15,13 +15,13 @@ export const createOrder = async (req, res) => {
 
   if (
     !req.session.cart ||
-    !req.session.cart[restaurantId] ||
-    req.session.cart[restaurantId].length === 0
+    !req.session.cart[vendorId] ||
+    req.session.cart[vendorId].length === 0
   ) {
-    return res.redirect(`/restaurant/${restaurantId}/cart`);
+    return res.redirect(`/vendor/${vendorId}/cart`);
   }
 
-  const cartItems = req.session.cart[restaurantId];
+  const cartItems = req.session.cart[vendorId];
   const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   const parsedTipAmount = Math.max(0, Number(tipAmount || 0));
 
@@ -39,11 +39,11 @@ export const createOrder = async (req, res) => {
     await client.query("BEGIN");
 
     const orderResult = await client.query(
-      `INSERT INTO orders (restaurant_id, user_id, total, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
+      `INSERT INTO orders (vendor_id, user_id, total, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
       [
-        restaurantId,
+        vendorId,
         userId,
         total,
         initialStatus,
@@ -65,9 +65,9 @@ export const createOrder = async (req, res) => {
       );
     }
 
-    const restaurantInfo = await client.query(
-      "SELECT name FROM restaurants WHERE id = $1",
-      [restaurantId]
+    const vendorInfo = await client.query(
+      "SELECT name FROM vendors WHERE id = $1",
+      [vendorId]
     );
 
     await client.query(
@@ -84,7 +84,7 @@ export const createOrder = async (req, res) => {
         orderId,
         "Available",
         "Awaiting driver",
-        restaurantInfo.rows[0]?.name || "Restaurant kitchen",
+        vendorInfo.rows[0]?.name || "Pickup point",
         deliveryAddress || null,
         parsedTipAmount
       ]
@@ -95,7 +95,7 @@ export const createOrder = async (req, res) => {
     const io = req.app.get("io");
 
     if (io) {
-      io.to(`restaurant_${restaurantId}`).emit("newOrder", {
+      io.to(`vendor_${vendorId}`).emit("newOrder", {
         orderId,
         total,
         status: initialStatus,
@@ -125,7 +125,7 @@ export const createOrder = async (req, res) => {
       }
     }
 
-    req.session.cart[restaurantId] = [];
+    req.session.cart[vendorId] = [];
 
     res.redirect(`/orders/${orderId}/success`);
   } catch (err) {
@@ -142,9 +142,9 @@ export const orderSuccess = async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.*, r.name AS restaurant_name
+      `SELECT o.*, v.name AS vendor_name
        FROM orders o
-       JOIN restaurants r ON r.id = o.restaurant_id
+       JOIN vendors v ON v.id = o.vendor_id
        WHERE o.id = $1`,
       [orderId]
     );
@@ -192,7 +192,7 @@ export const submitMpesaCode = async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      "SELECT user_id, restaurant_id, payment_method FROM orders WHERE id = $1",
+      "SELECT user_id, vendor_id, payment_method FROM orders WHERE id = $1",
       [orderId]
     );
     const order = orderResult.rows[0];
@@ -216,7 +216,7 @@ export const submitMpesaCode = async (req, res) => {
 
     if (io) {
       io.emit("orderUpdated", { orderId, status: "Payment Pending Verification" });
-      io.to(`restaurant_${order.restaurant_id}`).emit("orderUpdated", {
+      io.to(`vendor_${order.vendor_id}`).emit("orderUpdated", {
         orderId,
         status: "Payment Pending Verification"
       });
@@ -237,9 +237,9 @@ export const customerOrders = async (req, res) => {
     if (!userId) return res.redirect("/auth/login");
 
     const result = await pool.query(
-      `SELECT o.*, r.name AS restaurant_name
+      `SELECT o.*, v.name AS vendor_name
        FROM orders o
-       JOIN restaurants r ON r.id = o.restaurant_id
+       JOIN vendors v ON v.id = o.vendor_id
        WHERE o.user_id = $1
        ORDER BY o.created_at DESC`,
       [userId]
@@ -255,26 +255,26 @@ export const customerOrders = async (req, res) => {
   }
 };
 
-export const restaurantOrders = async (req, res) => {
-  const restaurantId = req.user?.restaurant_id;
+export const vendorOrders = async (req, res) => {
+  const vendorId = req.user?.vendor_id;
 
-  if (!restaurantId) {
-    req.flash("error", "No restaurant is linked to this account.");
+  if (!vendorId) {
+    req.flash("error", "No vendor is linked to this account.");
     return res.redirect("/admin");
   }
 
   try {
     const result = await pool.query(
       `SELECT * FROM orders
-       WHERE restaurant_id = $1
+       WHERE vendor_id = $1
        ORDER BY created_at DESC`,
-      [restaurantId]
+      [vendorId]
     );
 
     res.render("admin/orders", {
-      title: "Restaurant Orders",
+      title: "Vendor Orders",
       orders: result.rows,
-      restaurantId
+      vendorId
     });
   } catch (err) {
     console.error(err);
@@ -285,10 +285,10 @@ export const restaurantOrders = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
-  const restaurantId = req.user?.restaurant_id;
+  const vendorId = req.user?.vendor_id;
 
-  if (!restaurantId) {
-    req.flash("error", "No restaurant is linked to this account.");
+  if (!vendorId) {
+    req.flash("error", "No vendor is linked to this account.");
     return res.redirect("/admin");
   }
 
@@ -296,14 +296,14 @@ export const updateOrderStatus = async (req, res) => {
     const result = await pool.query(
       `UPDATE orders
        SET status = $1
-       WHERE id = $2 AND restaurant_id = $3
+       WHERE id = $2 AND vendor_id = $3
        RETURNING id`,
-      [status, orderId, restaurantId]
+      [status, orderId, vendorId]
     );
 
     if (!result.rows.length) {
       req.flash("error", "Order not found.");
-      return res.redirect(`/admin/restaurant/${restaurantId}/orders`);
+      return res.redirect(`/admin/vendor/${vendorId}/orders`);
     }
 
     const io = req.app.get("io");
@@ -315,7 +315,7 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    res.redirect(`/admin/restaurant/${restaurantId}/orders`);
+    res.redirect(`/admin/vendor/${vendorId}/orders`);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating order");
@@ -342,7 +342,7 @@ export const handleMpesaCallback = async (req, res) => {
       `UPDATE orders
        SET status = $1
        WHERE mpesa_checkout_request_id = $2
-       RETURNING id, restaurant_id`,
+       RETURNING id, vendor_id`,
       [status, CheckoutRequestID]
     );
 
@@ -357,7 +357,7 @@ export const handleMpesaCallback = async (req, res) => {
 
     if (io) {
       io.emit("orderUpdated", { orderId: order.id, status });
-      io.to(`restaurant_${order.restaurant_id}`).emit("orderUpdated", {
+      io.to(`vendor_${order.vendor_id}`).emit("orderUpdated", {
         orderId: order.id,
         status
       });

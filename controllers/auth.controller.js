@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt";
 import { pool } from "../db/index.js";
 import { getUserByEmail } from "../db/queries/users.js";
-import { buildUniqueRestaurantSlug } from "../utils/slugify.js";
+import { buildUniqueVendorSlug } from "../utils/slugify.js";
+import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
 
 function getRedirectPathForRole(role) {
   if (role === "driver") return "/driver";
@@ -14,7 +15,7 @@ function getFilePath(file) {
 }
 
 export function showSignup(req, res) {
-  res.render("auth/signup", { title: "Create Account" });
+  res.render("auth/signup", { title: "Create Account", vendorTypes: VENDOR_TYPES });
 }
 
 export async function signup(req, res) {
@@ -26,8 +27,9 @@ export async function signup(req, res) {
       fullName,
       email,
       password,
-      restaurantName,
-      restaurantDescription,
+      businessName,
+      businessDescription,
+      vendorType,
       phone,
       vehicleType,
       licenseNumber
@@ -52,42 +54,46 @@ export async function signup(req, res) {
     await client.query("BEGIN");
 
     if (normalizedRole === "owner") {
-      const safeRestaurantName = (restaurantName || "").trim();
+      const safeBusinessName = (businessName || "").trim();
+      const safeVendorType = VENDOR_TYPE_VALUES.includes(vendorType)
+        ? vendorType
+        : VENDOR_TYPE_VALUES[0];
 
-      if (!safeRestaurantName) {
-        throw new Error("Restaurant name is required for business accounts.");
+      if (!safeBusinessName) {
+        throw new Error("Business name is required for business accounts.");
       }
 
-      const slug = await buildUniqueRestaurantSlug(client, safeRestaurantName);
+      const slug = await buildUniqueVendorSlug(client, safeBusinessName);
       const logoUrl = getFilePath(req.files?.businessLogo?.[0]);
       const bannerUrl = getFilePath(req.files?.businessBanner?.[0]);
 
-      const restaurantResult = await client.query(
-        `INSERT INTO restaurants (name, description, logo_url, banner_url, slug)
-         VALUES ($1, $2, $3, $4, $5)
+      const vendorResult = await client.query(
+        `INSERT INTO vendors (name, vendor_type, description, logo_url, banner_url, slug)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id`,
         [
-          safeRestaurantName,
-          (restaurantDescription || "").trim() || null,
+          safeBusinessName,
+          safeVendorType,
+          (businessDescription || "").trim() || null,
           logoUrl,
           bannerUrl,
           slug
         ]
       );
 
-      const restaurantId = restaurantResult.rows[0].id;
+      const vendorId = vendorResult.rows[0].id;
       const userResult = await client.query(
-        `INSERT INTO users (email, password_hash, role, restaurant_id, full_name)
+        `INSERT INTO users (email, password_hash, role, vendor_id, full_name)
          VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, email, role, restaurant_id, full_name`,
-        [email, passwordHash, "owner", restaurantId, safeFullName || null]
+         RETURNING id, email, role, vendor_id, full_name`,
+        [email, passwordHash, "owner", vendorId, safeFullName || null]
       );
 
       const user = userResult.rows[0];
 
       await client.query(
-        "UPDATE restaurants SET owner_id = $1 WHERE id = $2",
-        [user.id, restaurantId]
+        "UPDATE vendors SET owner_id = $1 WHERE id = $2",
+        [user.id, vendorId]
       );
 
       await client.query("COMMIT");
@@ -101,7 +107,7 @@ export async function signup(req, res) {
       const userResult = await client.query(
         `INSERT INTO users (email, password_hash, role, full_name)
          VALUES ($1, $2, $3, $4)
-         RETURNING id, email, role, restaurant_id, full_name`,
+         RETURNING id, email, role, vendor_id, full_name`,
         [email, passwordHash, "customer", safeFullName || null]
       );
 
@@ -117,7 +123,7 @@ export async function signup(req, res) {
     const userResult = await client.query(
       `INSERT INTO users (email, password_hash, role, full_name)
        VALUES ($1, $2, $3, $4)
-       RETURNING id, email, role, restaurant_id, full_name`,
+       RETURNING id, email, role, vendor_id, full_name`,
       [email, passwordHash, "driver", safeFullName || null]
     );
 
@@ -179,7 +185,7 @@ export async function login(req, res) {
       id: user.id,
       email: user.email,
       role: user.role,
-      restaurant_id: user.restaurant_id,
+      vendor_id: user.vendor_id,
       full_name: user.full_name || null
     };
 

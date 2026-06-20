@@ -73,16 +73,25 @@
     <div class="auth-role-panel auth-role-panel-hidden" data-role-panel="owner">
       <div class="auth-section-head">
         <h2>Business profile</h2>
-        <p>Set up a public restaurant page with its own visual identity.</p>
+        <p>Set up a public vendor page with its own visual identity.</p>
+      </div>
+
+      <div>
+        <label for="vendorType">Business Type</label>
+        <select id="vendorType" name="vendorType">
+          <% (typeof vendorTypes !== "undefined" ? vendorTypes : []).forEach((type) => { %>
+            <option value="<%= type.value %>"><%= type.label %></option>
+          <% }) %>
+        </select>
       </div>
 
       <div class="auth-grid">
         <div>
-          <label for="restaurantName">Business Name</label>
+          <label for="businessName">Business Name</label>
           <input
             type="text"
-            id="restaurantName"
-            name="restaurantName"
+            id="businessName"
+            name="businessName"
             placeholder="Green Bowl Kitchen"
           />
         </div>
@@ -109,12 +118,12 @@
       </div>
 
       <div>
-        <label for="restaurantDescription">Business Description</label>
+        <label for="businessDescription">Business Description</label>
         <textarea
-          id="restaurantDescription"
-          name="restaurantDescription"
+          id="businessDescription"
+          name="businessDescription"
           rows="4"
-          placeholder="Describe your food style, delivery promise, and what makes the business special."
+          placeholder="Describe what you sell, your delivery promise, and what makes the business special."
         ></textarea>
       </div>
     </div>
@@ -170,7 +179,7 @@
 <script>
   const accountTypeInputs = document.querySelectorAll("[data-account-type]");
   const rolePanels = document.querySelectorAll("[data-role-panel]");
-  const restaurantNameInput = document.getElementById("restaurantName");
+  const businessNameInput = document.getElementById("businessName");
   const requestedAccountType = new URLSearchParams(window.location.search).get("accountType");
 
   if (
@@ -192,8 +201,8 @@
       panel.classList.toggle("auth-role-panel-hidden", !isActive);
     });
 
-    if (restaurantNameInput) {
-      restaurantNameInput.required = selectedType === "owner";
+    if (businessNameInput) {
+      businessNameInput.required = selectedType === "owner";
     }
   };
 

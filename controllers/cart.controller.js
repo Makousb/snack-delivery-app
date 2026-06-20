@@ -1,7 +1,7 @@
 import { pool } from "../db/index.js";
 import {
   calculateCartTotal,
-  ensureRestaurantCart,
+  ensureVendorCart,
   flattenCart,
   getPositiveQuantity
 } from "../utils/cart.js";
@@ -19,10 +19,10 @@ function saveSession(req) {
   });
 }
 
-async function getMenuItem(itemId, restaurantId) {
+async function getMenuItem(itemId, vendorId) {
   const result = await pool.query(
-    "SELECT id, name, price FROM menu_items WHERE id = $1 AND restaurant_id = $2",
-    [itemId, restaurantId]
+    "SELECT id, name, price FROM menu_items WHERE id = $1 AND vendor_id = $2",
+    [itemId, vendorId]
   );
 
   return result.rows[0];
@@ -45,37 +45,37 @@ function upsertCartItem(items, menuItem, quantity) {
 }
 
 export async function addToCart(req, res, next) {
-  const { id: restaurantId } = req.params;
+  const { id: vendorId } = req.params;
   const { itemId, qty } = req.body;
   const quantity = getPositiveQuantity(qty);
 
   try {
-    const menuItem = await getMenuItem(itemId, restaurantId);
+    const menuItem = await getMenuItem(itemId, vendorId);
 
     if (!menuItem) {
       return res.status(404).send("Item not found");
     }
 
-    const restaurantCart = ensureRestaurantCart(req, restaurantId);
-    upsertCartItem(restaurantCart, menuItem, quantity);
+    const vendorCart = ensureVendorCart(req, vendorId);
+    upsertCartItem(vendorCart, menuItem, quantity);
 
     await saveSession(req);
-    return res.redirect(req.get("Referrer") || `/restaurant/${restaurantId}/menu`);
+    return res.redirect(req.get("Referrer") || `/vendor/${vendorId}/menu`);
   } catch (error) {
     return next(error);
   }
 }
 
 export async function addToCartAjax(req, res, next) {
-  const { id, qty, restaurantId, forceSwitch } = req.body;
+  const { id, qty, vendorId, forceSwitch } = req.body;
   const quantity = getPositiveQuantity(qty);
 
-  if (!restaurantId) {
-    return res.status(400).json({ error: "Missing restaurantId" });
+  if (!vendorId) {
+    return res.status(400).json({ error: "Missing vendorId" });
   }
 
   try {
-    const menuItem = await getMenuItem(id, restaurantId);
+    const menuItem = await getMenuItem(id, vendorId);
 
     if (!menuItem) {
       return res.status(404).json({ error: "Item not found" });
@@ -85,19 +85,19 @@ export async function addToCartAjax(req, res, next) {
       req.session.cart = {};
     }
 
-    const existingRestaurantIds = Object.keys(req.session.cart).filter(
-      (currentRestaurantId) => req.session.cart[currentRestaurantId]?.length
+    const existingVendorIds = Object.keys(req.session.cart).filter(
+      (currentVendorId) => req.session.cart[currentVendorId]?.length
     );
 
     if (
-      existingRestaurantIds.length > 0 &&
-      !req.session.cart[restaurantId] &&
+      existingVendorIds.length > 0 &&
+      !req.session.cart[vendorId] &&
       !forceSwitch
     ) {
       return res.json({
         switchRequired: true,
-        currentRestaurant: existingRestaurantIds[0],
-        newRestaurant: restaurantId
+        currentVendor: existingVendorIds[0],
+        newVendor: vendorId
       });
     }
 
@@ -105,8 +105,8 @@ export async function addToCartAjax(req, res, next) {
       req.session.cart = {};
     }
 
-    const restaurantCart = ensureRestaurantCart(req, restaurantId);
-    upsertCartItem(restaurantCart, menuItem, quantity);
+    const vendorCart = ensureVendorCart(req, vendorId);
+    upsertCartItem(vendorCart, menuItem, quantity);
 
     const cartCount = Object.values(req.session.cart).reduce(
       (sum, items) => sum + items.reduce((itemSum, item) => itemSum + item.qty, 0),
@@ -125,13 +125,13 @@ export async function addToCartAjax(req, res, next) {
 }
 
 export function viewCart(req, res) {
-  const { id: restaurantId } = req.params;
-  const cartItems = ensureRestaurantCart(req, restaurantId);
+  const { id: vendorId } = req.params;
+  const cartItems = ensureVendorCart(req, vendorId);
   const total = calculateCartTotal(cartItems);
 
   return res.render("cart", {
     title: "Your Cart",
-    restaurantId,
+    vendorId,
     cartItems,
     total
   });
@@ -145,16 +145,16 @@ export function viewGlobalCart(req, res) {
     title: "Your Cart",
     cartItems,
     total,
-    restaurantId: cartItems[0]?.restaurantId || null
+    vendorId: cartItems[0]?.vendorId || null
   });
 }
 
 export async function removeFromCart(req, res, next) {
-  const { id: restaurantId } = req.params;
+  const { id: vendorId } = req.params;
   const { itemId } = req.body;
-  const restaurantCart = ensureRestaurantCart(req, restaurantId);
+  const vendorCart = ensureVendorCart(req, vendorId);
 
-  req.session.cart[restaurantId] = restaurantCart.filter(
+  req.session.cart[vendorId] = vendorCart.filter(
     (item) => String(item.id) !== String(itemId)
   );
 
@@ -167,19 +167,19 @@ export async function removeFromCart(req, res, next) {
 }
 
 export async function updateCartItem(req, res, next) {
-  const { restaurantId, itemId, qty } = req.body;
+  const { vendorId, itemId, qty } = req.body;
 
-  if (!restaurantId || !itemId) {
+  if (!vendorId || !itemId) {
     return res.status(400).send("Missing cart item data");
   }
 
-  const restaurantCart = ensureRestaurantCart(req, restaurantId);
-  const cartItem = restaurantCart.find((item) => String(item.id) === String(itemId));
+  const vendorCart = ensureVendorCart(req, vendorId);
+  const cartItem = vendorCart.find((item) => String(item.id) === String(itemId));
   const quantity = Number.parseInt(qty, 10);
 
   if (cartItem) {
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      req.session.cart[restaurantId] = restaurantCart.filter(
+      req.session.cart[vendorId] = vendorCart.filter(
         (item) => String(item.id) !== String(itemId)
       );
     } else {
@@ -196,23 +196,23 @@ export async function updateCartItem(req, res, next) {
 }
 
 export async function forceSwitchCart(req, res, next) {
-  const { restaurantId } = req.body;
+  const { vendorId } = req.body;
 
-  if (!restaurantId) {
+  if (!vendorId) {
     return res.status(400).json({
       success: false,
-      message: "restaurantId is required"
+      message: "vendorId is required"
     });
   }
 
   req.session.cart = {};
-  req.session.activeRestaurant = restaurantId;
+  req.session.activeVendor = vendorId;
 
   try {
     await saveSession(req);
     return res.json({
       success: true,
-      activeRestaurant: restaurantId
+      activeVendor: vendorId
     });
   } catch (error) {
     return next(error);
