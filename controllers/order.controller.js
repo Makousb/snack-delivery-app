@@ -1,10 +1,17 @@
 import { pool } from "../db/index.js";
 import { initiateSTKPush } from "../services/mpesa.js";
 
+function parseCoordinate(value, max) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
+}
+
 export const createOrder = async (req, res) => {
   const { restaurantId } = req.params;
   const userId = req.session.user?.id || null;
-  const { phone, paymentMethod, deliveryAddress, tipAmount } = req.body;
+  const { phone, paymentMethod, deliveryAddress, tipAmount, deliveryLat, deliveryLng } = req.body;
+  const parsedLat = parseCoordinate(deliveryLat, 90);
+  const parsedLng = parseCoordinate(deliveryLng, 180);
 
   if (
     !req.session.cart ||
@@ -32,8 +39,8 @@ export const createOrder = async (req, res) => {
     await client.query("BEGIN");
 
     const orderResult = await client.query(
-      `INSERT INTO orders (restaurant_id, user_id, total, status, delivery_address, customer_phone, payment_method)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO orders (restaurant_id, user_id, total, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
       [
         restaurantId,
@@ -42,7 +49,9 @@ export const createOrder = async (req, res) => {
         initialStatus,
         deliveryAddress || null,
         phone || null,
-        paymentMethod || null
+        paymentMethod || null,
+        parsedLat,
+        parsedLng
       ]
     );
 
@@ -89,7 +98,10 @@ export const createOrder = async (req, res) => {
       io.to(`restaurant_${restaurantId}`).emit("newOrder", {
         orderId,
         total,
-        status: initialStatus
+        status: initialStatus,
+        deliveryAddress: deliveryAddress || null,
+        deliveryLat: parsedLat,
+        deliveryLng: parsedLng
       });
 
       io.emit("orderUpdated", {
