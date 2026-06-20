@@ -33,9 +33,9 @@ app.set("view engine", "ejs");
 app.set("views", path.join(appRoot, "views"));
 
 io.on("connection", (socket) => {
-  socket.on("joinRestaurant", (restaurantId) => {
-    if (restaurantId) {
-      socket.join(`restaurant_${restaurantId}`);
+  socket.on("joinVendor", (vendorId) => {
+    if (vendorId) {
+      socket.join(`vendor_${vendorId}`);
     }
   });
 
@@ -81,12 +81,12 @@ app.use(
 app.use(flash());
 
 app.use((req, res, next) => {
-  const { countsByRestaurant, totalCount } = getCartSummary(req.session.cart || {});
+  const { countsByVendor, totalCount } = getCartSummary(req.session.cart || {});
 
   res.locals.currentUser = req.session.user || null;
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
-  res.locals.cartCounts = countsByRestaurant;
+  res.locals.cartCounts = countsByVendor;
   res.locals.cartCount = totalCount;
   res.locals.googleMapsApiKey = config.googleMapsApiKey;
   res.locals.formatCurrency = formatCurrency;

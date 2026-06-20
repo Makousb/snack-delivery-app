@@ -4,7 +4,7 @@
   const safeDashboard = dashboard || {};
   const safeOrders = orders || [];
   const safeMenuItems = menuItems || [];
-  const safeRestaurant = restaurant || {};
+  const safeVendor = vendor || {};
   const recentOrders = safeOrders.slice(0, 6);
   const canManage =
     typeof currentUser !== "undefined" &&
@@ -18,17 +18,17 @@
       <span class="feature-eyebrow">Operations overview</span>
       <h1>Delivery command center</h1>
       <p>
-        Monitor inventory, order flow, driver movement, service quality, and revenue from one dashboard built for busy restaurant teams.
+        Monitor inventory, order flow, driver movement, service quality, and revenue from one dashboard built for busy vendor teams.
       </p>
 
       <div class="ops-hero-actions">
         <% if (canManage) { %>
-          <a href="/admin/menu/new" class="btn restaurant-primary-cta">Add Menu Item</a>
-          <a href="/admin/restaurant/<%= restaurantId %>/orders" class="btn restaurant-secondary-cta">Open Orders</a>
-          <a href="/admin/profile" class="btn restaurant-secondary-cta">Edit Business Profile</a>
-          <a href="/admin/messages" class="btn restaurant-secondary-cta">View Messages</a>
+          <a href="/admin/menu/new" class="btn vendor-primary-cta">Add Menu Item</a>
+          <a href="/admin/vendor/<%= vendorId %>/orders" class="btn vendor-secondary-cta">Open Orders</a>
+          <a href="/admin/profile" class="btn vendor-secondary-cta">Edit Business Profile</a>
+          <a href="/admin/messages" class="btn vendor-secondary-cta">View Messages</a>
         <% } else { %>
-          <a href="/auth/login" class="btn restaurant-primary-cta">Login to Manage</a>
+          <a href="/auth/login" class="btn vendor-primary-cta">Login to Manage</a>
           <span class="ops-chip">Preview mode</span>
         <% } %>
       </div>
@@ -37,7 +37,7 @@
     <div class="ops-hero-summary">
       <div class="ops-summary-tile">
         <span class="ops-summary-label">Business</span>
-        <strong><%= safeRestaurant.name || "Restaurant" %></strong>
+        <strong><%= safeVendor.name || "Vendor" %></strong>
       </div>
       <div class="ops-summary-tile">
         <span class="ops-summary-label">Active orders</span>
@@ -204,6 +204,133 @@
                 <span class="ops-order-status"><%= order.status %></span>
                 <strong><%= formatCurrency(order.total) %></strong>
               </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+
+  <div class="ops-section-heading">
+    <span class="feature-eyebrow">Analytics</span>
+    <h2>Sales and operations insights</h2>
+  </div>
+
+  <div class="ops-analytics-grid">
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Sales</span>
+          <h2>Top sellers this week</h2>
+        </div>
+        <span class="ops-chip">Last 7 days</span>
+      </div>
+
+      <% if (!safeDashboard.topSellers || safeDashboard.topSellers.length === 0) { %>
+        <p class="ops-empty">No items sold in the last 7 days yet.</p>
+      <% } else { %>
+        <ol class="ops-top-sellers">
+          <% safeDashboard.topSellers.forEach((item, index) => { %>
+            <li class="ops-top-seller-row">
+              <span class="ops-top-seller-rank"><%= index + 1 %></span>
+              <div class="ops-top-seller-copy">
+                <strong><%= item.name %></strong>
+                <span><%= item.category %></span>
+              </div>
+              <div class="ops-top-seller-meta">
+                <strong><%= item.units %> sold</strong>
+                <span><%= formatCurrency(item.revenue) %></span>
+              </div>
+            </li>
+          <% }) %>
+        </ol>
+      <% } %>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Revenue</span>
+          <h2>Revenue trend</h2>
+        </div>
+        <span class="ops-chip"><%= formatCurrency(safeDashboard.revenueTrend?.monthTotal) %> / 30 days</span>
+      </div>
+
+      <% const trend = safeDashboard.revenueTrend || { days: [], max: 1 }; %>
+      <div class="ops-trend-chart">
+        <% trend.days.forEach((day) => { %>
+          <div class="ops-trend-col">
+            <div class="ops-trend-bar-track">
+              <span
+                class="ops-trend-bar"
+                style="height: <%= Math.round((day.total / trend.max) * 100) %>%"
+                title="<%= formatCurrency(day.total) %>"
+              ></span>
+            </div>
+            <span class="ops-trend-label"><%= day.label %></span>
+          </div>
+        <% }) %>
+      </div>
+      <div class="ops-trend-footer">
+        <span>Last 7 days</span>
+        <strong><%= formatCurrency(trend.days.reduce((sum, day) => sum + day.total, 0)) %></strong>
+      </div>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Fulfillment</span>
+          <h2>Delivery timing</h2>
+        </div>
+        <span class="ops-chip"><%= safeDashboard.fulfillment?.fulfilledCount || 0 %> completed</span>
+      </div>
+
+      <% const fulfillment = safeDashboard.fulfillment || {}; %>
+      <% if (!fulfillment.fulfilledCount) { %>
+        <p class="ops-empty">No completed deliveries yet. Timing appears once orders are delivered.</p>
+      <% } else { %>
+        <div class="ops-health-grid">
+          <div class="ops-health-card">
+            <span>Average</span>
+            <strong><%= fulfillment.averageMinutes %> min</strong>
+          </div>
+          <div class="ops-health-card">
+            <span>Fastest</span>
+            <strong><%= fulfillment.fastestMinutes %> min</strong>
+          </div>
+          <div class="ops-health-card">
+            <span>Slowest</span>
+            <strong><%= fulfillment.slowestMinutes %> min</strong>
+          </div>
+          <div class="ops-health-card">
+            <span>Fulfilled</span>
+            <strong><%= fulfillment.fulfilledCount %></strong>
+          </div>
+        </div>
+      <% } %>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Attention</span>
+          <h2>Items needing attention</h2>
+        </div>
+        <span class="ops-chip"><%= (safeDashboard.itemsNeedingAttention || []).length %> flagged</span>
+      </div>
+
+      <% if (!safeDashboard.itemsNeedingAttention || safeDashboard.itemsNeedingAttention.length === 0) { %>
+        <p class="ops-empty">Every item is available. Nothing needs attention right now.</p>
+      <% } else { %>
+        <div class="ops-attention-list">
+          <% safeDashboard.itemsNeedingAttention.forEach((item) => { %>
+            <div class="ops-attention-row">
+              <div>
+                <strong><%= item.name %></strong>
+                <span><%= item.category %></span>
+              </div>
+              <span class="ops-attention-status status-<%= item.status.toLowerCase().replace(' ', '-') %>"><%= item.status %></span>
             </div>
           <% }) %>
         </div>

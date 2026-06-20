@@ -2,9 +2,9 @@ import express from "express";
 import {
   renderLanding,
   renderMenu,
-  showRestaurant,
+  showVendor,
   renderHome,
-  searchRestaurant,
+  searchVendors,
   showContact,
   submitContact,
   showAbout
@@ -19,10 +19,9 @@ router.get("/about", showAbout);
 router.get("/contact", showContact);
 router.post("/contact", submitContact);
 
-router.get("/restaurants/search", searchRestaurant);
+router.get("/vendors/search", searchVendors);
 
-router.get("/restaurant/:id/menu", renderMenu);
-router.get("/restaurant/:id", showRestaurant);
+router.get("/vendor/:id/menu", renderMenu);
+router.get("/vendor/:id", showVendor);
 
 export default router;
-

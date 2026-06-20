@@ -4,9 +4,9 @@
   <div class="menu-page-hero">
     <div class="menu-page-copy">
       <span class="feature-eyebrow">Delivery menu</span>
-      <h1><%= restaurant.name %></h1>
+      <h1><%= vendor.name %></h1>
       <p>
-        <%= restaurant.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
+        <%= vendor.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
       </p>
 
       <div class="menu-page-highlights">
@@ -16,30 +16,30 @@
       </div>
 
       <div class="menu-page-actions">
-        <a href="/" class="btn restaurant-secondary-cta">Back to Discovery</a>
-        <a href="/cart" class="btn restaurant-primary-cta">Open Cart</a>
+        <a href="/" class="btn vendor-secondary-cta">Back to Discovery</a>
+        <a href="/cart" class="btn vendor-primary-cta">Open Cart</a>
       </div>
     </div>
 
     <div class="menu-page-panel">
-      <div class="restaurant-logo restaurant-hero-logo">
-        <% if (restaurant.logo_url) { %>
-          <img src="<%= restaurant.logo_url %>" alt="<%= restaurant.name %> logo" loading="lazy">
+      <div class="vendor-logo vendor-hero-logo">
+        <% if (vendor.logo_url) { %>
+          <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy">
         <% } else { %>
-          <span class="home-logo-fallback"><%= restaurant.name.charAt(0).toUpperCase() %></span>
+          <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
         <% } %>
       </div>
 
       <div class="menu-page-panel-grid">
-        <div class="restaurant-metric">
+        <div class="vendor-metric">
           <strong><%= items.length %></strong>
           <span>items on this page</span>
         </div>
-        <div class="restaurant-metric">
+        <div class="vendor-metric">
           <strong><%= totalPages %></strong>
           <span>pages to browse</span>
         </div>
-        <div class="restaurant-metric">
+        <div class="vendor-metric">
           <strong>23 min</strong>
           <span>average delivery</span>
         </div>
@@ -48,7 +48,7 @@
   </div>
 
   <section class="menu-filter-card">
-    <form id="filterForm" method="GET" action="/restaurant/<%= restaurant.id %>/menu" class="menu-filter-form">
+    <form id="filterForm" method="GET" action="/vendor/<%= vendor.id %>/menu" class="menu-filter-form">
       <div class="menu-filter-input">
         <label class="sr-only" for="menu-search">Search menu</label>
         <input
@@ -71,7 +71,7 @@
         </select>
       </div>
 
-      <button type="submit" class="btn restaurant-primary-cta">Refine Menu</button>
+      <button type="submit" class="btn vendor-primary-cta">Refine Menu</button>
     </form>
 
     <div class="menu-results-meta">
@@ -150,7 +150,7 @@
               data-id="<%= item.id %>"
               data-name="<%= item.name %>"
               data-price="<%= item.price %>"
-              data-restaurant="<%= restaurant.id %>"
+              data-vendor="<%= vendor.id %>"
             >
               Add to Cart
             </button>
@@ -162,7 +162,7 @@
 
   <div class="pagination modern-pagination">
     <% if (currentPage > 1) { %>
-      <a href="/restaurant/<%= restaurant.id %>/menu?page=<%= currentPage - 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
+      <a href="/vendor/<%= vendor.id %>/menu?page=<%= currentPage - 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
         &larr; Previous
       </a>
     <% } %>
@@ -170,7 +170,7 @@
     <span>Page <%= currentPage %> of <%= totalPages %></span>
 
     <% if (currentPage < totalPages) { %>
-      <a href="/restaurant/<%= restaurant.id %>/menu?page=<%= currentPage + 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
+      <a href="/vendor/<%= vendor.id %>/menu?page=<%= currentPage + 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
         Next &rarr;
       </a>
     <% } %>
@@ -179,8 +179,8 @@
 
 <div id="switch-modal" class="modal">
   <div class="modal-content">
-    <h3>Switch Restaurant?</h3>
-    <p>You already have items from another restaurant.</p>
+    <h3>Switch Vendor?</h3>
+    <p>You already have items from another vendor.</p>
     <p class="warning">Switching will clear your current cart.</p>
 
     <div class="modal-actions">
@@ -216,7 +216,7 @@
       const id = btn.dataset.id;
       const name = btn.dataset.name;
       const price = btn.dataset.price;
-      const restaurantId = btn.dataset.restaurant;
+      const vendorId = btn.dataset.vendor;
 
       const qtyInput = document.getElementById(`qty-${id}`);
       const qty = parseInt(qtyInput.value, 10) || 1;
@@ -230,7 +230,7 @@
             name,
             price,
             qty,
-            restaurantId,
+            vendorId,
             forceSwitch
           })
         });

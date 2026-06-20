@@ -38,7 +38,7 @@ export const initiateSTKPush = async (phone, amount) => {
       PartyB: businessShortCode,
       PhoneNumber: phone,
       CallBackURL: callbackUrl,
-      AccountReference: "Restaurant Order",
+      AccountReference: "Order",
       TransactionDesc: "Food Payment"
     },
     {

@@ -1,14 +1,16 @@
 -- Snack Delivery App schema
 -- Run against an empty database: psql -d business_data -f sql/schema.sql
 --
--- restaurants and users reference each other (a restaurant has an owner,
--- an owner user has a restaurant_id), so the owner_id foreign key on
--- restaurants is added after both tables exist.
+-- vendors and users reference each other (a vendor has an owner, an owner
+-- user has a vendor_id), so the owner_id foreign key on vendors is added
+-- after both tables exist.
 
-CREATE TABLE IF NOT EXISTS restaurants (
+CREATE TABLE IF NOT EXISTS vendors (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   owner_id INTEGER,
+  vendor_type TEXT NOT NULL DEFAULT 'restaurant'
+    CHECK (vendor_type IN ('restaurant', 'store', 'street_vendor')),
   description TEXT,
   logo_url TEXT,
   banner_url TEXT,
@@ -21,7 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'customer',
-  restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE SET NULL,
+  vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL,
   full_name TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -29,21 +31,21 @@ CREATE TABLE IF NOT EXISTS users (
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'restaurants_owner_id_fkey'
+    SELECT 1 FROM pg_constraint WHERE conname = 'vendors_owner_id_fkey'
   ) THEN
-    ALTER TABLE restaurants
-      ADD CONSTRAINT restaurants_owner_id_fkey
+    ALTER TABLE vendors
+      ADD CONSTRAINT vendors_owner_id_fkey
       FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL;
   END IF;
 END $$;
 
-CREATE UNIQUE INDEX IF NOT EXISTS restaurants_slug_key
-  ON restaurants(slug)
+CREATE UNIQUE INDEX IF NOT EXISTS vendors_slug_key
+  ON vendors(slug)
   WHERE slug IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS menu_items (
   id SERIAL PRIMARY KEY,
-  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
   price NUMERIC(10, 2) NOT NULL,
@@ -56,7 +58,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
 
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
-  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   total NUMERIC(10, 2) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'Pending',

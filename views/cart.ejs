@@ -14,8 +14,8 @@
     </div>
 
     <a
-      href="/restaurant/<%= restaurantId || 1 %>/menu"
-      class="btn restaurant-secondary-cta"
+      href="/vendor/<%= vendorId || 1 %>/menu"
+      class="btn vendor-secondary-cta"
     >
       Continue Shopping
     </a>
@@ -24,9 +24,9 @@
   <% if (!cartItems || cartItems.length === 0) { %>
     <section class="cart-empty-state">
       <h2>Your cart is empty.</h2>
-      <p>Jump back into a restaurant menu and start building an order.</p>
+      <p>Jump back into a vendor's menu and start building an order.</p>
       <a
-        href="/restaurant/<%= restaurantId || 1 %>/menu"
+        href="/vendor/<%= vendorId || 1 %>/menu"
         class="btn cart-return-link"
       >
         Back to Menu
@@ -39,7 +39,7 @@
           <article class="cart-item-card">
             <div class="cart-item-main">
               <div class="cart-item-copy">
-                <span class="menu-category">Restaurant <%= item.restaurantId %></span>
+                <span class="menu-category">Vendor <%= vendorId %></span>
                 <h3><%= item.name %></h3>
                 <p><%= formatCurrency(item.price) %> each</p>
               </div>
@@ -51,7 +51,7 @@
 
             <div class="cart-item-controls">
               <form method="POST" action="/cart/update" class="qty-form cart-qty-form">
-                <input type="hidden" name="restaurantId" value="<%= item.restaurantId %>">
+                <input type="hidden" name="vendorId" value="<%= vendorId %>">
                 <input type="hidden" name="itemId" value="<%= item.id %>">
 
                 <input
@@ -68,7 +68,7 @@
               </form>
 
               <form method="POST" action="/cart/update" class="cart-remove-form">
-                <input type="hidden" name="restaurantId" value="<%= item.restaurantId %>">
+                <input type="hidden" name="vendorId" value="<%= vendorId %>">
                 <input type="hidden" name="itemId" value="<%= item.id %>">
                 <input type="hidden" name="qty" value="0">
 
@@ -112,7 +112,7 @@
           <strong><%= formatCurrency(total) %></strong>
         </div>
 
-        <form method="POST" action="/restaurant/<%= restaurantId || 1 %>/order" class="checkout-form modern-checkout-form">
+        <form method="POST" action="/vendor/<%= vendorId || 1 %>/order" class="checkout-form modern-checkout-form">
           <div class="checkout-field">
             <label for="delivery-address"><strong>Delivery Address:</strong></label>
             <textarea
@@ -126,7 +126,7 @@
               Snack remembers this address on this browser so repeat orders stay quick.
             </p>
 
-            <button type="button" class="btn restaurant-secondary-cta" data-capture-location>
+            <button type="button" class="btn vendor-secondary-cta" data-capture-location>
               Use my current location
             </button>
             <p class="checkout-address-note" data-location-status></p>

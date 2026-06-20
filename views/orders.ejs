@@ -11,14 +11,14 @@
     <section class="cart-empty-state">
       <h2>No orders yet.</h2>
       <p>Once you place an order, it will show up here with status updates and totals.</p>
-      <a href="/" class="btn restaurant-primary-cta">Explore Restaurants</a>
+      <a href="/" class="btn vendor-primary-cta">Explore Vendors</a>
     </section>
   <% } else { %>
     <div class="orders-grid">
       <% orders.forEach(order => { %>
         <a href="/orders/<%= order.id %>/success" class="order-history-card">
           <div class="order-history-head">
-            <span class="menu-category"><%= order.restaurant_name || "Restaurant" %></span>
+            <span class="menu-category"><%= order.vendor_name || "Vendor" %></span>
             <strong>#<%= order.id %></strong>
           </div>
 

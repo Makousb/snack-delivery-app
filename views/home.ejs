@@ -1,9 +1,10 @@
 <%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
 
 <%
-  const safeRestaurants = restaurants || [];
+  const safeVendors = vendors || [];
+  const safeVendorTypes = vendorTypes || [];
   const safePopularItems = popularItems || [];
-  const fallbackRestaurantImages = [
+  const fallbackVendorImages = [
     "/homepage_images/Restaurant_items.avif",
     "/homepage_images/papa-johns-banner.webp",
     "/homepage_images/PizzaInnBanner.jpg",
@@ -26,17 +27,16 @@
     "Pickup",
     "New on Snack"
   ];
-  const restaurantBadges = ["Free delivery", "Top rated", "Great value", "Fast delivery"];
-  const restaurantCuisines = ["Pizza", "Chicken", "Burgers", "Comfort food", "Fresh bowls"];
-  const restaurantItems = safePopularItems.reduce((groups, item) => {
-    const key = String(item.restaurant_id);
+  const vendorBadges = ["Free delivery", "Top rated", "Great value", "Fast delivery"];
+  const vendorItems = safePopularItems.reduce((groups, item) => {
+    const key = String(item.vendor_id);
     groups[key] = groups[key] || [];
     groups[key].push(item);
     return groups;
   }, {});
-  const heroRestaurant = safeRestaurants[0] || {};
+  const heroVendor = safeVendors[0] || {};
   const heroImage =
-    heroRestaurant.banner_url ||
+    heroVendor.banner_url ||
     safePopularItems[0]?.image_url ||
     "/homepage_images/Restaurant_items.avif";
   const spotlightItems = safePopularItems.slice(0, 8);
@@ -62,9 +62,9 @@
         <span class="side-menu-icon" aria-hidden="true">*</span>
         <span>Popular</span>
       </a>
-      <a href="#featured-restaurants" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">R</span>
-        <span>Restaurants</span>
+      <a href="#featured-vendors" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">V</span>
+        <span>Vendors</span>
       </a>
     </nav>
 
@@ -113,25 +113,25 @@
   <section class="marketplace-hero" aria-label="Food delivery marketplace">
     <div class="marketplace-hero-copy">
       <span class="marketplace-kicker">Snack marketplace</span>
-      <h1>Food delivery from restaurants near you.</h1>
+      <h1>Food, groceries, and more from vendors near you.</h1>
 
-      <form class="marketplace-search" method="GET" action="/restaurants/search">
-        <label class="sr-only" for="marketplace-search-input">Search restaurants</label>
+      <form class="marketplace-search" method="GET" action="/vendors/search">
+        <label class="sr-only" for="marketplace-search-input">Search vendors</label>
         <span class="marketplace-search-icon" aria-hidden="true">Search</span>
         <input
           id="marketplace-search-input"
           type="text"
           name="search"
           value="<%= searchQuery || "" %>"
-          placeholder="Search restaurants or dishes"
-          aria-label="Search restaurants or dishes"
+          placeholder="Search vendors or items"
+          aria-label="Search vendors or items"
         />
         <button type="submit">Find Food</button>
       </form>
 
-      <% if (restaurantNotFound) { %>
+      <% if (vendorNotFound) { %>
         <p class="flash flash-error home-search-feedback">
-          No restaurant matched "<%= searchQuery %>". Try another name.
+          No vendor matched "<%= searchQuery %>". Try another name.
         </p>
       <% } %>
 
@@ -142,11 +142,11 @@
       </div>
     </div>
 
-    <a href="<%= heroRestaurant.id ? `/restaurant/${heroRestaurant.id}/menu` : "#featured-restaurants" %>" class="marketplace-hero-card">
-      <img src="<%= heroImage %>" alt="<%= heroRestaurant.name || "Featured restaurant food" %>" />
+    <a href="<%= heroVendor.id ? `/vendor/${heroVendor.id}/menu` : "#featured-vendors" %>" class="marketplace-hero-card">
+      <img src="<%= heroImage %>" alt="<%= heroVendor.name || "Featured vendor food" %>" />
       <div>
         <span>Featured near you</span>
-        <strong><%= heroRestaurant.name || "Local restaurant picks" %></strong>
+        <strong><%= heroVendor.name || "Local vendor picks" %></strong>
         <small>Explore menus, prices, and fast checkout.</small>
       </div>
     </a>
@@ -154,7 +154,7 @@
 
   <section class="marketplace-category-rail" id="marketplace-categories" aria-label="Popular categories">
     <% marketplaceCategories.forEach((category) => { %>
-      <a href="#featured-restaurants" class="marketplace-category-card">
+      <a href="#featured-vendors" class="marketplace-category-card">
         <span class="marketplace-category-art marketplace-category-<%= category.tone %> <%= category.image ? "marketplace-category-image" : "" %>">
           <% if (category.image) { %>
             <img src="<%= category.image %>" alt="" loading="lazy" />
@@ -166,9 +166,9 @@
     <% }) %>
   </section>
 
-  <section class="marketplace-filter-bar" aria-label="Restaurant filters">
+  <section class="marketplace-filter-bar" aria-label="Vendor filters">
     <% filterChips.forEach((chip, index) => { %>
-      <a href="#featured-restaurants" class="<%= index === 0 ? "marketplace-filter-active" : "" %>">
+      <a href="#featured-vendors" class="<%= index === 0 ? "marketplace-filter-active" : "" %>">
         <%= chip %>
       </a>
     <% }) %>
@@ -178,17 +178,17 @@
     <article>
       <span>Featured offer</span>
       <strong>Free delivery on every order</strong>
-      <a href="#featured-restaurants">Browse offers</a>
+      <a href="#featured-vendors">Browse offers</a>
     </article>
     <article>
       <span>Order faster</span>
-      <strong>Popular dishes are ready to add from the home page</strong>
+      <strong>Popular items are ready to add from the home page</strong>
       <a href="#popular-now">See popular picks</a>
     </article>
     <article>
       <span>Local favorites</span>
-      <strong><%= safeRestaurants.length %> restaurants available now</strong>
-      <a href="#featured-restaurants">View restaurants</a>
+      <strong><%= safeVendors.length %> vendors available now</strong>
+      <a href="#featured-vendors">View vendors</a>
     </article>
   </section>
 
@@ -205,7 +205,7 @@
       <div class="marketplace-item-row">
         <% spotlightItems.forEach((item, index) => { %>
           <article class="marketplace-item-card">
-            <a href="/restaurant/<%= item.restaurant_id %>/menu" class="marketplace-item-image">
+            <a href="/vendor/<%= item.vendor_id %>/menu" class="marketplace-item-image">
               <% if (item.image_url) { %>
                 <img src="<%= item.image_url %>" alt="<%= item.name %>" loading="lazy" />
               <% } else { %>
@@ -214,7 +214,7 @@
             </a>
 
             <div class="marketplace-item-body">
-              <span><%= item.restaurant_name %></span>
+              <span><%= item.vendor_name %></span>
               <h3><%= item.name %></h3>
               <p><%= item.category || "Customer favorite" %> · <%= 18 + (index % 4) * 4 %>-<%= 26 + (index % 4) * 4 %> min</p>
               <div>
@@ -225,7 +225,7 @@
                   data-id="<%= item.id %>"
                   data-name="<%= item.name %>"
                   data-price="<%= item.price %>"
-                  data-restaurant="<%= item.restaurant_id %>"
+                  data-vendor="<%= item.vendor_id %>"
                 >
                   Add
                 </button>
@@ -239,48 +239,56 @@
     <% } %>
   </section>
 
-  <section class="marketplace-section" id="featured-restaurants">
+  <section class="marketplace-section" id="featured-vendors">
     <div class="marketplace-section-head">
       <div>
-        <span>Restaurants near you</span>
+        <span>Vendors near you</span>
         <h2>Order from local favorites</h2>
       </div>
       <a href="/cart">Open cart</a>
     </div>
 
-    <% if (safeRestaurants.length === 0) { %>
-      <p class="home-empty-state">No restaurants found.</p>
+    <% if (safeVendorTypes.length > 0) { %>
+      <div class="marketplace-vendor-type-filter" aria-label="Filter by vendor type">
+        <button type="button" class="vendor-type-filter-chip vendor-type-filter-active" data-vendor-type-filter="all">All</button>
+        <% safeVendorTypes.forEach((type) => { %>
+          <button type="button" class="vendor-type-filter-chip" data-vendor-type-filter="<%= type.value %>"><%= type.label %>s</button>
+        <% }) %>
+      </div>
     <% } %>
 
-    <div class="marketplace-restaurant-grid">
-      <% safeRestaurants.forEach((restaurant, index) => { %>
+    <% if (safeVendors.length === 0) { %>
+      <p class="home-empty-state">No vendors found.</p>
+    <% } %>
+
+    <div class="marketplace-vendor-grid" id="vendor-grid">
+      <% safeVendors.forEach((vendor, index) => { %>
         <%
           const etaStart = 18 + (index % 5) * 3;
           const etaEnd = etaStart + 10;
           const rating = (4.8 - (index % 4) * 0.1).toFixed(1);
-          const cuisine = restaurantCuisines[index % restaurantCuisines.length];
-          const badge = restaurantBadges[index % restaurantBadges.length];
-          const bannerImage = restaurant.banner_url || fallbackRestaurantImages[index % fallbackRestaurantImages.length];
-          const previewItems = restaurantItems[String(restaurant.id)] || [];
+          const badge = vendorBadges[index % vendorBadges.length];
+          const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
+          const previewItems = vendorItems[String(vendor.id)] || [];
         %>
 
-        <a href="/restaurant/<%= restaurant.id %>/menu" class="marketplace-restaurant-card">
-          <div class="marketplace-restaurant-media">
-            <img src="<%= bannerImage %>" alt="<%= restaurant.name %> food" loading="lazy" />
+        <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card" data-vendor-type="<%= vendor.vendor_type %>">
+          <div class="marketplace-vendor-media">
+            <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
             <span class="marketplace-store-badge"><%= badge %></span>
           </div>
 
-          <div class="marketplace-restaurant-content">
-            <div class="marketplace-restaurant-title">
+          <div class="marketplace-vendor-content">
+            <div class="marketplace-vendor-title">
               <div>
-                <h3><%= restaurant.name %></h3>
-                <p><%= cuisine %> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
+                <h3><%= vendor.name %></h3>
+                <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
               </div>
               <strong><%= rating %></strong>
             </div>
 
-            <p class="marketplace-restaurant-description">
-              <%= restaurant.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
+            <p class="marketplace-vendor-description">
+              <%= vendor.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
             </p>
 
             <% if (previewItems.length > 0) { %>
@@ -304,8 +312,8 @@
 
 <div id="switch-modal" class="modal">
   <div class="modal-content">
-    <h3>Switch Restaurant?</h3>
-    <p>You already have items from another restaurant.</p>
+    <h3>Switch Vendor?</h3>
+    <p>You already have items from another vendor.</p>
     <p class="warning">Switching will clear your current cart.</p>
 
     <div class="modal-actions">
@@ -359,7 +367,7 @@
       const id = button.dataset.id;
       const name = button.dataset.name;
       const price = button.dataset.price;
-      const restaurantId = button.dataset.restaurant;
+      const vendorId = button.dataset.vendor;
 
       const sendRequest = async (forceSwitch = false) => {
         return fetch("/cart/add-ajax", {
@@ -370,7 +378,7 @@
             name,
             price,
             qty: 1,
-            restaurantId,
+            vendorId,
             forceSwitch,
           }),
         });
@@ -411,6 +419,24 @@
   cancelBtn?.addEventListener("click", () => {
     closeModal();
     pendingAction = null;
+  });
+
+  const vendorTypeFilterChips = document.querySelectorAll("[data-vendor-type-filter]");
+  const vendorCards = document.querySelectorAll("#vendor-grid [data-vendor-type]");
+
+  vendorTypeFilterChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const selectedType = chip.dataset.vendorTypeFilter;
+
+      vendorTypeFilterChips.forEach((otherChip) => {
+        otherChip.classList.toggle("vendor-type-filter-active", otherChip === chip);
+      });
+
+      vendorCards.forEach((card) => {
+        const matches = selectedType === "all" || card.dataset.vendorType === selectedType;
+        card.style.display = matches ? "" : "none";
+      });
+    });
   });
 </script>
 

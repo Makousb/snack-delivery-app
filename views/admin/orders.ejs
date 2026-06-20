@@ -68,10 +68,10 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
-  const restaurantId = "<%= restaurantId %>";
+  const vendorId = "<%= vendorId %>";
 
-  // Join restaurant room
-  socket.emit("joinRestaurant", restaurantId);
+  // Join vendor room
+  socket.emit("joinVendor", vendorId);
 
   // Apply colors to existing rows
   document.querySelectorAll(".status").forEach(el => {
