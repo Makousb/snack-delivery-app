@@ -20,6 +20,19 @@
   <!-- Scripts -->
   <script src="/js/navbar.js" defer></script>
   <script src="/js/address-memory.js" defer></script>
+
+  <% if (typeof googleMapsApiKey !== "undefined" && googleMapsApiKey) { %>
+    <script>
+      window.initSnackPlacesAutocomplete = function () {
+        window.__googleMapsReady = true;
+        document.dispatchEvent(new Event("google-maps-ready"));
+      };
+    </script>
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsApiKey %>&libraries=places&loading=async&callback=initSnackPlacesAutocomplete"
+      async
+    ></script>
+  <% } %>
 </head>
 
 <body class="<%= typeof bodyClass !== "undefined" ? bodyClass : "" %>">
@@ -67,6 +80,8 @@
         </button>
 
       </div>
+
+      <span class="nav-delivery-status" data-delivery-address-status></span>
     </div>
 
     <!-- Navigation Links -->

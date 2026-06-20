@@ -37,12 +37,22 @@ document.addEventListener("DOMContentLoaded", () => {
     navAddress.textContent = value.trim() || "Set your address";
   };
 
+  let statusTimeoutId = null;
+
   const syncStatus = (value) => {
+    if (statusTimeoutId) clearTimeout(statusTimeoutId);
+
     statusMessages.forEach((status) => {
-      status.textContent = value.trim()
-        ? `Saved address: ${value.trim()}`
-        : "No saved address yet.";
+      status.textContent = value.trim() ? "Saved ✓" : "";
     });
+
+    if (value.trim()) {
+      statusTimeoutId = setTimeout(() => {
+        statusMessages.forEach((status) => {
+          status.textContent = "";
+        });
+      }, 2000);
+    }
   };
 
   const syncClearButtons = (value) => {
@@ -164,4 +174,44 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     });
   });
+
+  // Real address recognition via Google Places, when a Maps API key is
+  // configured. Stays a plain text field otherwise -- nothing here breaks
+  // without it.
+  function initPlacesAutocomplete() {
+    if (!window.google?.maps?.places) return;
+
+    addressInputs.forEach((input) => {
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        fields: ["formatted_address", "geometry"],
+        componentRestrictions: { country: "ke" }
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        const address = place.formatted_address || input.value;
+
+        input.value = address;
+        commitAddress(address, input);
+
+        const lat = place.geometry?.location?.lat();
+        const lng = place.geometry?.location?.lng();
+
+        if (typeof lat === "number" && typeof lng === "number") {
+          const form = input.closest("form");
+          const latInput = form?.querySelector('[name="deliveryLat"]');
+          const lngInput = form?.querySelector('[name="deliveryLng"]');
+
+          if (latInput) latInput.value = lat;
+          if (lngInput) lngInput.value = lng;
+        }
+      });
+    });
+  }
+
+  if (window.__googleMapsReady) {
+    initPlacesAutocomplete();
+  } else {
+    document.addEventListener("google-maps-ready", initPlacesAutocomplete);
+  }
 });

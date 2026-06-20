@@ -3163,6 +3163,14 @@ body.dark .partner-benefits li {
   margin-bottom: 2px;
 }
 
+.nav-delivery-status {
+  font-size: 10px;
+  font-weight: 600;
+  color: #16a34a;
+  min-height: 12px;
+  margin-top: 2px;
+}
+
 /* wrapper */
 .nav-delivery-input-wrapper {
   position: relative;
