@@ -45,7 +45,7 @@
       </div>
       <div class="ops-summary-tile">
         <span class="ops-summary-label">Today's revenue</span>
-        <strong>$<%= Number(safeDashboard.revenueToday || 0).toFixed(2) %></strong>
+        <strong><%= formatCurrency(safeDashboard.revenueToday) %></strong>
       </div>
       <div class="ops-summary-tile">
         <span class="ops-summary-label">On-time rate</span>
@@ -69,8 +69,8 @@
 
     <article class="ops-kpi-card">
       <span class="ops-kpi-label">Weekly revenue</span>
-      <strong>$<%= Number(safeDashboard.revenueWeek || 0).toFixed(2) %></strong>
-      <p>Average order value $<%= Number(safeDashboard.averageOrderValue || 0).toFixed(2) %></p>
+      <strong><%= formatCurrency(safeDashboard.revenueWeek) %></strong>
+      <p>Average order value <%= formatCurrency(safeDashboard.averageOrderValue) %></p>
     </article>
   </div>
 
@@ -99,7 +99,7 @@
         </div>
         <div class="ops-health-card">
           <span>Average menu price</span>
-          <strong>$<%= Number(safeDashboard.averagePrice || 0).toFixed(2) %></strong>
+          <strong><%= formatCurrency(safeDashboard.averagePrice) %></strong>
         </div>
       </div>
 
@@ -202,7 +202,7 @@
               </div>
               <div>
                 <span class="ops-order-status"><%= order.status %></span>
-                <strong>$<%= Number(order.total).toFixed(2) %></strong>
+                <strong><%= formatCurrency(order.total) %></strong>
               </div>
             </div>
           <% }) %>
@@ -261,7 +261,7 @@
 
           <div class="admin-card-body">
             <h3><%= item.name %></h3>
-            <p class="admin-price">$<%= Number(item.price).toFixed(2) %></p>
+            <p class="admin-price"><%= formatCurrency(item.price) %></p>
             <p class="admin-category"><%= item.category %></p>
 
             <% if (canManage) { %>

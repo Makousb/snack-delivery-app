@@ -65,7 +65,7 @@
         <% featuredItems.slice(0, 3).forEach(item => { %>
           <div class="restaurant-preview-row">
             <span><%= item.name %></span>
-            <strong>$<%= Number(item.price).toFixed(2) %></strong>
+            <strong><%= formatCurrency(item.price) %></strong>
           </div>
         <% }) %>
       </div>
@@ -100,7 +100,7 @@
             <h3><%= item.name %></h3>
             <p><%= item.description || "Made for quick, confident ordering." %></p>
             <div class="restaurant-featured-footer">
-              <strong>$<%= Number(item.price).toFixed(2) %></strong>
+              <strong><%= formatCurrency(item.price) %></strong>
               <a href="/restaurant/<%= restaurant.id %>/menu" class="restaurant-card-link">
                 Order now
               </a>

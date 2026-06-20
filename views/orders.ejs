@@ -25,7 +25,7 @@
           <h2><%= order.status %></h2>
 
           <div class="order-history-meta">
-            <span>$<%= Number(order.total).toFixed(2) %></span>
+            <span><%= formatCurrency(order.total) %></span>
             <span><%= order.created_at.toLocaleString() %></span>
           </div>
 

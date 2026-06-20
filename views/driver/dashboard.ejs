@@ -21,7 +21,7 @@
       </div>
       <div class="driver-stat-card">
         <span>Tips earned</span>
-        <strong>$<%= Number(driverStats.totalTips).toFixed(2) %></strong>
+        <strong><%= formatCurrency(driverStats.totalTips) %></strong>
       </div>
     </div>
   </div>
@@ -71,11 +71,11 @@
       <div class="driver-tip-grid">
         <div class="driver-tip-card">
           <span>Total tips</span>
-          <strong>$<%= Number(driverStats.totalTips).toFixed(2) %></strong>
+          <strong><%= formatCurrency(driverStats.totalTips) %></strong>
         </div>
         <div class="driver-tip-card">
           <span>Weekly tips</span>
-          <strong>$<%= Number(driverStats.weeklyTips).toFixed(2) %></strong>
+          <strong><%= formatCurrency(driverStats.weeklyTips) %></strong>
         </div>
         <div class="driver-tip-card">
           <span>Completed jobs</span>
@@ -103,11 +103,11 @@
                   <strong>#<%= delivery.order_id %></strong>
                   <span><%= delivery.restaurant_name %></span>
                 </div>
-                <strong>$<%= Number(delivery.total).toFixed(2) %></strong>
+                <strong><%= formatCurrency(delivery.total) %></strong>
               </div>
               <p><strong>Pickup:</strong> <%= delivery.pickup_location || delivery.restaurant_name %></p>
               <p><strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %></p>
-              <p><strong>Tip:</strong> $<%= Number(delivery.tips || 0).toFixed(2) %></p>
+              <p><strong>Tip:</strong> <%= formatCurrency(delivery.tips) %></p>
               <form action="/driver/deliveries/<%= delivery.id %>/accept" method="POST">
                 <button type="submit" class="btn restaurant-primary-cta">Accept delivery</button>
               </form>
@@ -188,7 +188,7 @@
                 <span><%= delivery.restaurant_name %></span>
               </div>
               <div>
-                <span class="ops-order-status">Tip $<%= Number(delivery.tips || 0).toFixed(2) %></span>
+                <span class="ops-order-status">Tip <%= formatCurrency(delivery.tips) %></span>
                 <strong><%= delivery.completed_at ? new Date(delivery.completed_at).toLocaleString() : "Completed" %></strong>
               </div>
             </div>

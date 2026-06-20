@@ -24,9 +24,9 @@
           <article class="order-item-row">
             <div>
               <h3><%= item.name %></h3>
-              <p><%= item.quantity %> x $<%= Number(item.price).toFixed(2) %></p>
+              <p><%= item.quantity %> x <%= formatCurrency(item.price) %></p>
             </div>
-            <strong>$<%= (item.price * item.quantity).toFixed(2) %></strong>
+            <strong><%= formatCurrency(item.price * item.quantity) %></strong>
           </article>
         <% }) %>
       </div>
@@ -37,7 +37,7 @@
       <h2>Everything looks good.</h2>
       <div class="cart-summary-total">
         <span>Total</span>
-        <strong>$<%= Number(order.total).toFixed(2) %></strong>
+        <strong><%= formatCurrency(order.total) %></strong>
       </div>
 
       <div class="order-summary-meta">

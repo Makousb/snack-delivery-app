@@ -21,7 +21,7 @@
       <% orders.forEach(order => { %>
         <tr id="order-<%= order.id %>">
           <td><%= order.id %></td>
-          <td>$<%= Number(order.total).toFixed(2) %></td>
+          <td><%= formatCurrency(order.total) %></td>
           <td class="status"><%= order.status %></td>
           <td><%= order.created_at.toLocaleString() %></td>
           <td>
@@ -80,7 +80,7 @@
     const row = `
       <tr id="order-${order.orderId}">
         <td>${order.orderId}</td>
-        <td>$${Number(order.total).toFixed(2)}</td>
+        <td>KSh ${Number(order.total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td class="status" data-status="${order.status}">${order.status}</td>
         <td>Just now</td>
         <td>
