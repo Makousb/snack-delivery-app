@@ -38,6 +38,20 @@ io.on("connection", (socket) => {
       socket.join(`restaurant_${restaurantId}`);
     }
   });
+
+  socket.on("joinOrderTracking", (orderId) => {
+    if (orderId) {
+      socket.join(`order_${orderId}`);
+    }
+  });
+
+  socket.on("driverLocationPing", ({ orderId, lat, lng } = {}) => {
+    if (!orderId || typeof lat !== "number" || typeof lng !== "number") {
+      return;
+    }
+
+    socket.to(`order_${orderId}`).emit("driverLocationUpdate", { lat, lng });
+  });
 });
 
 app.use(express.urlencoded({ extended: true }));

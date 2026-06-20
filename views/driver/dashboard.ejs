@@ -209,4 +209,33 @@
   </div>
 </section>
 
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const activeOrderIds = <%- JSON.stringify(activeDeliveries.map((d) => d.order_id)) %>;
+
+  if (activeOrderIds.length > 0 && "geolocation" in navigator) {
+    const socket = io();
+    let lastPingAt = 0;
+    const PING_INTERVAL_MS = 15000;
+
+    navigator.geolocation.watchPosition(
+      (position) => {
+        const now = Date.now();
+        if (now - lastPingAt < PING_INTERVAL_MS) return;
+        lastPingAt = now;
+
+        const { latitude, longitude } = position.coords;
+
+        activeOrderIds.forEach((orderId) => {
+          socket.emit("driverLocationPing", { orderId, lat: latitude, lng: longitude });
+        });
+      },
+      (error) => {
+        console.error("Location tracking unavailable:", error.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 10000 }
+    );
+  }
+</script>
+
 <%- include("../partials/footer") %>

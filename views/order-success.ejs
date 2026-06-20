@@ -11,6 +11,11 @@
       <strong id="order-status"><%= order.status %></strong>
     </div>
 
+    <div class="order-status-pill" id="driver-tracking-pill" style="display: none;">
+      <span>Driver</span>
+      <strong id="driver-tracking-text">On the way</strong>
+    </div>
+
     <% if (order.payment_method === "mpesa" && order.status === "Pending Payment") { %>
       <form action="/orders/<%= order.id %>/confirm-payment" method="POST" class="auth-form-card mpesa-confirm-form">
         <p>
@@ -75,6 +80,10 @@
 <script>
   const socket = io();
   const orderId = "<%= order.id %>";
+  const deliveryLat = <%- order.delivery_lat != null ? order.delivery_lat : "null" %>;
+  const deliveryLng = <%- order.delivery_lng != null ? order.delivery_lng : "null" %>;
+
+  socket.emit("joinOrderTracking", orderId);
 
   socket.on("orderUpdated", (data) => {
     if (String(data.orderId) === orderId) {
@@ -86,6 +95,33 @@
       setTimeout(() => {
         statusEl.style.color = "";
       }, 500);
+    }
+  });
+
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const earthRadiusKm = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  socket.on("driverLocationUpdate", ({ lat, lng }) => {
+    const pill = document.getElementById("driver-tracking-pill");
+    const text = document.getElementById("driver-tracking-text");
+
+    pill.style.display = "flex";
+
+    if (deliveryLat != null && deliveryLng != null) {
+      const distanceKm = haversineKm(lat, lng, deliveryLat, deliveryLng);
+      // Straight-line distance, not a routed time estimate -- there's no
+      // traffic/routing data here to honestly back a "X min" figure.
+      text.innerText = `~${distanceKm.toFixed(1)} km away (straight-line)`;
+    } else {
+      text.innerText = "Your driver is on the way";
     }
   });
 </script>
