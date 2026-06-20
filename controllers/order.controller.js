@@ -242,7 +242,7 @@ export const updateOrderStatus = async (req, res) => {
 
     if (!result.rows.length) {
       req.flash("error", "Order not found.");
-      return res.redirect("back");
+      return res.redirect(`/admin/restaurant/${restaurantId}/orders`);
     }
 
     const io = req.app.get("io");
@@ -254,7 +254,7 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    res.redirect("back");
+    res.redirect(`/admin/restaurant/${restaurantId}/orders`);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating order");
