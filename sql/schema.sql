@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_method VARCHAR(50),
   mpesa_checkout_request_id TEXT,
   mpesa_manual_code TEXT,
+  delivery_lat NUMERIC(10, 6),
+  delivery_lng NUMERIC(10, 6),
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

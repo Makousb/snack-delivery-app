@@ -129,4 +129,39 @@ document.addEventListener("DOMContentLoaded", () => {
       addressInputs[0]?.focus();
     });
   });
+
+  document.querySelectorAll("[data-capture-location]").forEach((button) => {
+    const form = button.closest("form");
+    const statusEl = form?.querySelector("[data-location-status]");
+    const latInput = form?.querySelector('[name="deliveryLat"]');
+    const lngInput = form?.querySelector('[name="deliveryLng"]');
+
+    if (!form || !latInput || !lngInput) return;
+
+    if (!("geolocation" in navigator)) {
+      button.disabled = true;
+      if (statusEl) statusEl.textContent = "Location isn't available in this browser.";
+      return;
+    }
+
+    button.addEventListener("click", () => {
+      if (statusEl) statusEl.textContent = "Getting your location...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          latInput.value = position.coords.latitude;
+          lngInput.value = position.coords.longitude;
+          if (statusEl) statusEl.textContent = "Location captured — your rider will get exact coordinates.";
+        },
+        () => {
+          latInput.value = "";
+          lngInput.value = "";
+          if (statusEl) {
+            statusEl.textContent = "Couldn't get your location. The address above will be used instead.";
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  });
 });

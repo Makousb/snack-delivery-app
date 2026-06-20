@@ -34,6 +34,8 @@ export async function renderDriverDashboard(req, res, next) {
            o.id AS order_id,
            o.total,
            o.delivery_address,
+           o.delivery_lat,
+           o.delivery_lng,
            o.customer_phone,
            r.name AS restaurant_name
          FROM deliveries d
@@ -54,6 +56,8 @@ export async function renderDriverDashboard(req, res, next) {
            o.id AS order_id,
            o.total,
            o.delivery_address,
+           o.delivery_lat,
+           o.delivery_lng,
            o.customer_phone,
            r.name AS restaurant_name
          FROM deliveries d

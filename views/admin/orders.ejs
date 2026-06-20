@@ -14,6 +14,7 @@
         <th>Total</th>
         <th>Status</th>
         <th>M-Pesa Code</th>
+        <th>Address</th>
         <th>Created</th>
         <th>Action</th>
       </tr>
@@ -25,6 +26,12 @@
           <td><%= formatCurrency(order.total) %></td>
           <td class="status"><%= order.status %></td>
           <td><%= order.mpesa_manual_code || "—" %></td>
+          <td>
+            <%= order.delivery_address || "—" %>
+            <% if (order.delivery_lat && order.delivery_lng) { %>
+              <a href="https://www.google.com/maps?q=<%= order.delivery_lat %>,<%= order.delivery_lng %>" target="_blank" rel="noopener">Map</a>
+            <% } %>
+          </td>
           <td><%= order.created_at.toLocaleString() %></td>
           <td>
             <form method="POST" action="/admin/order/<%= order.id %>/status">
@@ -86,6 +93,10 @@
         <td>KSh ${Number(order.total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td class="status" data-status="${order.status}">${order.status}</td>
         <td>—</td>
+        <td>
+          ${order.deliveryAddress || "—"}
+          ${order.deliveryLat && order.deliveryLng ? `<a href="https://www.google.com/maps?q=${order.deliveryLat},${order.deliveryLng}" target="_blank" rel="noopener">Map</a>` : ""}
+        </td>
         <td>Just now</td>
         <td>
           <form method="POST" action="/admin/order/${order.orderId}/status">

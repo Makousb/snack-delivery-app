@@ -106,7 +106,12 @@
                 <strong><%= formatCurrency(delivery.total) %></strong>
               </div>
               <p><strong>Pickup:</strong> <%= delivery.pickup_location || delivery.restaurant_name %></p>
-              <p><strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %></p>
+              <p>
+                <strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %>
+                <% if (delivery.delivery_lat && delivery.delivery_lng) { %>
+                  &middot; <a href="https://www.google.com/maps?q=<%= delivery.delivery_lat %>,<%= delivery.delivery_lng %>" target="_blank" rel="noopener">Open in Maps</a>
+                <% } %>
+              </p>
               <p><strong>Tip:</strong> <%= formatCurrency(delivery.tips) %></p>
               <form action="/driver/deliveries/<%= delivery.id %>/accept" method="POST">
                 <button type="submit" class="btn restaurant-primary-cta">Accept delivery</button>
@@ -146,7 +151,12 @@
                 <span class="driver-step <%= delivery.status === 'Delivered' ? 'driver-step-active' : '' %>">Delivered</span>
               </div>
 
-              <p><strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %></p>
+              <p>
+                <strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %>
+                <% if (delivery.delivery_lat && delivery.delivery_lng) { %>
+                  &middot; <a href="https://www.google.com/maps?q=<%= delivery.delivery_lat %>,<%= delivery.delivery_lng %>" target="_blank" rel="noopener">Open in Maps</a>
+                <% } %>
+              </p>
               <p><strong>Customer phone:</strong> <%= delivery.customer_phone || "Not provided" %></p>
 
               <div class="driver-stage-actions">
