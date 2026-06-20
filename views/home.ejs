@@ -26,7 +26,7 @@
     "Pickup",
     "New on Snack"
   ];
-  const restaurantBadges = ["$0 delivery fee", "Top rated", "Great value", "Fast delivery"];
+  const restaurantBadges = ["Free delivery", "Top rated", "Great value", "Fast delivery"];
   const restaurantCuisines = ["Pizza", "Chicken", "Burgers", "Comfort food", "Fresh bowls"];
   const restaurantItems = safePopularItems.reduce((groups, item) => {
     const key = String(item.restaurant_id);
@@ -177,7 +177,7 @@
   <section class="marketplace-deals" id="marketplace-highlights" aria-label="Marketplace highlights">
     <article>
       <span>Featured offer</span>
-      <strong>$0 delivery fee on selected restaurants</strong>
+      <strong>Free delivery on every order</strong>
       <a href="#featured-restaurants">Browse offers</a>
     </article>
     <article>
@@ -218,7 +218,7 @@
               <h3><%= item.name %></h3>
               <p><%= item.category || "Customer favorite" %> · <%= 18 + (index % 4) * 4 %>-<%= 26 + (index % 4) * 4 %> min</p>
               <div>
-                <strong>$<%= Number(item.price).toFixed(2) %></strong>
+                <strong><%= formatCurrency(item.price) %></strong>
                 <button
                   type="button"
                   data-popular-add
@@ -274,7 +274,7 @@
             <div class="marketplace-restaurant-title">
               <div>
                 <h3><%= restaurant.name %></h3>
-                <p><%= cuisine %> · <%= etaStart %>-<%= etaEnd %> min · <%= index % 2 === 0 ? "$0" : "$" + (index + 1).toFixed(2) %> delivery</p>
+                <p><%= cuisine %> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
               </div>
               <strong><%= rating %></strong>
             </div>

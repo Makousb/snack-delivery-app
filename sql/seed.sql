@@ -23,12 +23,12 @@ SELECT
 FROM restaurants r
 CROSS JOIN (
   VALUES
-    ('Garden Salad', 'Mixed greens, cherry tomatoes, cucumber, house vinaigrette.', 6.50, 'Starter', 0),
-    ('Loaded Fries', 'Crispy fries topped with cheese and spring onion.', 5.00, 'Starter', 1),
-    ('Classic Cheeseburger', 'Beef patty, cheddar, lettuce, tomato, brioche bun.', 9.50, 'Main', 2),
-    ('Margherita Pizza', 'Tomato, mozzarella, fresh basil.', 11.00, 'Main', 3),
-    ('Chocolate Brownie', 'Warm brownie with a scoop of vanilla ice cream.', 4.50, 'Dessert', 4),
-    ('Fresh Lemonade', 'Hand-squeezed lemonade over ice.', 3.00, 'Drinks', 5)
+    ('Garden Salad', 'Mixed greens, cherry tomatoes, cucumber, house vinaigrette.', 350.00, 'Starter', 0),
+    ('Loaded Fries', 'Crispy fries topped with cheese and spring onion.', 300.00, 'Starter', 1),
+    ('Classic Cheeseburger', 'Beef patty, cheddar, lettuce, tomato, brioche bun.', 550.00, 'Main', 2),
+    ('Margherita Pizza', 'Tomato, mozzarella, fresh basil.', 950.00, 'Main', 3),
+    ('Chocolate Brownie', 'Warm brownie with a scoop of vanilla ice cream.', 250.00, 'Dessert', 4),
+    ('Fresh Lemonade', 'Hand-squeezed lemonade over ice.', 150.00, 'Drinks', 5)
 ) AS item(name, description, price, category, display_order)
 WHERE r.slug = 'sunrise-diner'
   AND NOT EXISTS (

@@ -19,6 +19,7 @@ import driverRoutes from "./routes/driver.js";
 import orderRoutes from "./routes/order.js";
 import publicRoutes from "./routes/public.js";
 import { getCartSummary } from "./utils/cart.js";
+import { formatCurrency } from "./utils/currency.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -74,6 +75,7 @@ app.use((req, res, next) => {
   res.locals.cartCounts = countsByRestaurant;
   res.locals.cartCount = totalCount;
   res.locals.googleMapsApiKey = config.googleMapsApiKey;
+  res.locals.formatCurrency = formatCurrency;
 
   next();
 });

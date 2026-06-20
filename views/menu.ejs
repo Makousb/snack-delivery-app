@@ -125,7 +125,7 @@
         <div class="menu-content modern-menu-content">
           <div class="modern-menu-head">
             <span class="menu-category"><%= item.category || "Popular" %></span>
-            <span class="menu-price">$<%= Number(item.price).toFixed(2) %></span>
+            <span class="menu-price"><%= formatCurrency(item.price) %></span>
           </div>
 
           <h3><%= item.name %></h3>
