@@ -16,110 +16,134 @@
 </head>
 
 <body class="landing-body">
-  <main class="landing-page">
-    <nav class="landing-nav" aria-label="Landing navigation">
-      <a href="/" class="landing-brand" aria-label="Snack landing page">
-        <img src="/images/snack-logo.svg" alt="Snack logo" width="42" height="42" />
-        <span>Snack</span>
-      </a>
+  <main class="landing-page landing-page-editorial">
+    <section class="landing-stage">
+      <img
+        src="/homepage_images/Restaurant_items.avif"
+        alt="Assorted meals ready for delivery"
+        class="landing-stage-image"
+      />
 
-      <div class="landing-nav-actions">
-        <a href="/auth/login" class="landing-link">Sign In</a>
-        <a href="/auth/signup?accountType=customer" class="landing-nav-cta">
-          Sign Up
+      <nav class="landing-nav landing-nav-overlay" aria-label="Landing navigation">
+        <a href="/" class="landing-brand landing-brand-light" aria-label="Snack landing page">
+          <img src="/images/snack-logo.svg" alt="Snack logo" width="42" height="42" />
+          <span>Snack</span>
         </a>
-      </div>
-    </nav>
 
-    <% if (typeof success !== "undefined" && success.length) { %>
-      <div class="flash flash-success landing-flash">
-        <%= success[0] %>
-      </div>
-    <% } %>
+        <div class="landing-nav-actions">
+          <a href="/auth/login" class="landing-link landing-link-light">Sign In</a>
+          <a href="/auth/signup?accountType=customer" class="landing-nav-cta">
+            Sign Up
+          </a>
+        </div>
+      </nav>
 
-    <% if (typeof error !== "undefined" && error.length) { %>
-      <div class="flash flash-error landing-flash">
-        <%= error[0] %>
-      </div>
-    <% } %>
+      <% if (typeof success !== "undefined" && success.length) { %>
+        <div class="flash flash-success landing-flash landing-flash-overlay">
+          <%= success[0] %>
+        </div>
+      <% } %>
 
-    <section class="landing-hero">
-      <div class="landing-hero-copy">
-        <span class="landing-kicker">Fresh meals, fast checkout</span>
-        <h1>Food you want, from places you love.</h1>
+      <% if (typeof error !== "undefined" && error.length) { %>
+        <div class="flash flash-error landing-flash landing-flash-overlay">
+          <%= error[0] %>
+        </div>
+      <% } %>
+
+      <div class="landing-stage-content">
+        <span class="landing-kicker landing-kicker-light">Snack Delivery</span>
+        <h1>Sign in. Order well. Eat sooner.</h1>
         <p>
-          Sign in or create a Snack account to discover restaurants, save your
-          delivery details, and keep every order easy to track.
+          Create a Snack account to discover local restaurants, save your
+          delivery details, and track every order from one clean place.
         </p>
 
-        <div class="landing-actions">
+        <div class="landing-actions landing-stage-actions">
           <a href="/auth/signup?accountType=customer" class="landing-primary-action">
             Create Customer Account
           </a>
-          <a href="/auth/login" class="landing-secondary-action">
+          <a href="/auth/login" class="landing-secondary-action landing-secondary-action-dark">
             Sign In
           </a>
         </div>
 
-        <a href="/home" class="landing-browse-link">
+        <a href="/home" class="landing-browse-link landing-browse-link-light">
           Browse restaurants first
         </a>
       </div>
 
-      <div class="landing-visual" aria-label="Snack food preview">
-        <img
-          src="/homepage_images/Restaurant_items.avif"
-          alt="Assorted restaurant dishes"
-          class="landing-visual-main"
-        />
-        <div class="landing-food-card landing-food-card-top">
-          <img src="/homepage_images/meat.avif" alt="Grilled meal" />
-          <div>
-            <strong>Hot picks nearby</strong>
-            <span>Ready in 25 min</span>
-          </div>
+      <div class="landing-stage-strip" aria-label="Snack highlights">
+        <div>
+          <strong>25 min</strong>
+          <span>average handoff</span>
         </div>
-        <div class="landing-food-card landing-food-card-bottom">
-          <img src="/homepage_images/greek.avif" alt="Fresh bowl meal" />
-          <div>
-            <strong>Save address once</strong>
-            <span>Checkout faster next time</span>
-          </div>
+        <div>
+          <strong>Saved</strong>
+          <span>delivery details</span>
+        </div>
+        <div>
+          <strong>Live</strong>
+          <span>order tracking</span>
         </div>
       </div>
     </section>
 
-    <section class="landing-value-row" aria-label="Why use Snack">
-      <article>
-        <span>01</span>
-        <strong>Find food faster</strong>
-        <p>Search restaurants and jump straight into menus built for ordering.</p>
-      </article>
-      <article>
-        <span>02</span>
-        <strong>Keep checkout simple</strong>
-        <p>Save delivery details on your browser and reduce repeat typing.</p>
-      </article>
-      <article>
-        <span>03</span>
-        <strong>Track every order</strong>
-        <p>Use your account to follow orders after checkout.</p>
-      </article>
-    </section>
-
-    <section class="landing-partnerships" aria-labelledby="landing-partnership-title">
-      <div class="landing-section-head">
-        <span class="landing-kicker">Partner with Snack</span>
-        <h2 id="landing-partnership-title">For the people who make delivery work.</h2>
+    <section class="landing-food-story" aria-label="Snack app preview">
+      <div class="landing-story-copy">
+        <span class="landing-kicker">Built for hungry customers</span>
+        <h2>A calmer way to get from craving to checkout.</h2>
         <p>
-          Snack also gives restaurants and drivers a simple path to join the
-          marketplace.
+          Snack keeps the first step simple: sign in, choose a restaurant, add
+          the food you want, and keep your order history in reach.
         </p>
       </div>
 
-      <div class="landing-partner-grid">
+      <div class="landing-photo-row">
+        <figure>
+          <img src="/homepage_images/meat.avif" alt="Grilled meat dish" loading="lazy" />
+          <figcaption>Hot dinner picks</figcaption>
+        </figure>
+        <figure>
+          <img src="/homepage_images/greek.avif" alt="Fresh bowl meal" loading="lazy" />
+          <figcaption>Fresh everyday meals</figcaption>
+        </figure>
+        <figure>
+          <img
+            src="/images/1777022534500-burger_0__FocusFillWyIwLjAwIiwiMC4wMCIsODAwLDQ3OF0_CompressedW10-800.jpg"
+            alt="Burger meal"
+            loading="lazy"
+          />
+          <figcaption>Fast favorites</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="landing-signup-band" aria-label="Customer account benefits">
+      <div>
+        <span class="landing-kicker">Customer account</span>
+        <h2>Your next order should feel familiar.</h2>
+      </div>
+
+      <ul>
+        <li>Save delivery details for faster checkout.</li>
+        <li>Track your order history after signing in.</li>
+        <li>Return to the restaurants and meals you already know.</li>
+      </ul>
+    </section>
+
+    <section class="landing-partnerships landing-partnerships-editorial" aria-labelledby="landing-partnership-title">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Partner with Snack</span>
+        <h2 id="landing-partnership-title">Restaurants and drivers can join from here too.</h2>
+        <p>
+          Snack supports the customers ordering food, the kitchens preparing it,
+          and the drivers moving it across town.
+        </p>
+      </div>
+
+      <div class="landing-partner-grid landing-partner-grid-editorial">
         <article class="landing-partner-panel">
-          <img src="/homepage_images/Restaurant_items.avif" alt="Restaurant dishes" />
+          <img src="/homepage_images/Restaurant_items.avif" alt="Restaurant dishes" loading="lazy" />
           <div>
             <span>Restaurants and food businesses</span>
             <h3>Register your business and start taking orders.</h3>
@@ -132,7 +156,7 @@
         </article>
 
         <article class="landing-partner-panel landing-partner-panel-alt">
-          <img src="/homepage_images/meat.avif" alt="Prepared food for delivery" />
+          <img src="/images/Food_deliivery.jpg" alt="Prepared food for delivery" loading="lazy" />
           <div>
             <span>Delivery drivers</span>
             <h3>Deliver with Snack and keep each route organized.</h3>

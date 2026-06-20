@@ -459,6 +459,159 @@
   pointer-events: none;
 }
 
+.business-profile-shell {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.business-profile-hero,
+.business-profile-form {
+  border-radius: 28px;
+  border: 1px solid rgba(22, 101, 52, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 38px rgba(22, 101, 52, 0.08);
+}
+
+.business-profile-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+  gap: 1rem;
+  padding: 1.4rem;
+  background:
+    radial-gradient(circle at top left, rgba(220, 252, 231, 0.95), transparent 28%),
+    linear-gradient(145deg, #f4fff8 0%, #ffffff 56%, #effbf3 100%);
+}
+
+.business-profile-hero h1 {
+  margin: 0.75rem 0 0.5rem;
+  line-height: 1.02;
+}
+
+.business-profile-hero p {
+  margin: 0;
+  color: var(--ink-700);
+  line-height: 1.65;
+}
+
+.business-profile-preview {
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid rgba(22, 101, 52, 0.08);
+  box-shadow: 0 18px 34px rgba(22, 101, 52, 0.08);
+}
+
+.business-profile-banner,
+.business-profile-image-banner {
+  aspect-ratio: 16 / 7;
+}
+
+.business-profile-banner,
+.business-profile-image,
+.business-profile-image-preview {
+  width: 100%;
+  overflow: hidden;
+  background: #effbf3;
+}
+
+.business-profile-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-500);
+  font-weight: 700;
+}
+
+.business-profile-banner img,
+.business-profile-image img,
+.business-profile-image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.business-profile-preview-body {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.business-profile-preview-body strong,
+.business-profile-preview-body span {
+  display: block;
+}
+
+.business-profile-preview-body span {
+  margin-top: 0.2rem;
+  color: var(--ink-500);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.business-profile-logo,
+.business-profile-image-logo {
+  width: 76px;
+  height: 76px;
+  border-radius: 18px;
+  flex: 0 0 auto;
+}
+
+.business-profile-logo,
+.business-profile-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--green-700);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.business-profile-logo {
+  background: #f3fff7;
+  border: 4px solid #fff;
+  box-shadow: 0 12px 24px rgba(22, 101, 52, 0.12);
+}
+
+.business-profile-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.business-profile-assets {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.45fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.business-profile-upload {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.business-profile-upload input[type="file"] {
+  cursor: pointer;
+}
+
+.business-profile-image,
+.business-profile-image-preview {
+  border-radius: 20px;
+  border: 1px solid rgba(22, 101, 52, 0.1);
+}
+
+.business-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
 @media (max-width: 1100px) {
   .ops-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -469,7 +622,9 @@
   .ops-hero,
   .ops-main-grid,
   .ops-admin-filters,
-  .ops-health-grid {
+  .ops-health-grid,
+  .business-profile-hero,
+  .business-profile-assets {
     grid-template-columns: 1fr;
   }
 }

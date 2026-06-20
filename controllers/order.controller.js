@@ -1,7 +1,6 @@
 import { pool } from "../db/index.js";
 import { initiateSTKPush } from "../services/mpesa.js";
 
-// 🧾 CREATE ORDER
 export const createOrder = async (req, res) => {
   const { restaurantId } = req.params;
   const userId = req.session.user?.id || null;
@@ -16,7 +15,7 @@ export const createOrder = async (req, res) => {
   }
 
   const cartItems = req.session.cart[restaurantId];
-  const total = cartItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   const parsedTipAmount = Math.max(0, Number(tipAmount || 0));
 
   let initialStatus = "Pending";
@@ -27,10 +26,12 @@ export const createOrder = async (req, res) => {
     initialStatus = "Cash Pending";
   }
 
-  try {
-    await pool.query("BEGIN");
+  const client = await pool.connect();
 
-    const orderResult = await pool.query(
+  try {
+    await client.query("BEGIN");
+
+    const orderResult = await client.query(
       `INSERT INTO orders (restaurant_id, user_id, total, status, delivery_address, customer_phone, payment_method)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
@@ -48,19 +49,19 @@ export const createOrder = async (req, res) => {
     const orderId = orderResult.rows[0].id;
 
     for (const item of cartItems) {
-      await pool.query(
+      await client.query(
         `INSERT INTO order_items (order_id, menu_item_id, quantity, price)
          VALUES ($1, $2, $3, $4)`,
         [orderId, item.id, item.qty, item.price]
       );
     }
 
-    const restaurantInfo = await pool.query(
+    const restaurantInfo = await client.query(
       "SELECT name FROM restaurants WHERE id = $1",
       [restaurantId]
     );
 
-    await pool.query(
+    await client.query(
       `INSERT INTO deliveries (
          order_id,
          status,
@@ -80,7 +81,7 @@ export const createOrder = async (req, res) => {
       ]
     );
 
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
 
     const io = req.app.get("io");
 
@@ -97,39 +98,42 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // 💳 Trigger M-Pesa if selected
     if (paymentMethod === "mpesa" && phone) {
       try {
-        await initiateSTKPush(phone, total);
+        const stkResponse = await initiateSTKPush(phone, total);
+
+        if (stkResponse?.CheckoutRequestID) {
+          await pool.query(
+            "UPDATE orders SET mpesa_checkout_request_id = $1 WHERE id = $2",
+            [stkResponse.CheckoutRequestID, orderId]
+          );
+        }
       } catch (err) {
         console.error("M-Pesa error:", err.message);
       }
     }
 
-    // 🧹 Clear cart
     req.session.cart[restaurantId] = [];
 
     res.redirect(`/orders/${orderId}/success`);
-
   } catch (err) {
-    await pool.query("ROLLBACK");
+    await client.query("ROLLBACK");
     console.error(err);
     res.status(500).render("500", { title: "Server Error" });
+  } finally {
+    client.release();
   }
 };
 
-// 🎉 ORDER SUCCESS PAGE
 export const orderSuccess = async (req, res) => {
   const { orderId } = req.params;
 
   try {
     const orderResult = await pool.query(
-      `
-        SELECT o.*, r.name AS restaurant_name
-        FROM orders o
-        JOIN restaurants r ON r.id = o.restaurant_id
-        WHERE o.id = $1
-      `,
+      `SELECT o.*, r.name AS restaurant_name
+       FROM orders o
+       JOIN restaurants r ON r.id = o.restaurant_id
+       WHERE o.id = $1`,
       [orderId]
     );
 
@@ -139,17 +143,18 @@ export const orderSuccess = async (req, res) => {
       return res.status(404).render("404", { title: "Order Not Found" });
     }
 
+    // Guest orders (user_id IS NULL) stay reachable by link; orders placed
+    // while logged in are only visible to the account that placed them.
+    if (order.user_id && order.user_id !== req.session.user?.id) {
+      return res.status(404).render("404", { title: "Order Not Found" });
+    }
+
     const itemsResult = await pool.query(
-      `
-        SELECT
-          oi.quantity,
-          oi.price,
-          mi.name
-        FROM order_items oi
-        JOIN menu_items mi ON mi.id = oi.menu_item_id
-        WHERE oi.order_id = $1
-        ORDER BY oi.id ASC
-      `,
+      `SELECT oi.quantity, oi.price, mi.name
+       FROM order_items oi
+       JOIN menu_items mi ON mi.id = oi.menu_item_id
+       WHERE oi.order_id = $1
+       ORDER BY oi.id ASC`,
       [orderId]
     );
 
@@ -164,7 +169,6 @@ export const orderSuccess = async (req, res) => {
   }
 };
 
-// 📦 CUSTOMER ORDERS
 export const customerOrders = async (req, res) => {
   try {
     const userId = req.session.user?.id;
@@ -172,13 +176,11 @@ export const customerOrders = async (req, res) => {
     if (!userId) return res.redirect("/auth/login");
 
     const result = await pool.query(
-      `
-        SELECT o.*, r.name AS restaurant_name
-        FROM orders o
-        JOIN restaurants r ON r.id = o.restaurant_id
-        WHERE o.user_id = $1
-        ORDER BY o.created_at DESC
-      `,
+      `SELECT o.*, r.name AS restaurant_name
+       FROM orders o
+       JOIN restaurants r ON r.id = o.restaurant_id
+       WHERE o.user_id = $1
+       ORDER BY o.created_at DESC`,
       [userId]
     );
 
@@ -186,16 +188,19 @@ export const customerOrders = async (req, res) => {
       title: "My Orders",
       orders: result.rows
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).render("500", { title: "Server Error" });
   }
 };
 
-// 🏪 RESTAURANT (ADMIN) ORDERS
 export const restaurantOrders = async (req, res) => {
-  const { restaurantId } = req.params;
+  const restaurantId = req.user?.restaurant_id;
+
+  if (!restaurantId) {
+    req.flash("error", "No restaurant is linked to this account.");
+    return res.redirect("/admin");
+  }
 
   try {
     const result = await pool.query(
@@ -207,25 +212,38 @@ export const restaurantOrders = async (req, res) => {
 
     res.render("admin/orders", {
       title: "Restaurant Orders",
-      orders: result.rows
+      orders: result.rows,
+      restaurantId
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).render("500", { title: "Server Error" });
   }
 };
 
-// 🔄 UPDATE ORDER STATUS
 export const updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
+  const restaurantId = req.user?.restaurant_id;
+
+  if (!restaurantId) {
+    req.flash("error", "No restaurant is linked to this account.");
+    return res.redirect("/admin");
+  }
 
   try {
-    await pool.query(
-      `UPDATE orders SET status = $1 WHERE id = $2`,
-      [status, orderId]
+    const result = await pool.query(
+      `UPDATE orders
+       SET status = $1
+       WHERE id = $2 AND restaurant_id = $3
+       RETURNING id`,
+      [status, orderId, restaurantId]
     );
+
+    if (!result.rows.length) {
+      req.flash("error", "Order not found.");
+      return res.redirect("back");
+    }
 
     const io = req.app.get("io");
 
@@ -237,9 +255,53 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     res.redirect("back");
-
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating order");
+  }
+};
+
+// Safaricom expects a fast 200 regardless of outcome, so we acknowledge
+// first and process the result afterward.
+export const handleMpesaCallback = async (req, res) => {
+  res.sendStatus(200);
+
+  const stkCallback = req.body?.Body?.stkCallback;
+
+  if (!stkCallback?.CheckoutRequestID) {
+    console.error("M-Pesa callback missing CheckoutRequestID:", req.body);
+    return;
+  }
+
+  const { CheckoutRequestID, ResultCode } = stkCallback;
+  const status = ResultCode === 0 ? "Paid" : "Payment Failed";
+
+  try {
+    const result = await pool.query(
+      `UPDATE orders
+       SET status = $1
+       WHERE mpesa_checkout_request_id = $2
+       RETURNING id, restaurant_id`,
+      [status, CheckoutRequestID]
+    );
+
+    const order = result.rows[0];
+
+    if (!order) {
+      console.error("M-Pesa callback for unknown order:", CheckoutRequestID);
+      return;
+    }
+
+    const io = req.app.get("io");
+
+    if (io) {
+      io.emit("orderUpdated", { orderId: order.id, status });
+      io.to(`restaurant_${order.restaurant_id}`).emit("orderUpdated", {
+        orderId: order.id,
+        status
+      });
+    }
+  } catch (err) {
+    console.error("Failed to process M-Pesa callback:", err);
   }
 };

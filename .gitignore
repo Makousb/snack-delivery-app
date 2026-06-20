@@ -1,1 +1,18 @@
-business.env
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local browser automation profile (not part of the app)
+.chrome-profile/

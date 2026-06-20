@@ -1,36 +1,38 @@
 import { pool } from "../index.js";
 
-
-// ---------------------
-// Get all items (SCOPED)
-// ---------------------
 export async function getAllMenuItems(restaurantId) {
+  if (!restaurantId) {
+    const result = await pool.query(
+      `SELECT *
+       FROM menu_items
+       ORDER BY restaurant_id ASC, display_order ASC, id ASC`
+    );
+
+    return result.rows;
+  }
+
   const result = await pool.query(
-    `SELECT * FROM menu_items
+    `SELECT *
+     FROM menu_items
      WHERE restaurant_id = $1
-     ORDER BY display_order ASC`,
+     ORDER BY display_order ASC, id ASC`,
     [restaurantId]
   );
+
   return result.rows;
 }
 
-
-// ---------------------
-// Get one item (SCOPED)
-// ---------------------
 export async function getMenuItemById(id, restaurantId) {
   const result = await pool.query(
-    `SELECT * FROM menu_items
+    `SELECT *
+     FROM menu_items
      WHERE id = $1 AND restaurant_id = $2`,
     [id, restaurantId]
   );
+
   return result.rows[0];
 }
 
-
-// ---------------------
-// Create item (SCOPED)
-// ---------------------
 export async function createMenuItem(data) {
   const {
     name,
@@ -39,7 +41,7 @@ export async function createMenuItem(data) {
     image_url,
     category,
     status,
-    restaurant_id   // ✅ NEW
+    restaurant_id
   } = data;
 
   await pool.query(
@@ -58,10 +60,6 @@ export async function createMenuItem(data) {
   );
 }
 
-
-// ---------------------
-// Update item (SCOPED)
-// ---------------------
 export async function updateMenuItem(id, data) {
   const {
     name,
@@ -70,18 +68,18 @@ export async function updateMenuItem(id, data) {
     image_url,
     category,
     status,
-    restaurant_id   // ✅ NEW
+    restaurant_id
   } = data;
 
   await pool.query(
     `UPDATE menu_items
-     SET name=$1,
-         description=$2,
-         price=$3,
-         image_url=$4,
-         category=$5,
-         status=$6
-     WHERE id=$7 AND restaurant_id=$8`,
+     SET name = $1,
+         description = $2,
+         price = $3,
+         image_url = $4,
+         category = $5,
+         status = $6
+     WHERE id = $7 AND restaurant_id = $8`,
     [
       name,
       description,
@@ -95,10 +93,6 @@ export async function updateMenuItem(id, data) {
   );
 }
 
-
-// ---------------------
-// Delete item (SCOPED)
-// ---------------------
 export async function deleteMenuItem(id, restaurantId) {
   await pool.query(
     `DELETE FROM menu_items

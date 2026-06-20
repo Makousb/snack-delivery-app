@@ -1,57 +1,49 @@
 import express from "express";
 import {
-  adminDashboard,
-  newMenuForm,
   addMenuItem,
-  editMenuForm,
-  updateMenu,
+  adminDashboard,
+  businessProfileForm,
   deleteMenu,
-  updateMenuOrder,
-  toggleMenuStatus
+  editMenuForm,
+  listMessages,
+  markMessageReadHandler,
+  newMenuForm,
+  toggleMenuStatus,
+  updateBusinessProfile,
+  updateMenu,
+  updateMenuOrder
 } from "../controllers/admin.controller.js";
-
-
 import { requireAuth, requireRole } from "../middlewares/auth.middleware.js";
+import { optimizeImage } from "../middlewares/optimizeImage.middleware.js";
 import { upload } from "../middlewares/upload.middleware.js";
-import { optimizeImage } from "../middlewares/optimizeImage.middleware.js"; // 👈 our new image optimizer
 
 const router = express.Router();
 
-// --------------------
-// Dashboard
-// --------------------
+router.use(requireAuth, requireRole(["owner", "admin"]));
+
 router.get("/", adminDashboard);
 
-// --------------------
-// Show form to add new menu item
-// --------------------
-router.get("/menu/new", requireAuth, requireRole(["owner", "admin"]), newMenuForm);
+router.get("/profile", businessProfileForm);
+router.post(
+  "/profile",
+  upload.fields([
+    { name: "businessLogo", maxCount: 1 },
+    { name: "businessBanner", maxCount: 1 }
+  ]),
+  updateBusinessProfile
+);
 
-// --------------------
-// Create menu item with image upload & optimization
-// --------------------
-router.post("/menu", requireAuth, requireRole(["owner", "admin"]), upload.single("image"), optimizeImage, addMenuItem);
+router.get("/menu/new", newMenuForm);
+router.post("/menu", upload.single("image"), optimizeImage, addMenuItem);
 
-// --------------------
-// Show edit form
-// --------------------
-router.get("/edit/:id", requireAuth, requireRole(["owner", "admin"]), editMenuForm);
+router.get("/edit/:id", editMenuForm);
+router.post("/edit/:id", upload.single("image"), optimizeImage, updateMenu);
 
-// --------------------
-// Update menu item with image upload & optimization
-// --------------------
-router.post("/edit/:id", requireAuth, requireRole(["owner", "admin"]), upload.single("image"), optimizeImage, updateMenu);
+router.post("/delete/:id", deleteMenu);
+router.post("/menu/reorder", updateMenuOrder);
+router.post("/menu/:id/toggle-status", toggleMenuStatus);
 
-// --------------------
-// Delete menu item
-// --------------------
-router.post("/delete/:id", requireAuth, requireRole(["owner", "admin"]), deleteMenu);
-
-// Update drag-and-drop order
-router.post("/menu/reorder", requireAuth, requireRole(["owner", "admin"]), updateMenuOrder);
-
-// ✅ NEW: Toggle status
-router.post("/menu/:id/toggle-status", requireAuth, requireRole(["owner", "admin"]), toggleMenuStatus);
-
+router.get("/messages", listMessages);
+router.post("/messages/:id/read", markMessageReadHandler);
 
 export default router;

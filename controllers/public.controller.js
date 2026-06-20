@@ -1,4 +1,5 @@
 import { pool } from "../db/index.js";
+import { createMessage } from "../db/queries/messages.js";
 
 export const renderLanding = (req, res) => {
   res.render("landing", {
@@ -6,9 +7,6 @@ export const renderLanding = (req, res) => {
   });
 };
 
-// ============================
-// 🌐 HOME PAGE (MARKETPLACE)
-// ============================
 export const renderHome = async (req, res, next) => {
   try {
     const searchQuery = (req.query.search || "").trim();
@@ -84,9 +82,6 @@ export const searchRestaurant = async (req, res, next) => {
   }
 };
 
-// ============================
-// 🍽️ RESTAURANT-SPECIFIC MENU
-// ============================
 export const renderMenu = async (req, res, next) => {
   try {
     const { id } = req.params; // restaurant ID
@@ -145,14 +140,10 @@ export const renderMenu = async (req, res, next) => {
   }
 };
 
-// ============================
-// 🏪 RESTAURANT LANDING PAGE
-// ============================
 export const showRestaurant = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Fetch restaurant
     const restaurantResult = await pool.query("SELECT * FROM restaurants WHERE id = $1", [id]);
     const restaurant = restaurantResult.rows[0];
 
@@ -160,7 +151,6 @@ export const showRestaurant = async (req, res, next) => {
       return res.status(404).render("404", { title: "Restaurant Not Found" });
     }
 
-    // Fetch first few menu items for featured section
     const menuResult = await pool.query(
       `SELECT * FROM menu_items WHERE restaurant_id = $1 ORDER BY display_order ASC LIMIT 3`,
       [id]
@@ -177,4 +167,33 @@ export const showRestaurant = async (req, res, next) => {
     console.error(err);
     next(err);
   }
+};
+
+export const showContact = (req, res) => {
+  res.render("contact", { title: "Contact Us" });
+};
+
+export const submitContact = async (req, res, next) => {
+  try {
+    const name = (req.body.name || "").trim();
+    const email = (req.body.email || "").trim();
+    const message = (req.body.message || "").trim();
+
+    if (!name || !email || !message) {
+      req.flash("error", "Please fill in your name, email, and message.");
+      return res.redirect("/contact");
+    }
+
+    await createMessage({ name, email, message });
+
+    req.flash("success", "Thanks for reaching out — we'll get back to you soon.");
+    return res.redirect("/contact");
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+export const showAbout = (req, res) => {
+  res.render("about", { title: "About Snack" });
 };

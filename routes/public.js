@@ -4,22 +4,24 @@ import {
   renderMenu,
   showRestaurant,
   renderHome,
-  searchRestaurant
+  searchRestaurant,
+  showContact,
+  submitContact,
+  showAbout
 } from "../controllers/public.controller.js";
 
 const router = express.Router();
 
-// 🏠 Home page (MUST be first)
 router.get("/", renderLanding);
 router.get("/home", renderHome);
 
-// 🔍 Homepage restaurant search
+router.get("/about", showAbout);
+router.get("/contact", showContact);
+router.post("/contact", submitContact);
+
 router.get("/restaurants/search", searchRestaurant);
 
-// ✅ NEW (restaurant-specific menu)
 router.get("/restaurant/:id/menu", renderMenu);
-
-// 🏪 Restaurant page
 router.get("/restaurant/:id", showRestaurant);
 
 export default router;

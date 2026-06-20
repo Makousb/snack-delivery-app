@@ -8,9 +8,6 @@ export async function getMenuAPI(req, res) {
 
     let filtered = items;
 
-    // -------------------
-    // Category filter
-    // -------------------
     if (category) {
       filtered = filtered.filter(item => {
         if (!item.category) return false;
@@ -18,9 +15,6 @@ export async function getMenuAPI(req, res) {
       });
     }
 
-    // -------------------
-    // Search filter
-    // -------------------
     if (search) {
       filtered = filtered.filter(item => {
         if (!item.name) return false;
@@ -28,9 +22,6 @@ export async function getMenuAPI(req, res) {
       });
     }
 
-    // -------------------
-    // Pagination
-    // -------------------
     const limit = 6;
     const currentPage = Number(page);
 

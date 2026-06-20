@@ -23,10 +23,10 @@ router.post(
 );
 
 // Login
-router.get("/login", showLogin);   // ✅ FIXED
+router.get("/login", showLogin);
 router.post("/login", login);
 
 // Logout
-router.get("/logout", logout);     // (GET is easier for now)
+router.get("/logout", logout);
 
 export default router;

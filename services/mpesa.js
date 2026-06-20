@@ -1,28 +1,49 @@
 import axios from "axios";
+import { config, getMissingMpesaConfig } from "../config/env.js";
+
+function getTimestamp() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+
+  return (
+    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
+    `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  );
+}
+
+function getPassword(timestamp) {
+  const { businessShortCode, password: passkey } = config.mpesa;
+  return Buffer.from(`${businessShortCode}${passkey}${timestamp}`).toString("base64");
+}
 
 export const initiateSTKPush = async (phone, amount) => {
-  const url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
+  const missing = getMissingMpesaConfig();
 
-  const token = "YOUR_ACCESS_TOKEN"; // generate via OAuth
+  if (missing.length) {
+    throw new Error(`M-Pesa is not configured: missing ${missing.join(", ")}`);
+  }
+
+  const { stkPushUrl, accessToken, businessShortCode, callbackUrl } = config.mpesa;
+  const timestamp = getTimestamp();
 
   const response = await axios.post(
-    url,
+    stkPushUrl,
     {
-      BusinessShortCode: "174379",
-      Password: "YOUR_PASSWORD",
-      Timestamp: "20260410120000",
+      BusinessShortCode: businessShortCode,
+      Password: getPassword(timestamp),
+      Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
       Amount: amount,
       PartyA: phone,
-      PartyB: "174379",
+      PartyB: businessShortCode,
       PhoneNumber: phone,
-      CallBackURL: "https://yourdomain.com/api/mpesa/callback",
+      CallBackURL: callbackUrl,
       AccountReference: "Restaurant Order",
       TransactionDesc: "Food Payment"
     },
     {
       headers: {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${accessToken}`
       }
     }
   );
