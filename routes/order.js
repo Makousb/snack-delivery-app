@@ -4,6 +4,7 @@ import {
   orderSuccess,
   customerOrders,
   restaurantOrders,
+  submitMpesaCode,
   updateOrderStatus
 } from "../controllers/order.controller.js";
 import { requireAuth, requireRole } from "../middlewares/auth.middleware.js";
@@ -13,6 +14,7 @@ const router = express.Router();
 // Customer
 router.post("/restaurant/:restaurantId/order", createOrder);
 router.get("/orders/:orderId/success", orderSuccess);
+router.post("/orders/:orderId/confirm-payment", submitMpesaCode);
 router.get("/orders", customerOrders);
 
 // Admin / Restaurant

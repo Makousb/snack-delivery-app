@@ -54,7 +54,8 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS delivery_address TEXT,
       ADD COLUMN IF NOT EXISTS customer_phone TEXT,
       ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS mpesa_checkout_request_id TEXT
+      ADD COLUMN IF NOT EXISTS mpesa_checkout_request_id TEXT,
+      ADD COLUMN IF NOT EXISTS mpesa_manual_code TEXT
   `);
 
   await pool.query(`
