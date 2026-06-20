@@ -9,13 +9,16 @@ import {
   deleteMenuItem,
   createMenuItem
 } from "../db/queries/menu.js";
+import { getAllMessages, markMessageRead } from "../db/queries/messages.js";
+import { buildUniqueRestaurantSlug } from "../utils/slugify.js";
 
+function getFilePath(file) {
+  return file ? `/images/${file.filename}` : null;
+}
 
-// -----------------------------------
-// 🔒 ENSURE RESTAURANT EXISTS
-// -----------------------------------
+// Fallback for sessions without a restaurant_id (e.g. the loosely-defined
+// "admin" role, which isn't tied to a specific restaurant at signup).
 async function ensureRestaurant() {
-  // Check if restaurant with ID 1 exists
   const result = await pool.query(
     "SELECT id FROM restaurants WHERE id = 1"
   );
@@ -32,16 +35,17 @@ async function ensureRestaurant() {
   return 1;
 }
 
-
-// ---------------------
-// Admin Dashboard
-// ---------------------
 export async function adminDashboard(req, res) {
   try {
+    const currentUser = req.user || req.session?.user;
     const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+      currentUser?.restaurant_id || await ensureRestaurant();
 
     const menuItems = await getAllMenuItems(restaurantId);
+    const restaurantResult = await pool.query(
+      "SELECT * FROM restaurants WHERE id = $1",
+      [restaurantId]
+    );
     const ordersResult = await pool.query(
       `SELECT id, total, status, created_at
        FROM orders
@@ -85,6 +89,37 @@ export async function adminDashboard(req, res) {
       ? (completedOrders.length / orders.length) * 100
       : 0;
 
+    const driverStatusesResult = await pool.query(
+      `SELECT
+         u.full_name,
+         u.email,
+         d.status,
+         d.current_location,
+         COUNT(del.id) AS active_jobs
+       FROM deliveries del
+       JOIN orders o ON o.id = del.order_id
+       JOIN drivers d ON d.id = del.driver_id
+       JOIN users u ON u.id = d.user_id
+       WHERE o.restaurant_id = $1
+         AND del.status <> 'Delivered'
+       GROUP BY u.full_name, u.email, d.status, d.current_location
+       ORDER BY active_jobs DESC
+       LIMIT 5`,
+      [restaurantId]
+    );
+
+    const serviceTimeResult = await pool.query(
+      `SELECT AVG(EXTRACT(EPOCH FROM (d.completed_at - d.accepted_at)) / 60) AS avg_minutes
+       FROM deliveries d
+       JOIN orders o ON o.id = d.order_id
+       WHERE o.restaurant_id = $1
+         AND d.completed_at IS NOT NULL
+         AND d.accepted_at IS NOT NULL`,
+      [restaurantId]
+    );
+
+    const averageServiceMinutes = serviceTimeResult.rows[0]?.avg_minutes;
+
     const dashboard = {
       inventoryHealth: totalItems ? Math.round((availableItems / totalItems) * 100) : 0,
       orderStatusBreakdown: {
@@ -94,18 +129,18 @@ export async function adminDashboard(req, res) {
         preparing: orders.filter((order) => order.status === "Preparing").length,
         completed: completedOrders.length
       },
-      driverStatuses: [
-        { name: "Rider 01", status: "On delivery", zone: "Central", orders: 2 },
-        { name: "Rider 07", status: "Ready", zone: "Westside", orders: 0 },
-        { name: "Rider 12", status: "Returning", zone: "North Hub", orders: 1 }
-      ],
-      deliveryRate: Math.max(82, Math.round(completionRate || 0)),
-      accuracyRate: totalItems ? Math.min(99, 92 + availableItems) : 93,
-      csat: orders.length ? (4.4 + Math.min(0.5, orders.length * 0.03)).toFixed(1) : "4.6",
-      complaintRate: orders.length ? Math.max(1.2, 6 - completedOrders.length * 0.25).toFixed(1) : "2.4",
+      driverStatuses: driverStatusesResult.rows.map((driver) => ({
+        name: driver.full_name || driver.email,
+        status: driver.status,
+        location: driver.current_location || "Unknown",
+        activeJobs: Number(driver.active_jobs)
+      })),
+      deliveryRate: Math.round(completionRate || 0),
       revenueToday,
       revenueWeek,
-      averageServiceTime: `${18 + Math.min(12, activeOrders.length * 2)} min`,
+      averageServiceTime: averageServiceMinutes
+        ? `${Math.round(averageServiceMinutes)} min`
+        : null,
       averageOrderValue,
       activeOrdersCount: activeOrders.length,
       totalOrders: orders.length,
@@ -122,6 +157,7 @@ export async function adminDashboard(req, res) {
       menuItems,
       orders,
       dashboard,
+      restaurant: restaurantResult.rows[0] || null,
       restaurantId
     });
 
@@ -131,20 +167,148 @@ export async function adminDashboard(req, res) {
   }
 }
 
+export async function businessProfileForm(req, res) {
+  try {
+    const restaurantId =
+      req.user?.restaurant_id || await ensureRestaurant();
 
-// ---------------------
-// Show Create Menu Form
-// ---------------------
+    const restaurantResult = await pool.query(
+      "SELECT * FROM restaurants WHERE id = $1",
+      [restaurantId]
+    );
+
+    const restaurant = restaurantResult.rows[0];
+
+    if (!restaurant) {
+      req.flash("error", "Business profile not found");
+      return res.redirect("/admin");
+    }
+
+    res.render("admin/profile", {
+      title: "Edit Business Profile",
+      restaurant,
+      accountEmail: req.user?.email || ""
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", {
+      title: "Server Error"
+    });
+  }
+}
+
+export async function updateBusinessProfile(req, res) {
+  const client = await pool.connect();
+
+  try {
+    const restaurantId =
+      req.user?.restaurant_id || await ensureRestaurant();
+    const userId = req.user?.id;
+    const {
+      businessName,
+      businessDescription,
+      email
+    } = req.body;
+
+    const safeName = (businessName || "").trim();
+    const safeDescription = (businessDescription || "").trim();
+    const safeEmail = (email || "").trim().toLowerCase();
+
+    if (!userId) {
+      req.flash("error", "Please log in first");
+      return res.redirect("/auth/login");
+    }
+
+    if (!safeName || !safeEmail) {
+      req.flash("error", "Business name and email are required.");
+      return res.redirect("/admin/profile");
+    }
+
+    await client.query("BEGIN");
+
+    const restaurantResult = await client.query(
+      "SELECT * FROM restaurants WHERE id = $1 FOR UPDATE",
+      [restaurantId]
+    );
+
+    const restaurant = restaurantResult.rows[0];
+
+    if (!restaurant) {
+      await client.query("ROLLBACK");
+      req.flash("error", "Business profile not found");
+      return res.redirect("/admin");
+    }
+
+    const duplicateEmail = await client.query(
+      "SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id <> $2 LIMIT 1",
+      [safeEmail, userId]
+    );
+
+    if (duplicateEmail.rows.length) {
+      await client.query("ROLLBACK");
+      req.flash("error", "That email is already registered.");
+      return res.redirect("/admin/profile");
+    }
+
+    const logoUrl =
+      getFilePath(req.files?.businessLogo?.[0]) || restaurant.logo_url;
+    const bannerUrl =
+      getFilePath(req.files?.businessBanner?.[0]) || restaurant.banner_url;
+    const slug = await buildUniqueRestaurantSlug(client, safeName, restaurantId);
+
+    await client.query(
+      `UPDATE restaurants
+       SET name = $1,
+           description = $2,
+           logo_url = $3,
+           banner_url = $4,
+           slug = $5
+       WHERE id = $6`,
+      [
+        safeName,
+        safeDescription || null,
+        logoUrl,
+        bannerUrl,
+        slug,
+        restaurantId
+      ]
+    );
+
+    const userResult = await client.query(
+      `UPDATE users
+       SET email = $1
+       WHERE id = $2
+       RETURNING id, email, role, restaurant_id, full_name`,
+      [safeEmail, userId]
+    );
+
+    await client.query("COMMIT");
+
+    req.session.user = {
+      ...req.session.user,
+      ...userResult.rows[0]
+    };
+
+    req.flash("success", "Business profile updated.");
+    res.redirect("/admin/profile");
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error(error);
+    req.flash("error", "We could not update that business profile right now.");
+    res.redirect("/admin/profile");
+  } finally {
+    client.release();
+  }
+}
+
 export function newMenuForm(req, res) {
   res.render("admin/menu", {
     title: "Add Menu Item"
   });
 }
 
-
-// ---------------------
-// Edit Menu Form
-// ---------------------
 export async function editMenuForm(req, res) {
   try {
     const { id } = req.params;
@@ -171,10 +335,6 @@ export async function editMenuForm(req, res) {
   }
 }
 
-
-// ---------------------
-// Create Menu Item
-// ---------------------
 export async function addMenuItem(req, res) {
   try {
     const { name, description, price, category, status } = req.body;
@@ -205,10 +365,6 @@ export async function addMenuItem(req, res) {
   }
 }
 
-
-// ---------------------
-// Update Menu Item
-// ---------------------
 export async function updateMenu(req, res) {
   try {
     const { name, description, price, category, status } = req.body;
@@ -231,7 +387,6 @@ export async function updateMenu(req, res) {
     if (req.file) {
       image_url = `/images/${req.file.filename}`;
 
-      // Delete old image
       if (existingItem.image_url) {
         const oldImagePath = path.join(
           process.cwd(),
@@ -264,10 +419,6 @@ export async function updateMenu(req, res) {
   }
 }
 
-
-// ---------------------
-// Delete Menu Item
-// ---------------------
 export async function deleteMenu(req, res) {
   try {
     const restaurantId =
@@ -306,10 +457,6 @@ export async function deleteMenu(req, res) {
   }
 }
 
-
-// ---------------------
-// Update Menu Order
-// ---------------------
 export async function updateMenuOrder(req, res) {
   try {
     const { order } = req.body;
@@ -334,10 +481,6 @@ export async function updateMenuOrder(req, res) {
   }
 }
 
-
-// ---------------------
-// Toggle Menu Status
-// ---------------------
 export async function toggleMenuStatus(req, res) {
   try {
     const { id } = req.params;
@@ -379,5 +522,29 @@ export async function toggleMenuStatus(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false });
+  }
+}
+
+export async function listMessages(req, res) {
+  try {
+    const messages = await getAllMessages();
+
+    res.render("admin/messages", {
+      title: "Contact Messages",
+      messages
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function markMessageReadHandler(req, res) {
+  try {
+    await markMessageRead(req.params.id);
+    res.redirect("/admin/messages");
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
   }
 }

@@ -4,8 +4,12 @@
   const safeDashboard = dashboard || {};
   const safeOrders = orders || [];
   const safeMenuItems = menuItems || [];
+  const safeRestaurant = restaurant || {};
   const recentOrders = safeOrders.slice(0, 6);
-  const canManage = typeof currentUser !== "undefined" && currentUser;
+  const canManage =
+    typeof currentUser !== "undefined" &&
+    currentUser &&
+    ["owner", "admin"].includes(currentUser.role);
 %>
 
 <section class="ops-dashboard">
@@ -21,6 +25,8 @@
         <% if (canManage) { %>
           <a href="/admin/menu/new" class="btn restaurant-primary-cta">Add Menu Item</a>
           <a href="/admin/restaurant/<%= restaurantId %>/orders" class="btn restaurant-secondary-cta">Open Orders</a>
+          <a href="/admin/profile" class="btn restaurant-secondary-cta">Edit Business Profile</a>
+          <a href="/admin/messages" class="btn restaurant-secondary-cta">View Messages</a>
         <% } else { %>
           <a href="/auth/login" class="btn restaurant-primary-cta">Login to Manage</a>
           <span class="ops-chip">Preview mode</span>
@@ -29,6 +35,10 @@
     </div>
 
     <div class="ops-hero-summary">
+      <div class="ops-summary-tile">
+        <span class="ops-summary-label">Business</span>
+        <strong><%= safeRestaurant.name || "Restaurant" %></strong>
+      </div>
       <div class="ops-summary-tile">
         <span class="ops-summary-label">Active orders</span>
         <strong><%= safeDashboard.activeOrdersCount || 0 %></strong>
@@ -52,27 +62,9 @@
     </article>
 
     <article class="ops-kpi-card">
-      <span class="ops-kpi-label">Order accuracy</span>
-      <strong><%= safeDashboard.accuracyRate || 0 %>%</strong>
-      <p>Quality score based on fulfillment consistency</p>
-    </article>
-
-    <article class="ops-kpi-card">
-      <span class="ops-kpi-label">CSAT</span>
-      <strong><%= safeDashboard.csat || "4.6" %>/5</strong>
-      <p>Customer satisfaction score across recent orders</p>
-    </article>
-
-    <article class="ops-kpi-card">
-      <span class="ops-kpi-label">Complaint rate</span>
-      <strong><%= safeDashboard.complaintRate || "2.4" %>%</strong>
-      <p>Share of orders that required service recovery</p>
-    </article>
-
-    <article class="ops-kpi-card">
       <span class="ops-kpi-label">Avg. service time</span>
-      <strong><%= safeDashboard.averageServiceTime || "22 min" %></strong>
-      <p>Time from confirmed order to handoff</p>
+      <strong><%= safeDashboard.averageServiceTime || "No data yet" %></strong>
+      <p>Time from accepted delivery to handoff</p>
     </article>
 
     <article class="ops-kpi-card">
@@ -149,23 +141,20 @@
         <span class="ops-chip"><%= (safeDashboard.driverStatuses || []).length %> drivers live</span>
       </div>
 
-      <div class="ops-map-card">
-        <div class="ops-map-grid"></div>
-        <span class="ops-map-pin ops-map-pin-a">Central Hub</span>
-        <span class="ops-map-pin ops-map-pin-b">Westside</span>
-        <span class="ops-map-pin ops-map-pin-c">North Hub</span>
-      </div>
-
       <div class="ops-driver-list">
+        <% if ((safeDashboard.driverStatuses || []).length === 0) { %>
+          <p class="ops-empty">No drivers active right now.</p>
+        <% } %>
+
         <% (safeDashboard.driverStatuses || []).forEach((driver) => { %>
           <div class="ops-driver-row">
             <div>
               <strong><%= driver.name %></strong>
-              <span><%= driver.zone %></span>
+              <span><%= driver.location %></span>
             </div>
             <div class="ops-driver-meta">
               <span class="ops-driver-state"><%= driver.status %></span>
-              <strong><%= driver.orders %> jobs</strong>
+              <strong><%= driver.activeJobs %> active</strong>
             </div>
           </div>
         <% }) %>
@@ -186,20 +175,8 @@
           <strong><%= safeDashboard.deliveryRate || 0 %>%</strong>
         </div>
         <div class="ops-score-row">
-          <span>Order accuracy rate</span>
-          <strong><%= safeDashboard.accuracyRate || 0 %>%</strong>
-        </div>
-        <div class="ops-score-row">
-          <span>Customer satisfaction score (CSAT)</span>
-          <strong><%= safeDashboard.csat || "4.6" %>/5</strong>
-        </div>
-        <div class="ops-score-row">
-          <span>Customer complaint rate</span>
-          <strong><%= safeDashboard.complaintRate || "2.4" %>%</strong>
-        </div>
-        <div class="ops-score-row">
           <span>Average service time</span>
-          <strong><%= safeDashboard.averageServiceTime || "22 min" %></strong>
+          <strong><%= safeDashboard.averageServiceTime || "No data yet" %></strong>
         </div>
       </div>
     </section>

@@ -1,0 +1,171 @@
+<%- include("../partials/header") %>
+
+<%
+  const safeRestaurant = restaurant || {};
+  const businessName = safeRestaurant.name || "Business";
+  const logoUrl = safeRestaurant.logo_url || "";
+  const bannerUrl = safeRestaurant.banner_url || "";
+%>
+
+<section class="business-profile-shell">
+  <div class="business-profile-hero">
+    <div>
+      <span class="feature-eyebrow">Business profile</span>
+      <h1><%= businessName %></h1>
+      <p><%= safeRestaurant.description || "Update the public details customers see before they order." %></p>
+      <div class="ops-hero-actions">
+        <a href="/admin" class="btn restaurant-secondary-cta">Back to Business Hub</a>
+        <a href="/restaurant/<%= safeRestaurant.id %>/menu" class="btn restaurant-primary-cta">View Public Menu</a>
+      </div>
+    </div>
+
+    <div class="business-profile-preview" aria-label="Current business profile preview">
+      <div class="business-profile-banner">
+        <% if (bannerUrl) { %>
+          <img src="<%= bannerUrl %>" alt="<%= businessName %> banner" loading="lazy" />
+        <% } else { %>
+          <span>No banner</span>
+        <% } %>
+      </div>
+
+      <div class="business-profile-preview-body">
+        <div class="business-profile-logo">
+          <% if (logoUrl) { %>
+            <img src="<%= logoUrl %>" alt="<%= businessName %> logo" loading="lazy" />
+          <% } else { %>
+            <span><%= businessName.charAt(0).toUpperCase() %></span>
+          <% } %>
+        </div>
+        <div>
+          <strong><%= businessName %></strong>
+          <span><%= accountEmail %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form
+    action="/admin/profile"
+    method="POST"
+    enctype="multipart/form-data"
+    class="business-profile-form auth-form-card"
+  >
+    <div class="auth-grid">
+      <div>
+        <label for="businessName">Business name</label>
+        <input
+          type="text"
+          id="businessName"
+          name="businessName"
+          value="<%= businessName %>"
+          required
+        />
+      </div>
+
+      <div>
+        <label for="email">Account email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          value="<%= accountEmail %>"
+          required
+        />
+      </div>
+    </div>
+
+    <div>
+      <label for="businessDescription">Business description</label>
+      <textarea
+        id="businessDescription"
+        name="businessDescription"
+        rows="5"
+      ><%= safeRestaurant.description || "" %></textarea>
+    </div>
+
+    <div class="business-profile-assets">
+      <div class="business-profile-upload">
+        <label for="businessLogo">Logo</label>
+
+        <div class="business-profile-image business-profile-image-logo" data-current-image="businessLogo">
+          <% if (logoUrl) { %>
+            <img src="<%= logoUrl %>" alt="Current logo" loading="lazy" />
+          <% } else { %>
+            <span><%= businessName.charAt(0).toUpperCase() %></span>
+          <% } %>
+        </div>
+
+        <img
+          class="business-profile-image-preview business-profile-image-logo is-hidden"
+          alt="Selected logo preview"
+          data-image-preview="businessLogo"
+        />
+
+        <input
+          type="file"
+          id="businessLogo"
+          name="businessLogo"
+          accept="image/*"
+          data-file-input="businessLogo"
+        />
+      </div>
+
+      <div class="business-profile-upload">
+        <label for="businessBanner">Banner</label>
+
+        <div class="business-profile-image business-profile-image-banner" data-current-image="businessBanner">
+          <% if (bannerUrl) { %>
+            <img src="<%= bannerUrl %>" alt="Current banner" loading="lazy" />
+          <% } else { %>
+            <span>No banner</span>
+          <% } %>
+        </div>
+
+        <img
+          class="business-profile-image-preview business-profile-image-banner is-hidden"
+          alt="Selected banner preview"
+          data-image-preview="businessBanner"
+        />
+
+        <input
+          type="file"
+          id="businessBanner"
+          name="businessBanner"
+          accept="image/*"
+          data-file-input="businessBanner"
+        />
+      </div>
+    </div>
+
+    <div class="business-profile-actions">
+      <button type="submit" class="btn restaurant-primary-cta">Save Profile</button>
+      <a href="/admin" class="btn restaurant-secondary-cta">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<script>
+  document.querySelectorAll("[data-file-input]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const key = input.dataset.fileInput;
+      const file = input.files[0];
+      const preview = document.querySelector(`[data-image-preview="${key}"]`);
+      const current = document.querySelector(`[data-current-image="${key}"]`);
+
+      if (!preview || !current) return;
+
+      if (!file) {
+        preview.classList.add("is-hidden");
+        preview.removeAttribute("src");
+        current.classList.remove("is-hidden");
+        return;
+      }
+
+      preview.src = URL.createObjectURL(file);
+      preview.classList.remove("is-hidden");
+      current.classList.add("is-hidden");
+    });
+  });
+</script>
+
+<%- include("../partials/footer") %>

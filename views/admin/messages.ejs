@@ -1,0 +1,42 @@
+<%- include("../partials/header") %>
+
+<div class="container">
+  <h1>Contact Messages</h1>
+
+  <% if (messages.length === 0) { %>
+    <p>No messages yet.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>Email</th>
+          <th>Message</th>
+          <th>Received</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% messages.forEach((message) => { %>
+          <tr>
+            <td><%= message.name %></td>
+            <td><a href="mailto:<%= message.email %>"><%= message.email %></a></td>
+            <td><%= message.message %></td>
+            <td><%= new Date(message.created_at).toLocaleString() %></td>
+            <td>
+              <% if (message.is_read) { %>
+                Read
+              <% } else { %>
+                <form method="POST" action="/admin/messages/<%= message.id %>/read">
+                  <button type="submit">Mark read</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include("../partials/footer") %>

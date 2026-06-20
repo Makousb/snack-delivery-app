@@ -6,6 +6,7 @@ import {
   restaurantOrders,
   updateOrderStatus
 } from "../controllers/order.controller.js";
+import { requireAuth, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -15,7 +16,17 @@ router.get("/orders/:orderId/success", orderSuccess);
 router.get("/orders", customerOrders);
 
 // Admin / Restaurant
-router.get("/admin/restaurant/:restaurantId/orders", restaurantOrders);
-router.post("/admin/order/:orderId/status", updateOrderStatus);
+router.get(
+  "/admin/restaurant/:restaurantId/orders",
+  requireAuth,
+  requireRole(["owner", "admin"]),
+  restaurantOrders
+);
+router.post(
+  "/admin/order/:orderId/status",
+  requireAuth,
+  requireRole(["owner", "admin"]),
+  updateOrderStatus
+);
 
 export default router;

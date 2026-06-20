@@ -665,7 +665,6 @@ body.dark .menu-item:hover {
   }
 }
 
-/* ✅ HIDDEN by default */
 .burger-overlay {
   position: fixed;
   top: 0;
@@ -676,12 +675,11 @@ body.dark .menu-item:hover {
   background: rgba(0,0,0,0.4);
 
   opacity: 0;
-  pointer-events: none; /* 👈 THIS FIXES YOUR BUG */
+  pointer-events: none;
   transition: opacity 0.3s ease;
   z-index: 998;
 }
 
-/* ✅ ONLY active when menu is open */
 .burger-overlay.active {
   opacity: 1;
   pointer-events: all;
@@ -698,7 +696,7 @@ body.dark .menu-item:hover {
   background: rgba(0, 0, 0, 0.4);
 
   opacity: 0;
-  pointer-events: none; /* 🔥 THIS IS THE KEY FIX */
+  pointer-events: none;
   transition: opacity 0.3s ease;
 
   z-index: 998;
@@ -771,7 +769,7 @@ body.dark .menu-item:hover {
   transform: translateY(-1px);
 }
 
-/* Focus effect (🔥 premium feel) */
+/* Focus effect */
 .nav-delivery-pill:focus-within {
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2),
               0 6px 20px rgba(0, 0, 0, 0.12);

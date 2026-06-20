@@ -1,13 +1,5 @@
 import { pool } from "./index.js";
-
-function slugify(value) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "store";
-}
+import { slugify } from "../utils/slugify.js";
 
 async function ensureRestaurantSlugs() {
   const result = await pool.query(
@@ -61,7 +53,8 @@ export async function ensureSchema() {
     ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS delivery_address TEXT,
       ADD COLUMN IF NOT EXISTS customer_phone TEXT,
-      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS mpesa_checkout_request_id TEXT
   `);
 
   await pool.query(`
@@ -103,6 +96,17 @@ export async function ensureSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS deliveries_status_idx
       ON deliveries(status)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_read BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
   `);
 
   await ensureRestaurantSlugs();

@@ -20,11 +20,6 @@
   <!-- Scripts -->
   <script src="/js/navbar.js" defer></script>
   <script src="/js/address-memory.js" defer></script>
-
-  <!-- Google Places API -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places">
-  </script>
 </head>
 
 <body class="<%= typeof bodyClass !== "undefined" ? bodyClass : "" %>">
@@ -44,7 +39,6 @@
       <span class="logo-wordmark">Snack</span>
     </a>
 
-    <!-- 📍 DELIVERY INPUT (FIXED + MODERN) -->
     <div class="nav-delivery-pill">
       <span class="nav-delivery-label">Deliver to</span>
 
@@ -62,7 +56,6 @@
           data-delivery-address-input
         />
 
-        <!-- Clear Button (FIXED + CONNECTED TO JS) -->
         <button
           type="button"
           id="clear-address"

@@ -1,34 +1,7 @@
 import bcrypt from "bcrypt";
 import { pool } from "../db/index.js";
-
-function slugify(value) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "store";
-}
-
-async function buildUniqueRestaurantSlug(name) {
-  const baseSlug = slugify(name);
-  let slug = baseSlug;
-  let suffix = 2;
-
-  while (true) {
-    const result = await pool.query(
-      "SELECT 1 FROM restaurants WHERE slug = $1 LIMIT 1",
-      [slug]
-    );
-
-    if (!result.rows.length) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${suffix}`;
-    suffix += 1;
-  }
-}
+import { getUserByEmail } from "../db/queries/users.js";
+import { buildUniqueRestaurantSlug } from "../utils/slugify.js";
 
 function getRedirectPathForRole(role) {
   if (role === "driver") return "/driver";
@@ -40,16 +13,10 @@ function getFilePath(file) {
   return file ? `/images/${file.filename}` : null;
 }
 
-// ---------------------
-// SHOW SIGNUP
-// ---------------------
 export function showSignup(req, res) {
   res.render("auth/signup", { title: "Create Account" });
 }
 
-// ---------------------
-// HANDLE SIGNUP
-// ---------------------
 export async function signup(req, res) {
   const client = await pool.connect();
 
@@ -72,12 +39,9 @@ export async function signup(req, res) {
         : accountType === "owner"
           ? "owner"
           : "customer";
-    const existingUser = await client.query(
-      "SELECT id FROM users WHERE email = $1",
-      [email]
-    );
+    const existingUser = await getUserByEmail(email);
 
-    if (existingUser.rows.length) {
+    if (existingUser) {
       req.flash("error", "That email is already registered.");
       return res.redirect("/auth/signup");
     }
@@ -94,7 +58,7 @@ export async function signup(req, res) {
         throw new Error("Restaurant name is required for business accounts.");
       }
 
-      const slug = await buildUniqueRestaurantSlug(safeRestaurantName);
+      const slug = await buildUniqueRestaurantSlug(client, safeRestaurantName);
       const logoUrl = getFilePath(req.files?.businessLogo?.[0]);
       const bannerUrl = getFilePath(req.files?.businessBanner?.[0]);
 
@@ -186,26 +150,15 @@ export async function signup(req, res) {
   }
 }
 
-// ---------------------
-// SHOW LOGIN
-// ---------------------
 export function showLogin(req, res) {
   res.render("auth/login", { title: "Login" });
 }
 
-// ---------------------
-// HANDLE LOGIN
-// ---------------------
 export async function login(req, res) {
   try {
     const { email, password } = req.body;
 
-    const result = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-
-    const user = result.rows[0];
+    const user = await getUserByEmail(email);
 
     if (!user) {
       req.flash("error", "User not found.");
@@ -238,9 +191,6 @@ export async function login(req, res) {
   }
 }
 
-// ---------------------
-// LOGOUT
-// ---------------------
 export function logout(req, res) {
   req.session.destroy(() => {
     res.redirect("/auth/login");
