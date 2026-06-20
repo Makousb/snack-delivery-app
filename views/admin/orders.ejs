@@ -13,6 +13,7 @@
         <th>ID</th>
         <th>Total</th>
         <th>Status</th>
+        <th>M-Pesa Code</th>
         <th>Created</th>
         <th>Action</th>
       </tr>
@@ -23,11 +24,13 @@
           <td><%= order.id %></td>
           <td><%= formatCurrency(order.total) %></td>
           <td class="status"><%= order.status %></td>
+          <td><%= order.mpesa_manual_code || "—" %></td>
           <td><%= order.created_at.toLocaleString() %></td>
           <td>
             <form method="POST" action="/admin/order/<%= order.id %>/status">
               <select name="status">
                 <option <%= order.status === "Pending Payment" ? "selected" : "" %>>Pending Payment</option>
+                <option <%= order.status === "Payment Pending Verification" ? "selected" : "" %>>Payment Pending Verification</option>
                 <option <%= order.status === "Paid" ? "selected" : "" %>>Paid</option>
                 <option <%= order.status === "Cash Pending" ? "selected" : "" %>>Cash Pending</option>
                 <option <%= order.status === "Preparing" ? "selected" : "" %>>Preparing</option>
@@ -82,11 +85,13 @@
         <td>${order.orderId}</td>
         <td>KSh ${Number(order.total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td class="status" data-status="${order.status}">${order.status}</td>
+        <td>—</td>
         <td>Just now</td>
         <td>
           <form method="POST" action="/admin/order/${order.orderId}/status">
             <select name="status">
               <option ${order.status === "Pending Payment" ? "selected" : ""}>Pending Payment</option>
+              <option ${order.status === "Payment Pending Verification" ? "selected" : ""}>Payment Pending Verification</option>
               <option ${order.status === "Paid" ? "selected" : ""}>Paid</option>
               <option ${order.status === "Cash Pending" ? "selected" : ""}>Cash Pending</option>
               <option ${order.status === "Preparing" ? "selected" : ""}>Preparing</option>

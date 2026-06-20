@@ -10,6 +10,20 @@
       <span>Current status</span>
       <strong id="order-status"><%= order.status %></strong>
     </div>
+
+    <% if (order.payment_method === "mpesa" && order.status === "Pending Payment") { %>
+      <form action="/orders/<%= order.id %>/confirm-payment" method="POST" class="auth-form-card mpesa-confirm-form">
+        <p>
+          Already paid but the status above hasn't updated? Enter the M-Pesa
+          confirmation code from your payment SMS and we'll verify it shortly.
+        </p>
+        <div>
+          <label for="mpesaCode">M-Pesa confirmation code</label>
+          <input type="text" id="mpesaCode" name="mpesaCode" placeholder="e.g. QGH7XXXXX" />
+        </div>
+        <button type="submit">Submit code</button>
+      </form>
+    <% } %>
   </div>
 
   <div class="order-page-layout">

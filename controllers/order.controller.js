@@ -169,6 +169,55 @@ export const orderSuccess = async (req, res) => {
   }
 };
 
+export const submitMpesaCode = async (req, res) => {
+  const { orderId } = req.params;
+  const code = (req.body.mpesaCode || "").trim();
+
+  if (!code) {
+    req.flash("error", "Enter the M-Pesa confirmation code from your payment SMS.");
+    return res.redirect(`/orders/${orderId}/success`);
+  }
+
+  try {
+    const orderResult = await pool.query(
+      "SELECT user_id, restaurant_id, payment_method FROM orders WHERE id = $1",
+      [orderId]
+    );
+    const order = orderResult.rows[0];
+
+    if (!order || order.payment_method !== "mpesa") {
+      return res.status(404).render("404", { title: "Order Not Found" });
+    }
+
+    if (order.user_id && order.user_id !== req.session.user?.id) {
+      return res.status(404).render("404", { title: "Order Not Found" });
+    }
+
+    await pool.query(
+      `UPDATE orders
+       SET mpesa_manual_code = $1, status = 'Payment Pending Verification'
+       WHERE id = $2`,
+      [code, orderId]
+    );
+
+    const io = req.app.get("io");
+
+    if (io) {
+      io.emit("orderUpdated", { orderId, status: "Payment Pending Verification" });
+      io.to(`restaurant_${order.restaurant_id}`).emit("orderUpdated", {
+        orderId,
+        status: "Payment Pending Verification"
+      });
+    }
+
+    req.flash("success", "Thanks — we'll confirm your payment shortly.");
+    res.redirect(`/orders/${orderId}/success`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+};
+
 export const customerOrders = async (req, res) => {
   try {
     const userId = req.session.user?.id;

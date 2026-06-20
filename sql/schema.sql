@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_phone TEXT,
   payment_method VARCHAR(50),
   mpesa_checkout_request_id TEXT,
+  mpesa_manual_code TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
