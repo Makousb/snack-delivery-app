@@ -1,5 +1,6 @@
 import { pool } from "../db/index.js";
 import { createMessage } from "../db/queries/messages.js";
+import { getUsualOrder } from "../db/queries/usualOrder.js";
 import { VENDOR_TYPES } from "../utils/vendorTypes.js";
 
 function vendorTypeLabel(vendorType) {
@@ -21,7 +22,7 @@ export const renderHome = async (req, res, next) => {
     const searchQuery = (req.query.search || "").trim();
     const vendorNotFound = req.query.notFound === "1";
     const [vendorsResult, popularItemsResult] = await Promise.all([
-      pool.query("SELECT * FROM vendors ORDER BY name ASC"),
+      pool.query("SELECT * FROM vendors WHERE vendor_type != 'street_vendor' ORDER BY name ASC"),
       pool.query(`
         SELECT
           mi.id,
@@ -31,21 +32,93 @@ export const renderHome = async (req, res, next) => {
           mi.category,
           mi.image_url,
           mi.vendor_id,
-          v.name AS vendor_name
+          v.name AS vendor_name,
+          v.vendor_type
         FROM menu_items mi
         JOIN vendors v ON v.id = mi.vendor_id
+        WHERE v.vendor_type != 'street_vendor'
         ORDER BY v.name ASC, mi.display_order ASC, mi.id ASC
-        LIMIT 10
       `)
     ]);
 
+    const vendors = vendorsResult.rows.map(withVendorTypeLabel);
+    const popularItems = popularItemsResult.rows;
+
+    const vendorSections = VENDOR_TYPES
+      .filter((type) => type.value !== "street_vendor")
+      .map((type) => ({
+        value: type.value,
+        vendors: vendors.filter((vendor) => vendor.vendor_type === type.value),
+        popularItems: popularItems.filter((item) => item.vendor_type === type.value).slice(0, 8)
+      }));
+
+    const usualOrder = req.session.user
+      ? await getUsualOrder(req.session.user.id)
+      : null;
+
     res.render("home", {
       title: "Browse Vendors",
-      vendors: vendorsResult.rows.map(withVendorTypeLabel),
-      vendorTypes: VENDOR_TYPES,
-      popularItems: popularItemsResult.rows,
+      vendors,
+      popularItems,
+      vendorSections,
+      usualOrder,
       searchQuery,
       vendorNotFound
+    });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+export const renderStreetVendors = async (req, res, next) => {
+  try {
+    const [vendorsResult, itemsResult] = await Promise.all([
+      pool.query("SELECT * FROM vendors WHERE vendor_type = 'street_vendor' ORDER BY name ASC"),
+      pool.query(`
+        SELECT mi.id, mi.name, mi.description, mi.price, mi.category, mi.image_url, mi.vendor_id, v.name AS vendor_name
+        FROM menu_items mi
+        JOIN vendors v ON v.id = mi.vendor_id
+        WHERE v.vendor_type = 'street_vendor'
+        ORDER BY mi.name ASC, mi.price ASC
+      `)
+    ]);
+
+    const vendors = vendorsResult.rows.map((vendor) => ({
+      ...withVendorTypeLabel(vendor),
+      latitude: vendor.latitude !== null ? Number(vendor.latitude) : null,
+      longitude: vendor.longitude !== null ? Number(vendor.longitude) : null
+    }));
+
+    const items = itemsResult.rows.map((item) => ({ ...item, price: Number(item.price) }));
+
+    const itemsByVendor = items.reduce((groups, item) => {
+      const key = String(item.vendor_id);
+      groups[key] = groups[key] || [];
+      groups[key].push(item);
+      return groups;
+    }, {});
+
+    const itemsByName = items.reduce((groups, item) => {
+      const key = item.name.trim().toLowerCase();
+      groups[key] = groups[key] || [];
+      groups[key].push(item);
+      return groups;
+    }, {});
+
+    const priceComparisons = Object.values(itemsByName)
+      .filter((group) => new Set(group.map((item) => item.vendor_id)).size > 1)
+      .map((group) => {
+        const entries = [...group].sort((a, b) => a.price - b.price);
+        return { name: entries[0].name, entries };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.render("street-vendors", {
+      title: "Street Vendors",
+      vendors,
+      itemsByVendor,
+      priceComparisons
     });
   } catch (err) {
     console.error(err);

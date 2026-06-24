@@ -2,8 +2,13 @@
 
 <%
   const safeVendors = vendors || [];
-  const safeVendorTypes = vendorTypes || [];
   const safePopularItems = popularItems || [];
+  const safeVendorSections = vendorSections || [];
+  const sectionMeta = {
+    restaurant: { label: "Restaurants", subhead: "Order from local favorites" },
+    store: { label: "Grocery & convenience", subhead: "Stock up from nearby stores" },
+    street_vendor: { label: "Street vendor", subhead: "Grab a quick bite from the street" }
+  };
   const fallbackVendorImages = [
     "/homepage_images/Restaurant_items.avif",
     "/homepage_images/papa-johns-banner.webp",
@@ -12,12 +17,42 @@
     "/homepage_images/greek.avif"
   ];
   const marketplaceCategories = [
-    { name: "Asian", detail: "Noodles, rice, and more", tone: "red", image: "/homepage_images/Noodles_Icon.png" },
-    { name: "Pizza", detail: "Slices and sides", tone: "orange", image: "/homepage_images/Pizza_Icon.jpg" },
-    { name: "Chicken", detail: "Crispy favorites", tone: "gold", image: "/homepage_images/Chicken_Icon.jpg" },
-    { name: "Burgers", detail: "Stacked and saucy", tone: "green", image: "/homepage_images/Burger_Icon.jpg" },
-    { name: "Healthy", detail: "Bowls and salads", tone: "teal", image: "/homepage_images/Salad_Icon.jpg" },
-    { name: "Dessert", detail: "Sweet finishes", tone: "pink", image: "/homepage_images/Cake_Icon.jpg" }
+    {
+      name: "Fresh Produce",
+      detail: "Fruits, veggies, and herbs",
+      tone: "red",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="27" r="13" fill="#ef4444"/><path d="M24 16c0-4 3-6 6-6-1 3-3 5-6 6z" fill="#16a34a"/></svg>'
+    },
+    {
+      name: "Bakery",
+      detail: "Bread, pastries, and rolls",
+      tone: "orange",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M8 30c0-10 7-18 16-18s16 8 16 18c0 3-2 5-5 5H13c-3 0-5-2-5-5z" fill="#d97706"/><path d="M17 18l3 10M24 16l2 12M31 18l-3 10" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>'
+    },
+    {
+      name: "Dairy & Eggs",
+      detail: "Milk, cheese, and eggs",
+      tone: "gold",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M14 10l10-6 10 6v28a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2z" fill="#3b82f6"/><path d="M14 10h20l3 8H11z" fill="#1d4ed8"/><rect x="11" y="24" width="26" height="6" fill="#ffffff" opacity="0.85"/></svg>'
+    },
+    {
+      name: "Beverages",
+      detail: "Water, juice, and soda",
+      tone: "green",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="22" y="6" width="3.4" height="14" rx="1.6" fill="#0369a1" transform="rotate(12 23.7 13)"/><path d="M13 16h22l-2.5 22a3 3 0 0 1-3 2.7H18.5a3 3 0 0 1-3-2.7z" fill="#0ea5e9"/><path d="M13 16h22" stroke="#0369a1" stroke-width="2"/></svg>'
+    },
+    {
+      name: "Household",
+      detail: "Cleaning and home basics",
+      tone: "teal",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="23" y="5" width="9" height="5" rx="1.5" fill="#6b21a8" transform="rotate(-20 27.5 7.5)"/><rect x="20" y="10" width="8" height="9" rx="1.5" fill="#7e22ce"/><rect x="16" y="18" width="16" height="22" rx="3" fill="#a855f7"/></svg>'
+    },
+    {
+      name: "Snacks",
+      detail: "Chips, sweets, and treats",
+      tone: "pink",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="15" fill="#d97706"/><circle cx="18" cy="19" r="2" fill="#7c2d12"/><circle cx="28" cy="18" r="2" fill="#7c2d12"/><circle cx="31" cy="27" r="2" fill="#7c2d12"/><circle cx="21" cy="30" r="2" fill="#7c2d12"/><circle cx="24" cy="24" r="1.6" fill="#7c2d12"/></svg>'
+    }
   ];
   const filterChips = [
     "Fastest nearby",
@@ -39,7 +74,6 @@
     heroVendor.banner_url ||
     safePopularItems[0]?.image_url ||
     "/homepage_images/Restaurant_items.avif";
-  const spotlightItems = safePopularItems.slice(0, 8);
 %>
 
 <div class="marketplace-home-layout">
@@ -66,6 +100,10 @@
         <span class="side-menu-icon" aria-hidden="true">V</span>
         <span>Vendors</span>
       </a>
+      <a href="/street-vendors" class="side-menu-link">
+        <span class="side-menu-icon" aria-hidden="true">&#127805;</span>
+        <span>Street Vendors</span>
+      </a>
     </nav>
 
     <nav class="side-menu-section" aria-label="Account links">
@@ -75,7 +113,7 @@
         <span>Orders</span>
       </a>
       <a href="/cart" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">B</span>
+        <span class="side-menu-icon" aria-hidden="true">&#128722;</span>
         <span>Cart</span>
       </a>
       <% if (typeof currentUser !== "undefined" && currentUser?.role === "driver") { %>
@@ -110,6 +148,52 @@
   </aside>
 
 <section class="marketplace-page" id="marketplace-top">
+  <% if (typeof usualOrder !== "undefined" && usualOrder) { %>
+    <section class="usual-order-prompt" id="usual-order-prompt" aria-label="Your usual order">
+      <div class="usual-order-copy">
+        <span class="usual-order-eyebrow">Welcome back</span>
+        <h2>Want your usual?</h2>
+        <p>
+          Your usual from <strong><%= usualOrder.vendor.name %></strong> —
+          <%= usualOrder.items.length %> item<%= usualOrder.items.length === 1 ? "" : "s" %>
+          · <%= formatCurrency(usualOrder.total) %>
+        </p>
+        <ul class="usual-order-items">
+          <% usualOrder.items.slice(0, 4).forEach((item) => { %>
+            <li><%= item.qty %>&times; <%= item.name %></li>
+          <% }) %>
+          <% if (usualOrder.items.length > 4) { %>
+            <li class="usual-order-more">+<%= usualOrder.items.length - 4 %> more</li>
+          <% } %>
+        </ul>
+      </div>
+      <div class="usual-order-actions">
+        <form method="POST" action="/usual-order/add">
+          <button type="submit" class="btn vendor-primary-cta">Yes, add my usual</button>
+        </form>
+        <button type="button" class="btn vendor-secondary-cta" data-dismiss-usual>No thanks</button>
+      </div>
+    </section>
+
+    <script>
+      (function () {
+        var prompt = document.getElementById("usual-order-prompt");
+        if (!prompt) return;
+
+        if (sessionStorage.getItem("usualOrderDismissed") === "1") {
+          prompt.style.display = "none";
+          return;
+        }
+
+        var dismissBtn = prompt.querySelector("[data-dismiss-usual]");
+        dismissBtn?.addEventListener("click", function () {
+          sessionStorage.setItem("usualOrderDismissed", "1");
+          prompt.style.display = "none";
+        });
+      })();
+    </script>
+  <% } %>
+
   <section class="marketplace-hero" aria-label="Food delivery marketplace">
     <div class="marketplace-hero-copy">
       <span class="marketplace-kicker">Snack marketplace</span>
@@ -152,20 +236,6 @@
     </a>
   </section>
 
-  <section class="marketplace-category-rail" id="marketplace-categories" aria-label="Popular categories">
-    <% marketplaceCategories.forEach((category) => { %>
-      <a href="#featured-vendors" class="marketplace-category-card">
-        <span class="marketplace-category-art marketplace-category-<%= category.tone %> <%= category.image ? "marketplace-category-image" : "" %>">
-          <% if (category.image) { %>
-            <img src="<%= category.image %>" alt="" loading="lazy" />
-          <% } %>
-        </span>
-        <strong><%= category.name %></strong>
-        <small><%= category.detail %></small>
-      </a>
-    <% }) %>
-  </section>
-
   <section class="marketplace-filter-bar" aria-label="Vendor filters">
     <% filterChips.forEach((chip, index) => { %>
       <a href="#featured-vendors" class="<%= index === 0 ? "marketplace-filter-active" : "" %>">
@@ -192,123 +262,150 @@
     </article>
   </section>
 
-  <section class="marketplace-section" id="popular-now">
-    <div class="marketplace-section-head">
-      <div>
-        <span>Popular now</span>
-        <h2>Most ordered near you</h2>
-      </div>
-      <a href="/cart">View cart</a>
-    </div>
+  <section id="featured-vendors">
+    <% safeVendorSections.forEach((section, sectionIndex) => { %>
+      <% const meta = sectionMeta[section.value] || { label: section.value, subhead: "" }; %>
 
-    <% if (spotlightItems.length > 0) { %>
-      <div class="marketplace-item-row">
-        <% spotlightItems.forEach((item, index) => { %>
-          <article class="marketplace-item-card">
-            <a href="/vendor/<%= item.vendor_id %>/menu" class="marketplace-item-image">
-              <% if (item.image_url) { %>
-                <img src="<%= item.image_url %>" alt="<%= item.name %>" loading="lazy" />
-              <% } else { %>
-                <span>Popular pick</span>
-              <% } %>
+      <% if (section.value === "store") { %>
+        <section class="marketplace-category-rail" id="marketplace-categories" aria-label="Grocery categories">
+          <% marketplaceCategories.forEach((category) => { %>
+            <a href="#featured-vendors" class="marketplace-category-card">
+              <span class="marketplace-category-art marketplace-category-<%= category.tone %> <%= category.icon ? "marketplace-category-image" : "" %>">
+                <%- category.icon || "" %>
+              </span>
+              <strong><%= category.name %></strong>
+              <small><%= category.detail %></small>
             </a>
+          <% }) %>
+        </section>
+      <% } %>
 
-            <div class="marketplace-item-body">
-              <span><%= item.vendor_name %></span>
-              <h3><%= item.name %></h3>
-              <p><%= item.category || "Customer favorite" %> · <%= 18 + (index % 4) * 4 %>-<%= 26 + (index % 4) * 4 %> min</p>
-              <div>
-                <strong><%= formatCurrency(item.price) %></strong>
-                <button
-                  type="button"
-                  data-popular-add
-                  data-id="<%= item.id %>"
-                  data-name="<%= item.name %>"
-                  data-price="<%= item.price %>"
-                  data-vendor="<%= item.vendor_id %>"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-          </article>
-        <% }) %>
-      </div>
-    <% } else { %>
-      <p class="home-empty-state">Popular items will appear here after menu items are added.</p>
-    <% } %>
-  </section>
-
-  <section class="marketplace-section" id="featured-vendors">
-    <div class="marketplace-section-head">
-      <div>
-        <span>Vendors near you</span>
-        <h2>Order from local favorites</h2>
-      </div>
-      <a href="/cart">Open cart</a>
-    </div>
-
-    <% if (safeVendorTypes.length > 0) { %>
-      <div class="marketplace-vendor-type-filter" aria-label="Filter by vendor type">
-        <button type="button" class="vendor-type-filter-chip vendor-type-filter-active" data-vendor-type-filter="all">All</button>
-        <% safeVendorTypes.forEach((type) => { %>
-          <button type="button" class="vendor-type-filter-chip" data-vendor-type-filter="<%= type.value %>"><%= type.label %>s</button>
-        <% }) %>
-      </div>
-    <% } %>
-
-    <% if (safeVendors.length === 0) { %>
-      <p class="home-empty-state">No vendors found.</p>
-    <% } %>
-
-    <div class="marketplace-vendor-grid" id="vendor-grid">
-      <% safeVendors.forEach((vendor, index) => { %>
-        <%
-          const etaStart = 18 + (index % 5) * 3;
-          const etaEnd = etaStart + 10;
-          const rating = (4.8 - (index % 4) * 0.1).toFixed(1);
-          const badge = vendorBadges[index % vendorBadges.length];
-          const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
-          const previewItems = vendorItems[String(vendor.id)] || [];
-        %>
-
-        <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card" data-vendor-type="<%= vendor.vendor_type %>">
-          <div class="marketplace-vendor-media">
-            <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
-            <span class="marketplace-store-badge"><%= badge %></span>
+      <section class="marketplace-section marketplace-type-section">
+        <div class="marketplace-section-head">
+          <div>
+            <span><%= meta.label %></span>
+            <h2><%= meta.subhead %></h2>
           </div>
+          <a href="/cart">Open cart</a>
+        </div>
 
-          <div class="marketplace-vendor-content">
-            <div class="marketplace-vendor-title">
-              <div>
-                <h3><%= vendor.name %></h3>
-                <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
-              </div>
-              <strong><%= rating %></strong>
-            </div>
+        <% if (section.popularItems.length > 0) { %>
+          <div class="marketplace-item-row"<%- sectionIndex === 0 ? ' id="popular-now"' : "" %>>
+            <% section.popularItems.forEach((item, index) => { %>
+              <article class="marketplace-item-card">
+                <a href="/vendor/<%= item.vendor_id %>/menu" class="marketplace-item-image">
+                  <% if (item.image_url) { %>
+                    <img src="<%= item.image_url %>" alt="<%= item.name %>" loading="lazy" />
+                  <% } else { %>
+                    <span>Popular pick</span>
+                  <% } %>
+                </a>
 
-            <p class="marketplace-vendor-description">
-              <%= vendor.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
-            </p>
-
-            <% if (previewItems.length > 0) { %>
-              <div class="marketplace-menu-preview">
-                <% previewItems.slice(0, 2).forEach((item) => { %>
-                  <span><%= item.name %></span>
-                <% }) %>
-              </div>
-            <% } %>
+                <div class="marketplace-item-body">
+                  <span><%= item.vendor_name %></span>
+                  <h3><%= item.name %></h3>
+                  <p><%= item.category || "Customer favorite" %> · <%= 18 + (index % 4) * 4 %>-<%= 26 + (index % 4) * 4 %> min</p>
+                  <div>
+                    <strong><%= formatCurrency(item.price) %></strong>
+                    <button
+                      type="button"
+                      data-popular-add
+                      data-id="<%= item.id %>"
+                      data-name="<%= item.name %>"
+                      data-price="<%= item.price %>"
+                      data-vendor="<%= item.vendor_id %>"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </article>
+            <% }) %>
           </div>
-        </a>
-      <% }) %>
-    </div>
+        <% } %>
+
+        <% if (section.vendors.length === 0) { %>
+          <p class="home-empty-state">No <%= meta.label.toLowerCase() %> yet.</p>
+        <% } else { %>
+          <div class="marketplace-vendor-grid">
+            <% section.vendors.forEach((vendor, index) => { %>
+              <%
+                const etaStart = 18 + (index % 5) * 3;
+                const etaEnd = etaStart + 10;
+                const rating = (4.8 - (index % 4) * 0.1).toFixed(1);
+                const badge = vendorBadges[index % vendorBadges.length];
+                const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
+                const previewItems = vendorItems[String(vendor.id)] || [];
+              %>
+
+              <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card">
+                <div class="marketplace-vendor-media">
+                  <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
+                  <span class="marketplace-store-badge"><%= badge %></span>
+                  <span class="marketplace-vendor-logo">
+                    <% if (vendor.logo_url) { %>
+                      <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
+                    <% } else { %>
+                      <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+                    <% } %>
+                  </span>
+                </div>
+
+                <div class="marketplace-vendor-content">
+                  <div class="marketplace-vendor-title">
+                    <div>
+                      <h3><%= vendor.name %></h3>
+                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
+                    </div>
+                    <strong><%= rating %></strong>
+                  </div>
+
+                  <p class="marketplace-vendor-description">
+                    <%= vendor.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
+                  </p>
+
+                  <% if (previewItems.length > 0) { %>
+                    <div class="marketplace-menu-preview">
+                      <% previewItems.slice(0, 2).forEach((item) => { %>
+                        <span><%= item.name %></span>
+                      <% }) %>
+                    </div>
+                  <% } %>
+                </div>
+              </a>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+    <% }) %>
   </section>
 </section>
 </div>
 
 <a href="/cart" class="floating-cart" aria-label="Open cart">
-  Cart
+  &#128722;
 </a>
+
+<div id="cart-drawer-overlay" class="cart-drawer-overlay"></div>
+
+<aside id="cart-drawer" class="cart-drawer" aria-hidden="true" aria-label="Your cart">
+  <div class="cart-drawer-head">
+    <h2>Your cart</h2>
+    <button type="button" id="cart-drawer-close" class="cart-drawer-close" aria-label="Close cart">&times;</button>
+  </div>
+
+  <div class="cart-drawer-body" id="cart-drawer-body">
+    <p class="cart-drawer-empty">Your cart is empty.</p>
+  </div>
+
+  <div class="cart-drawer-footer">
+    <div class="cart-drawer-total">
+      <span>Subtotal</span>
+      <strong id="cart-drawer-total">KSh 0.00</strong>
+    </div>
+    <a href="/cart" class="btn vendor-primary-cta cart-drawer-checkout">View cart &amp; checkout</a>
+  </div>
+</aside>
 
 <div id="switch-modal" class="modal">
   <div class="modal-content">
@@ -333,6 +430,13 @@
   const confirmBtn = document.getElementById("confirm-switch");
   const cancelBtn = document.getElementById("cancel-switch");
 
+  const cartDrawer = document.getElementById("cart-drawer");
+  const cartDrawerOverlay = document.getElementById("cart-drawer-overlay");
+  const cartDrawerBody = document.getElementById("cart-drawer-body");
+  const cartDrawerTotal = document.getElementById("cart-drawer-total");
+  const cartDrawerClose = document.getElementById("cart-drawer-close");
+  const cartTriggers = document.querySelectorAll('#cart-icon, .floating-cart, .side-menu-link[href="/cart"]');
+
   let pendingAction = null;
 
   const openModal = () => modal?.classList.add("show");
@@ -346,12 +450,113 @@
     cartIcon.classList.add("cart-bounce");
   }
 
+  function formatDrawerCurrency(amount) {
+    const formatted = Number(amount || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    return `KSh ${formatted}`;
+  }
+
+  function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = value;
+    return div.innerHTML;
+  }
+
+  function renderCartDrawer(data) {
+    const items = data.items || [];
+
+    if (cartCountEl) cartCountEl.innerText = data.count ?? 0;
+    if (cartDrawerTotal) cartDrawerTotal.innerText = formatDrawerCurrency(data.total);
+    if (!cartDrawerBody) return;
+
+    if (items.length === 0) {
+      cartDrawerBody.innerHTML = '<p class="cart-drawer-empty">Your cart is empty.</p>';
+      return;
+    }
+
+    cartDrawerBody.innerHTML = items.map((item) => `
+      <div class="cart-drawer-item">
+        <div class="cart-drawer-item-copy">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span>${formatDrawerCurrency(item.price)} &times; ${item.qty}</span>
+        </div>
+        <div class="cart-drawer-item-actions">
+          <span class="cart-drawer-item-total">${formatDrawerCurrency(item.price * item.qty)}</span>
+          <button type="button" class="cart-drawer-remove" data-vendor-id="${escapeHtml(item.vendorId)}" data-item-id="${escapeHtml(String(item.id))}">Remove</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function fetchCartDrawer() {
+    try {
+      const response = await fetch("/cart/items");
+      renderCartDrawer(await response.json());
+    } catch (error) {
+      console.error("Failed to load cart:", error);
+    }
+  }
+
+  function openCartDrawer() {
+    cartDrawer?.classList.add("show");
+    cartDrawerOverlay?.classList.add("show");
+    cartDrawer?.setAttribute("aria-hidden", "false");
+    fetchCartDrawer();
+  }
+
+  function closeCartDrawer() {
+    cartDrawer?.classList.remove("show");
+    cartDrawerOverlay?.classList.remove("show");
+    cartDrawer?.setAttribute("aria-hidden", "true");
+  }
+
+  cartTriggers.forEach((trigger) => {
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      openCartDrawer();
+    });
+  });
+
+  cartDrawerClose?.addEventListener("click", closeCartDrawer);
+  cartDrawerOverlay?.addEventListener("click", closeCartDrawer);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeCartDrawer();
+  });
+
+  cartDrawerBody?.addEventListener("click", async (event) => {
+    const button = event.target.closest(".cart-drawer-remove");
+    if (!button) return;
+
+    try {
+      const response = await fetch("/cart/update-ajax", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vendorId: button.dataset.vendorId,
+          itemId: button.dataset.itemId,
+          qty: 0
+        })
+      });
+      renderCartDrawer(await response.json());
+    } catch (error) {
+      console.error("Failed to remove item:", error);
+    }
+  });
+
   function updatePopularButton(button, data) {
     if (cartCountEl) {
       cartCountEl.innerText = data.cartCount;
     }
 
     triggerCartBounce();
+
+    if (cartDrawer?.classList.contains("show")) {
+      fetchCartDrawer();
+    }
 
     button.innerText = "Added";
     button.disabled = true;
@@ -419,24 +624,6 @@
   cancelBtn?.addEventListener("click", () => {
     closeModal();
     pendingAction = null;
-  });
-
-  const vendorTypeFilterChips = document.querySelectorAll("[data-vendor-type-filter]");
-  const vendorCards = document.querySelectorAll("#vendor-grid [data-vendor-type]");
-
-  vendorTypeFilterChips.forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const selectedType = chip.dataset.vendorTypeFilter;
-
-      vendorTypeFilterChips.forEach((otherChip) => {
-        otherChip.classList.toggle("vendor-type-filter-active", otherChip === chip);
-      });
-
-      vendorCards.forEach((card) => {
-        const matches = selectedType === "all" || card.dataset.vendorType === selectedType;
-        card.style.display = matches ? "" : "none";
-      });
-    });
   });
 </script>
 

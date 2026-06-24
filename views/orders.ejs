@@ -16,7 +16,7 @@
   <% } else { %>
     <div class="orders-grid">
       <% orders.forEach(order => { %>
-        <a href="/orders/<%= order.id %>/success" class="order-history-card">
+        <article class="order-history-card">
           <div class="order-history-head">
             <span class="menu-category"><%= order.vendor_name || "Vendor" %></span>
             <strong>#<%= order.id %></strong>
@@ -24,13 +24,29 @@
 
           <h2><%= order.status %></h2>
 
+          <% if (order.items && order.items.length) { %>
+            <ul class="order-history-items">
+              <% order.items.slice(0, 4).forEach((item) => { %>
+                <li><%= item.quantity %>&times; <%= item.name %></li>
+              <% }) %>
+              <% if (order.items.length > 4) { %>
+                <li class="order-history-more">+<%= order.items.length - 4 %> more</li>
+              <% } %>
+            </ul>
+          <% } %>
+
           <div class="order-history-meta">
             <span><%= formatCurrency(order.total) %></span>
             <span><%= order.created_at.toLocaleString() %></span>
           </div>
 
-          <span class="order-history-link">Open order &rarr;</span>
-        </a>
+          <div class="order-history-actions">
+            <a href="/orders/<%= order.id %>/success" class="order-history-link">Open order &rarr;</a>
+            <form method="POST" action="/orders/<%= order.id %>/reorder">
+              <button type="submit" class="btn vendor-secondary-cta order-history-reorder">Order again</button>
+            </form>
+          </div>
+        </article>
       <% }) %>
     </div>
   <% } %>

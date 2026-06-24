@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS vendors (
   logo_url TEXT,
   banner_url TEXT,
   slug TEXT,
+  latitude NUMERIC(10, 6),
+  longitude NUMERIC(10, 6),
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

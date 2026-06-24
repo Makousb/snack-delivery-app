@@ -5,6 +5,22 @@ import {
   flattenCart,
   getPositiveQuantity
 } from "../utils/cart.js";
+import { getUsualOrder } from "../db/queries/usualOrder.js";
+
+// Replace the whole cart with a single vendor's items. Used by the "usual
+// order" and "order again" flows, which always start a fresh cart (the cart
+// is one-vendor-at-a-time, so loading a saved order supersedes any current
+// contents).
+function setVendorCart(req, vendorId, items) {
+  req.session.cart = {
+    [String(vendorId)]: items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: Number(item.price),
+      qty: getPositiveQuantity(item.qty)
+    }))
+  };
+}
 
 function saveSession(req) {
   return new Promise((resolve, reject) => {
@@ -124,6 +140,47 @@ export async function addToCartAjax(req, res, next) {
   }
 }
 
+function buildCartPayload(req) {
+  const items = flattenCart(req.session.cart || {});
+  const total = calculateCartTotal(items);
+  const count = items.reduce((sum, item) => sum + item.qty, 0);
+
+  return { items, total, count };
+}
+
+export function getCartItems(req, res) {
+  return res.json(buildCartPayload(req));
+}
+
+export async function updateCartItemAjax(req, res, next) {
+  const { vendorId, itemId, qty } = req.body;
+
+  if (!vendorId || !itemId) {
+    return res.status(400).json({ error: "Missing cart item data" });
+  }
+
+  const vendorCart = ensureVendorCart(req, vendorId);
+  const cartItem = vendorCart.find((item) => String(item.id) === String(itemId));
+  const quantity = Number.parseInt(qty, 10);
+
+  if (cartItem) {
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      req.session.cart[vendorId] = vendorCart.filter(
+        (item) => String(item.id) !== String(itemId)
+      );
+    } else {
+      cartItem.qty = quantity;
+    }
+  }
+
+  try {
+    await saveSession(req);
+    return res.json(buildCartPayload(req));
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export function viewCart(req, res) {
   const { id: vendorId } = req.params;
   const cartItems = ensureVendorCart(req, vendorId);
@@ -189,6 +246,78 @@ export async function updateCartItem(req, res, next) {
 
   try {
     await saveSession(req);
+    return res.redirect("/cart");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function addUsualOrderToCart(req, res, next) {
+  const userId = req.session.user?.id;
+
+  if (!userId) {
+    req.flash("error", "Log in to order your usual.");
+    return res.redirect("/auth/login");
+  }
+
+  try {
+    const usual = await getUsualOrder(userId);
+
+    if (!usual) {
+      req.flash("error", "We couldn't find a usual order for you yet.");
+      return res.redirect("/home");
+    }
+
+    setVendorCart(req, usual.vendor.id, usual.items);
+    await saveSession(req);
+
+    req.flash("success", `Added your usual from ${usual.vendor.name} to the cart.`);
+    return res.redirect("/cart");
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function reorder(req, res, next) {
+  const userId = req.session.user?.id;
+  const { orderId } = req.params;
+
+  if (!userId) {
+    req.flash("error", "Log in to reorder.");
+    return res.redirect("/auth/login");
+  }
+
+  try {
+    const orderResult = await pool.query(
+      "SELECT id, vendor_id, user_id FROM orders WHERE id = $1",
+      [orderId]
+    );
+    const order = orderResult.rows[0];
+
+    if (!order || order.user_id !== userId) {
+      req.flash("error", "Order not found.");
+      return res.redirect("/orders");
+    }
+
+    const itemsResult = await pool.query(
+      `SELECT mi.id, mi.name, mi.price, oi.quantity AS qty
+       FROM order_items oi
+       JOIN menu_items mi ON mi.id = oi.menu_item_id
+       WHERE oi.order_id = $1
+         AND mi.status = 'Available'
+       ORDER BY oi.id ASC`,
+      [orderId]
+    );
+
+    if (itemsResult.rows.length === 0) {
+      req.flash("error", "None of that order's items are available right now.");
+      return res.redirect("/orders");
+    }
+
+    setVendorCart(req, order.vendor_id, itemsResult.rows);
+    await saveSession(req);
+
+    req.flash("success", "Added those items to your cart.");
     return res.redirect("/cart");
   } catch (error) {
     return next(error);
