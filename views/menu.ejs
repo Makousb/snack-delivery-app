@@ -1,6 +1,17 @@
 <%- include("partials/header") %>
 
 <section class="menu-page">
+  <% if (vendor.banner_url) { %>
+    <div class="vendor-banner-shell">
+      <img
+        src="<%= vendor.banner_url %>"
+        alt="<%= vendor.name %> banner"
+        class="vendor-banner-image"
+        loading="lazy"
+      />
+    </div>
+  <% } %>
+
   <div class="menu-page-hero">
     <div class="menu-page-copy">
       <span class="feature-eyebrow">Delivery menu</span>

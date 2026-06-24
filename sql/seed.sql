@@ -21,14 +21,33 @@ WHERE NOT EXISTS (
   SELECT 1 FROM vendors WHERE slug = 'corner-mart'
 );
 
-INSERT INTO vendors (name, vendor_type, description, slug)
+INSERT INTO vendors (name, vendor_type, description, slug, latitude, longitude)
 SELECT
   'Mama''s Grill Cart',
   'street_vendor',
   'A local street cart grilling up Kenyan favorites all day long.',
-  'mamas-grill-cart'
+  'mamas-grill-cart',
+  -1.292100,
+  36.821900
 WHERE NOT EXISTS (
   SELECT 1 FROM vendors WHERE slug = 'mamas-grill-cart'
+);
+
+-- Backfill coordinates if this vendor was seeded before latitude/longitude existed.
+UPDATE vendors
+SET latitude = -1.292100, longitude = 36.821900
+WHERE slug = 'mamas-grill-cart' AND latitude IS NULL;
+
+INSERT INTO vendors (name, vendor_type, description, slug, latitude, longitude)
+SELECT
+  'Jiko Street Eats',
+  'street_vendor',
+  'A street-side jiko serving grilled snacks and quick breakfast bites.',
+  'jiko-street-eats',
+  -1.283300,
+  36.816700
+WHERE NOT EXISTS (
+  SELECT 1 FROM vendors WHERE slug = 'jiko-street-eats'
 );
 
 INSERT INTO menu_items (vendor_id, name, description, price, image_url, category, status, display_order)
@@ -102,6 +121,31 @@ CROSS JOIN (
     ('Sugarcane Juice', 'Freshly pressed sugarcane juice over ice.', 100.00, 'Drinks', 5)
 ) AS item(name, description, price, category, display_order)
 WHERE v.slug = 'mamas-grill-cart'
+  AND NOT EXISTS (
+    SELECT 1 FROM menu_items mi WHERE mi.vendor_id = v.id AND mi.name = item.name
+  );
+
+INSERT INTO menu_items (vendor_id, name, description, price, image_url, category, status, display_order)
+SELECT
+  v.id,
+  item.name,
+  item.description,
+  item.price,
+  '/images/placeholder.png',
+  item.category,
+  'Available',
+  item.display_order
+FROM vendors v
+CROSS JOIN (
+  VALUES
+    ('Grilled Maize', 'Charcoal-roasted maize on the cob.', 70.00, 'Grilled', 0),
+    ('Smokies (2 pcs)', 'Grilled smokies with a side of kachumbari.', 160.00, 'Grilled', 1),
+    ('Mutura (Half)', 'Traditional grilled African sausage.', 180.00, 'Grilled', 2),
+    ('Boiled Eggs (2 pcs)', 'Boiled eggs with a pinch of chili salt.', 100.00, 'Snacks', 3),
+    ('Chapati (2 pcs)', 'Soft, pan-fried flatbread.', 60.00, 'Snacks', 4),
+    ('Tea (Cup)', 'Hot spiced Kenyan tea.', 50.00, 'Drinks', 5)
+) AS item(name, description, price, category, display_order)
+WHERE v.slug = 'jiko-street-eats'
   AND NOT EXISTS (
     SELECT 1 FROM menu_items mi WHERE mi.vendor_id = v.id AND mi.name = item.name
   );

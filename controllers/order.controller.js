@@ -245,9 +245,34 @@ export const customerOrders = async (req, res) => {
       [userId]
     );
 
+    const orders = result.rows;
+
+    // Attach a short item summary to each order so the history shows what
+    // was in it, not just a total. menu_item_id can be null for removed
+    // items, so fall back to a placeholder name.
+    if (orders.length) {
+      const itemsResult = await pool.query(
+        `SELECT oi.order_id, oi.quantity, COALESCE(mi.name, 'Removed item') AS name
+         FROM order_items oi
+         LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+         WHERE oi.order_id = ANY($1)
+         ORDER BY oi.id ASC`,
+        [orders.map((order) => order.id)]
+      );
+
+      const itemsByOrder = itemsResult.rows.reduce((groups, row) => {
+        (groups[row.order_id] = groups[row.order_id] || []).push(row);
+        return groups;
+      }, {});
+
+      orders.forEach((order) => {
+        order.items = itemsByOrder[order.id] || [];
+      });
+    }
+
     res.render("orders", {
       title: "My Orders",
-      orders: result.rows
+      orders
     });
   } catch (err) {
     console.error(err);

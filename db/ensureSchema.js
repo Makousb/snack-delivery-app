@@ -68,7 +68,9 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS logo_url TEXT,
       ADD COLUMN IF NOT EXISTS banner_url TEXT,
       ADD COLUMN IF NOT EXISTS slug TEXT,
-      ADD COLUMN IF NOT EXISTS vendor_type TEXT NOT NULL DEFAULT 'restaurant'
+      ADD COLUMN IF NOT EXISTS vendor_type TEXT NOT NULL DEFAULT 'restaurant',
+      ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 6),
+      ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 6)
   `);
 
   await pool.query(`

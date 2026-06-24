@@ -4,6 +4,7 @@ import {
   renderMenu,
   showVendor,
   renderHome,
+  renderStreetVendors,
   searchVendors,
   showContact,
   submitContact,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.get("/", renderLanding);
 router.get("/home", renderHome);
+router.get("/street-vendors", renderStreetVendors);
 
 router.get("/about", showAbout);
 router.get("/contact", showContact);
