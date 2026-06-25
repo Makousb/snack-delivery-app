@@ -1,4 +1,5 @@
 import { pool } from "../db/index.js";
+import { config } from "../config/env.js";
 import { initiateSTKPush } from "../services/mpesa.js";
 
 function parseCoordinate(value, max) {
@@ -18,6 +19,12 @@ export const createOrder = async (req, res) => {
     !req.session.cart[vendorId] ||
     req.session.cart[vendorId].length === 0
   ) {
+    return res.redirect(`/vendor/${vendorId}/cart`);
+  }
+
+  // Cash-only beta guard: never accept an online payment when M-Pesa is off.
+  if (paymentMethod === "mpesa" && !config.payments.mpesaEnabled) {
+    req.flash("error", "Online payment is unavailable right now — please choose cash on delivery.");
     return res.redirect(`/vendor/${vendorId}/cart`);
   }
 
@@ -351,6 +358,12 @@ export const updateOrderStatus = async (req, res) => {
 // first and process the result afterward.
 export const handleMpesaCallback = async (req, res) => {
   res.sendStatus(200);
+
+  // Inert while online payments are disabled — nothing should be able to flip
+  // an order to Paid through this (currently unauthenticated) endpoint.
+  if (!config.payments.mpesaEnabled) {
+    return;
+  }
 
   const stkCallback = req.body?.Body?.stkCallback;
 

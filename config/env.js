@@ -39,6 +39,12 @@ export const config = {
     name: process.env.DB_NAME,
     ssl: process.env.DB_SSL === "true"
   },
+  // Online payments are opt-in. For a cash-only beta, leave MPESA_ENABLED
+  // unset/false: the M-Pesa checkout button is hidden, M-Pesa orders are
+  // rejected, and the (currently unauthenticated) Daraja callback is inert.
+  payments: {
+    mpesaEnabled: process.env.MPESA_ENABLED === "true"
+  },
   mpesa: {
     stkPushUrl:
       process.env.MPESA_STK_PUSH_URL ||

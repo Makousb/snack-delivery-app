@@ -134,17 +134,19 @@
             <input type="hidden" name="deliveryLng" />
           </div>
 
-          <div class="checkout-field">
-            <label for="phone"><strong>Phone Number (for M-Pesa):</strong></label>
-            <input
-              type="text"
-              id="phone"
-              name="phone"
-              placeholder="254712345678"
-              pattern="254[0-9]{9}"
-              class="checkout-input"
-            />
-          </div>
+          <% if (typeof mpesaEnabled !== "undefined" && mpesaEnabled) { %>
+            <div class="checkout-field">
+              <label for="phone"><strong>Phone Number (for M-Pesa):</strong></label>
+              <input
+                type="text"
+                id="phone"
+                name="phone"
+                placeholder="254712345678"
+                pattern="254[0-9]{9}"
+                class="checkout-input"
+              />
+            </div>
+          <% } %>
 
           <div class="checkout-field">
             <label for="tipAmount"><strong>Driver Tip (KSh, optional):</strong></label>
@@ -160,20 +162,22 @@
           </div>
 
           <div class="checkout-actions">
-            <button
-              type="submit"
-              name="paymentMethod"
-              value="mpesa"
-              class="btn checkout-primary-btn"
-            >
-              Pay with M-Pesa
-            </button>
+            <% if (typeof mpesaEnabled !== "undefined" && mpesaEnabled) { %>
+              <button
+                type="submit"
+                name="paymentMethod"
+                value="mpesa"
+                class="btn checkout-primary-btn"
+              >
+                Pay with M-Pesa
+              </button>
+            <% } %>
 
             <button
               type="submit"
               name="paymentMethod"
               value="cash"
-              class="btn checkout-secondary-btn"
+              class="btn <%= (typeof mpesaEnabled !== "undefined" && mpesaEnabled) ? "checkout-secondary-btn" : "checkout-primary-btn" %>"
             >
               Pay on Delivery
             </button>
