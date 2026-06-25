@@ -1,5 +1,6 @@
 import express from "express";
 import flash from "connect-flash";
+import helmet from "helmet";
 import http from "http";
 import path from "path";
 import pgSession from "connect-pg-simple";
@@ -31,6 +32,19 @@ const appRoot = path.dirname(__filename);
 app.set("io", io);
 app.set("view engine", "ejs");
 app.set("views", path.join(appRoot, "views"));
+
+// Behind a single reverse proxy in production (Render/Heroku/nginx) so secure
+// cookies and client IPs (for rate limiting) are detected correctly.
+app.set("trust proxy", config.isProduction ? 1 : false);
+
+// Security headers. CSP is intentionally left off for now: the app relies on
+// inline <script> blocks throughout the EJS views, so a default policy would
+// break them. Re-enable CSP once those are externalized.
+app.use(
+  helmet({
+    contentSecurityPolicy: false
+  })
+);
 
 io.on("connection", (socket) => {
   socket.on("joinVendor", (vendorId) => {
@@ -90,6 +104,7 @@ app.use((req, res, next) => {
   res.locals.cartCount = totalCount;
   res.locals.googleMapsApiKey = config.googleMapsApiKey;
   res.locals.formatCurrency = formatCurrency;
+  res.locals.mpesaEnabled = config.payments.mpesaEnabled;
 
   next();
 });
