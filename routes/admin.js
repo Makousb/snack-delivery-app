@@ -14,7 +14,7 @@ import {
   updateMenuOrder
 } from "../controllers/admin.controller.js";
 import { requireAuth, requireRole } from "../middlewares/auth.middleware.js";
-import { optimizeImage } from "../middlewares/optimizeImage.middleware.js";
+import { optimizeImage, optimizeProfileImages } from "../middlewares/optimizeImage.middleware.js";
 import { upload } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
@@ -30,6 +30,7 @@ router.post(
     { name: "businessLogo", maxCount: 1 },
     { name: "businessBanner", maxCount: 1 }
   ]),
+  optimizeProfileImages,
   updateBusinessProfile
 );
 
