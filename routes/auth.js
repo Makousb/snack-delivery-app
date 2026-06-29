@@ -8,6 +8,7 @@ import {
   login,
   logout
 } from "../controllers/auth.controller.js";
+import { optimizeProfileImages } from "../middlewares/optimizeImage.middleware.js";
 import { upload } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
@@ -31,6 +32,7 @@ router.post(
     { name: "businessLogo", maxCount: 1 },
     { name: "businessBanner", maxCount: 1 }
   ]),
+  optimizeProfileImages,
   signup
 );
 
