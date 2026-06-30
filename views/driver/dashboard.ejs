@@ -1,6 +1,9 @@
-<%- include("../partials/header") %>
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
 
-<section class="driver-dashboard">
+<div class="marketplace-home-layout">
+  <%- include("../partials/driverSidebar") %>
+
+<section class="driver-dashboard" id="driver-top">
   <div class="driver-hero">
     <div class="driver-hero-copy">
       <span class="feature-eyebrow">Driver workspace</span>
@@ -27,7 +30,7 @@
   </div>
 
   <div class="driver-grid">
-    <section class="driver-panel">
+    <section class="driver-panel" id="driver-profile">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Profile</span>
@@ -60,7 +63,7 @@
       </div>
     </section>
 
-    <section class="driver-panel">
+    <section class="driver-panel" id="driver-tips">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Tips</span>
@@ -84,7 +87,7 @@
       </div>
     </section>
 
-    <section class="driver-panel driver-panel-wide">
+    <section class="driver-panel driver-panel-wide" id="driver-available">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Available orders</span>
@@ -122,7 +125,7 @@
       <% } %>
     </section>
 
-    <section class="driver-panel driver-panel-wide">
+    <section class="driver-panel driver-panel-wide" id="driver-active">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Journey board</span>
@@ -179,7 +182,7 @@
       <% } %>
     </section>
 
-    <section class="driver-panel driver-panel-wide">
+    <section class="driver-panel driver-panel-wide" id="driver-history">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">History</span>
@@ -208,6 +211,7 @@
     </section>
   </div>
 </section>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>

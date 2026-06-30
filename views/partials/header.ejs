@@ -20,6 +20,7 @@
   <!-- Scripts -->
   <script src="/js/navbar.js" defer></script>
   <script src="/js/address-memory.js" defer></script>
+  <script src="/js/cart-drawer.js" defer></script>
 
   <% if (typeof googleMapsApiKey !== "undefined" && googleMapsApiKey) { %>
     <script>
@@ -100,14 +101,16 @@
     <!-- Right Side -->
     <div class="nav-right">
 
-      <!-- Cart -->
-      <a href="/cart" class="cart-link" id="cart-icon" aria-label="Open cart">
-        <span class="cart-icon-glyph" aria-hidden="true">&#128722;</span>
-        <span class="cart-link-label">Cart</span>
-        <span class="cart-badge" id="cart-count">
-          <%= typeof cartCount !== "undefined" ? cartCount : 0 %>
-        </span>
-      </a>
+      <!-- Cart (customer-only — owners and drivers use their own hub) -->
+      <% if (typeof currentUser === "undefined" || !currentUser || !["owner", "admin", "driver"].includes(currentUser.role)) { %>
+        <a href="/cart" class="cart-link" id="cart-icon" aria-label="Open cart">
+          <span class="cart-icon-glyph" aria-hidden="true">&#128722;</span>
+          <span class="cart-link-label">Cart</span>
+          <span class="cart-badge" id="cart-count">
+            <%= typeof cartCount !== "undefined" ? cartCount : 0 %>
+          </span>
+        </a>
+      <% } %>
 
       <!-- Burger Menu Button -->
       <button

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title><%= typeof title !== "undefined" ? title : "Drive with Snack" %></title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+
+<body class="landing-body">
+  <main class="landing-page landing-page-editorial">
+    <section class="landing-stage">
+      <img
+        src="/images/Food_deliivery.jpg"
+        alt="Driver carrying a delivery order"
+        class="landing-stage-image"
+      />
+
+      <nav class="landing-nav landing-nav-overlay" aria-label="Driver landing navigation">
+        <a href="/drive" class="landing-brand landing-brand-light" aria-label="Snack driver landing page">
+          <img src="/images/snack-logo.svg" alt="Snack logo" width="42" height="42" />
+          <span>Snack</span>
+        </a>
+
+        <div class="landing-nav-actions">
+          <a href="/auth/login" class="landing-link landing-link-light">Sign In</a>
+          <a href="/auth/signup?accountType=driver" class="landing-nav-cta">
+            Apply to Drive
+          </a>
+        </div>
+      </nav>
+
+      <% if (typeof success !== "undefined" && success.length) { %>
+        <div class="flash flash-success landing-flash landing-flash-overlay">
+          <%= success[0] %>
+        </div>
+      <% } %>
+
+      <% if (typeof error !== "undefined" && error.length) { %>
+        <div class="flash flash-error landing-flash landing-flash-overlay">
+          <%= error[0] %>
+        </div>
+      <% } %>
+
+      <div class="landing-stage-content">
+        <span class="landing-kicker landing-kicker-light">Drive with Snack</span>
+        <h1>Deliver on your schedule. Keep every tip.</h1>
+        <p>
+          Pick up available orders near you, move each delivery through its
+          stages, and watch your tips add up from one driver workspace.
+        </p>
+
+        <div class="landing-actions landing-stage-actions">
+          <a href="/auth/signup?accountType=driver" class="landing-primary-action">
+            Apply to Drive
+          </a>
+          <a href="/auth/login" class="landing-secondary-action landing-secondary-action-dark">
+            Sign In
+          </a>
+        </div>
+
+        <a href="/" class="landing-browse-link landing-browse-link-light">
+          Looking to order food instead?
+        </a>
+      </div>
+
+      <div class="landing-stage-strip" aria-label="Driver highlights">
+        <div>
+          <strong>Flexible</strong>
+          <span>accept jobs your way</span>
+        </div>
+        <div>
+          <strong>100%</strong>
+          <span>tips kept</span>
+        </div>
+        <div>
+          <strong>Live</strong>
+          <span>job board and journey tracking</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-food-story" aria-label="Driver workspace preview">
+      <div class="landing-story-copy">
+        <span class="landing-kicker">Built for drivers on the move</span>
+        <h2>One workspace from accepting a job to getting paid.</h2>
+        <p>
+          See available deliveries near you, accept the ones that fit your
+          route, and move each one from pickup to drop-off without leaving
+          your dashboard.
+        </p>
+      </div>
+
+      <div class="landing-photo-row">
+        <figure>
+          <img src="/homepage_images/meat.avif" alt="Delivery pickup ready to go" loading="lazy" />
+          <figcaption>Accept available orders</figcaption>
+        </figure>
+        <figure>
+          <img src="/images/Food_deliivery.jpg" alt="Driver en route" loading="lazy" />
+          <figcaption>Track the journey stage by stage</figcaption>
+        </figure>
+        <figure>
+          <img src="/homepage_images/Restaurant_items.avif" alt="Completed delivery" loading="lazy" />
+          <figcaption>Keep every tip you earn</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="landing-signup-band" aria-label="Driver account benefits">
+      <div>
+        <span class="landing-kicker">Driver account</span>
+        <h2>Everything you need to run your routes.</h2>
+      </div>
+
+      <ul>
+        <li>Browse and accept available deliveries as they come in.</li>
+        <li>Update pickup, drop-off, and delivery stages in real time.</li>
+        <li>Track tips earned and completed trips from one history view.</li>
+      </ul>
+    </section>
+
+    <section class="landing-partnerships landing-partnerships-editorial" aria-labelledby="landing-driver-cross-title">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Not looking to drive?</span>
+        <h2 id="landing-driver-cross-title">Snack also welcomes customers and businesses.</h2>
+        <p>
+          <a href="/">Order food as a customer</a> &middot;
+          <a href="/partner">Register your business</a>
+        </p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

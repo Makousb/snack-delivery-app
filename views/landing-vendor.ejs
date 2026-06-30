@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title><%= typeof title !== "undefined" ? title : "Sell on Snack" %></title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+
+<body class="landing-body">
+  <main class="landing-page landing-page-editorial">
+    <section class="landing-stage">
+      <img
+        src="/homepage_images/Restaurant_items.avif"
+        alt="Vendor menu items ready for order"
+        class="landing-stage-image"
+      />
+
+      <nav class="landing-nav landing-nav-overlay" aria-label="Vendor landing navigation">
+        <a href="/partner" class="landing-brand landing-brand-light" aria-label="Snack vendor landing page">
+          <img src="/images/snack-logo.svg" alt="Snack logo" width="42" height="42" />
+          <span>Snack</span>
+        </a>
+
+        <div class="landing-nav-actions">
+          <a href="/auth/login" class="landing-link landing-link-light">Sign In</a>
+          <a href="/auth/signup?accountType=owner" class="landing-nav-cta">
+            Register Business
+          </a>
+        </div>
+      </nav>
+
+      <% if (typeof success !== "undefined" && success.length) { %>
+        <div class="flash flash-success landing-flash landing-flash-overlay">
+          <%= success[0] %>
+        </div>
+      <% } %>
+
+      <% if (typeof error !== "undefined" && error.length) { %>
+        <div class="flash flash-error landing-flash landing-flash-overlay">
+          <%= error[0] %>
+        </div>
+      <% } %>
+
+      <div class="landing-stage-content">
+        <span class="landing-kicker landing-kicker-light">Sell on Snack</span>
+        <h1>Bring your business online and start taking orders.</h1>
+        <p>
+          Restaurants, neighborhood stores, and street vendors can all list
+          on Snack — upload a menu, manage incoming orders, and track sales
+          from one business dashboard.
+        </p>
+
+        <div class="landing-actions landing-stage-actions">
+          <a href="/auth/signup?accountType=owner" class="landing-primary-action">
+            Register Business
+          </a>
+          <a href="/auth/login" class="landing-secondary-action landing-secondary-action-dark">
+            Sign In
+          </a>
+        </div>
+
+        <a href="/" class="landing-browse-link landing-browse-link-light">
+          Looking to order food instead?
+        </a>
+      </div>
+
+      <div class="landing-stage-strip" aria-label="Vendor highlights">
+        <div>
+          <strong>3 vendor types</strong>
+          <span>restaurants, stores, street vendors</span>
+        </div>
+        <div>
+          <strong>Live</strong>
+          <span>order dashboard</span>
+        </div>
+        <div>
+          <strong>Full control</strong>
+          <span>over your own menu</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-food-story" aria-label="Business dashboard preview">
+      <div class="landing-story-copy">
+        <span class="landing-kicker">Built for busy vendor teams</span>
+        <h2>Run your menu, orders, and sales from one place.</h2>
+        <p>
+          Set up your business profile, add the items you sell, and watch
+          orders come in — with the same dashboard handling inventory,
+          fulfillment, and revenue.
+        </p>
+      </div>
+
+      <div class="landing-photo-row">
+        <figure>
+          <img src="/homepage_images/meat.avif" alt="Menu item ready to list" loading="lazy" />
+          <figcaption>Upload your menu</figcaption>
+        </figure>
+        <figure>
+          <img src="/homepage_images/greek.avif" alt="Order being prepared" loading="lazy" />
+          <figcaption>Manage incoming orders</figcaption>
+        </figure>
+        <figure>
+          <img
+            src="/images/1777022534500-burger_0__FocusFillWyIwLjAwIiwiMC4wMCIsODAwLDQ3OF0_CompressedW10-800.jpg"
+            alt="Best seller item"
+            loading="lazy"
+          />
+          <figcaption>Track sales and top sellers</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="landing-signup-band" aria-label="Vendor account benefits">
+      <div>
+        <span class="landing-kicker">Business account</span>
+        <h2>Everything you need to operate on Snack.</h2>
+      </div>
+
+      <ul>
+        <li>Create a branded vendor page and upload your menu.</li>
+        <li>Manage incoming orders from a focused business dashboard.</li>
+        <li>Track inventory, revenue, and top sellers as you grow.</li>
+      </ul>
+    </section>
+
+    <section class="landing-partnerships landing-partnerships-editorial" aria-labelledby="landing-vendor-cross-title">
+      <div class="landing-section-head">
+        <span class="landing-kicker">Not a business owner?</span>
+        <h2 id="landing-vendor-cross-title">Snack also welcomes customers and drivers.</h2>
+        <p>
+          <a href="/">Order food as a customer</a> &middot;
+          <a href="/drive">Apply to drive</a>
+        </p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -74,78 +74,11 @@
     heroVendor.banner_url ||
     safePopularItems[0]?.image_url ||
     "/homepage_images/Restaurant_items.avif";
+  const isShopper = !currentUser || !["owner", "admin", "driver"].includes(currentUser.role);
 %>
 
 <div class="marketplace-home-layout">
-  <aside class="marketplace-side-menu" aria-label="Snack menu">
-    <nav class="side-menu-section" aria-label="Home sections">
-      <span class="side-menu-section-title">Menu</span>
-      <a href="#marketplace-top" class="side-menu-link side-menu-link-active">
-        <span class="side-menu-icon" aria-hidden="true">H</span>
-        <span>Home</span>
-      </a>
-      <a href="#marketplace-categories" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">C</span>
-        <span>Categories</span>
-      </a>
-      <a href="#marketplace-highlights" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">%</span>
-        <span>Offers</span>
-      </a>
-      <a href="#popular-now" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">*</span>
-        <span>Popular</span>
-      </a>
-      <a href="#featured-vendors" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">V</span>
-        <span>Vendors</span>
-      </a>
-      <a href="/street-vendors" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">&#127805;</span>
-        <span>Street Vendors</span>
-      </a>
-    </nav>
-
-    <nav class="side-menu-section" aria-label="Account links">
-      <span class="side-menu-section-title">Account</span>
-      <a href="/orders" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">O</span>
-        <span>Orders</span>
-      </a>
-      <a href="/cart" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">&#128722;</span>
-        <span>Cart</span>
-      </a>
-      <% if (typeof currentUser !== "undefined" && currentUser?.role === "driver") { %>
-        <a href="/driver" class="side-menu-link">
-          <span class="side-menu-icon" aria-hidden="true">D</span>
-          <span>Driver Hub</span>
-        </a>
-      <% } else if (typeof currentUser !== "undefined" && ["owner", "admin"].includes(currentUser?.role)) { %>
-        <a href="/admin" class="side-menu-link">
-          <span class="side-menu-icon" aria-hidden="true">B</span>
-          <span>Business Hub</span>
-        </a>
-      <% } %>
-      <button type="button" class="side-menu-link" data-theme-toggle>
-        <span class="side-menu-icon" aria-hidden="true">T</span>
-        <span>Dark Mode</span>
-      </button>
-    </nav>
-
-    <div class="side-menu-account">
-      <% if (typeof currentUser !== "undefined" && currentUser) { %>
-        <span class="side-menu-avatar" aria-hidden="true"><%= currentUser.email.charAt(0).toUpperCase() %></span>
-        <div>
-          <strong><%= currentUser.email %></strong>
-          <a href="/auth/logout">Logout</a>
-        </div>
-      <% } else { %>
-        <a href="/auth/login" class="side-menu-auth">Sign In</a>
-        <a href="/auth/signup" class="side-menu-auth side-menu-auth-primary">Register</a>
-      <% } %>
-    </div>
-  </aside>
+  <%- include("partials/sidebar", { currentPage: "home" }) %>
 
 <section class="marketplace-page" id="marketplace-top">
   <% if (typeof usualOrder !== "undefined" && usualOrder) { %>
@@ -286,7 +219,7 @@
             <span><%= meta.label %></span>
             <h2><%= meta.subhead %></h2>
           </div>
-          <a href="/cart">Open cart</a>
+          <% if (isShopper) { %><a href="/cart">Open cart</a><% } %>
         </div>
 
         <% if (section.popularItems.length > 0) { %>
@@ -304,19 +237,21 @@
                 <div class="marketplace-item-body">
                   <span><%= item.vendor_name %></span>
                   <h3><%= item.name %></h3>
-                  <p><%= item.category || "Customer favorite" %> · <%= 18 + (index % 4) * 4 %>-<%= 26 + (index % 4) * 4 %> min</p>
+                  <p><%= item.category || "Customer favorite" %></p>
                   <div>
                     <strong><%= formatCurrency(item.price) %></strong>
-                    <button
-                      type="button"
-                      data-popular-add
-                      data-id="<%= item.id %>"
-                      data-name="<%= item.name %>"
-                      data-price="<%= item.price %>"
-                      data-vendor="<%= item.vendor_id %>"
-                    >
-                      Add
-                    </button>
+                    <% if (isShopper) { %>
+                      <button
+                        type="button"
+                        data-popular-add
+                        data-id="<%= item.id %>"
+                        data-name="<%= item.name %>"
+                        data-price="<%= item.price %>"
+                        data-vendor="<%= item.vendor_id %>"
+                      >
+                        Add
+                      </button>
+                    <% } %>
                   </div>
                 </div>
               </article>
@@ -330,10 +265,7 @@
           <div class="marketplace-vendor-grid">
             <% section.vendors.forEach((vendor, index) => { %>
               <%
-                const etaStart = 18 + (index % 5) * 3;
-                const etaEnd = etaStart + 10;
-                const rating = (4.8 - (index % 4) * 0.1).toFixed(1);
-                const badge = vendorBadges[index % vendorBadges.length];
+                const badge = "Free delivery";
                 const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
                 const previewItems = vendorItems[String(vendor.id)] || [];
               %>
@@ -355,9 +287,8 @@
                   <div class="marketplace-vendor-title">
                     <div>
                       <h3><%= vendor.name %></h3>
-                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
+                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Free delivery</p>
                     </div>
-                    <strong><%= rating %></strong>
                   </div>
 
                   <p class="marketplace-vendor-description">
@@ -382,45 +313,26 @@
 </section>
 </div>
 
-<a href="/cart" class="floating-cart" aria-label="Open cart">
-  &#128722;
-</a>
+<% if (isShopper) { %>
+  <a href="/cart" class="floating-cart" aria-label="Open cart">
+    &#128722;
+  </a>
 
-<div id="cart-drawer-overlay" class="cart-drawer-overlay"></div>
+  <div id="switch-modal" class="modal">
+    <div class="modal-content">
+      <h3>Switch Vendor?</h3>
+      <p>You already have items from another vendor.</p>
+      <p class="warning">Switching will clear your current cart.</p>
 
-<aside id="cart-drawer" class="cart-drawer" aria-hidden="true" aria-label="Your cart">
-  <div class="cart-drawer-head">
-    <h2>Your cart</h2>
-    <button type="button" id="cart-drawer-close" class="cart-drawer-close" aria-label="Close cart">&times;</button>
-  </div>
-
-  <div class="cart-drawer-body" id="cart-drawer-body">
-    <p class="cart-drawer-empty">Your cart is empty.</p>
-  </div>
-
-  <div class="cart-drawer-footer">
-    <div class="cart-drawer-total">
-      <span>Subtotal</span>
-      <strong id="cart-drawer-total">KSh 0.00</strong>
-    </div>
-    <a href="/cart" class="btn vendor-primary-cta cart-drawer-checkout">View cart &amp; checkout</a>
-  </div>
-</aside>
-
-<div id="switch-modal" class="modal">
-  <div class="modal-content">
-    <h3>Switch Vendor?</h3>
-    <p>You already have items from another vendor.</p>
-    <p class="warning">Switching will clear your current cart.</p>
-
-    <div class="modal-actions">
-      <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
-      <button id="confirm-switch" class="btn confirm" type="button">
-        Yes, Switch
-      </button>
+      <div class="modal-actions">
+        <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
+        <button id="confirm-switch" class="btn confirm" type="button">
+          Yes, Switch
+        </button>
+      </div>
     </div>
   </div>
-</div>
+<% } %>
 
 <script>
   const popularButtons = document.querySelectorAll("[data-popular-add]");
@@ -429,13 +341,6 @@
   const modal = document.getElementById("switch-modal");
   const confirmBtn = document.getElementById("confirm-switch");
   const cancelBtn = document.getElementById("cancel-switch");
-
-  const cartDrawer = document.getElementById("cart-drawer");
-  const cartDrawerOverlay = document.getElementById("cart-drawer-overlay");
-  const cartDrawerBody = document.getElementById("cart-drawer-body");
-  const cartDrawerTotal = document.getElementById("cart-drawer-total");
-  const cartDrawerClose = document.getElementById("cart-drawer-close");
-  const cartTriggers = document.querySelectorAll('#cart-icon, .floating-cart, .side-menu-link[href="/cart"]');
 
   let pendingAction = null;
 
@@ -450,113 +355,13 @@
     cartIcon.classList.add("cart-bounce");
   }
 
-  function formatDrawerCurrency(amount) {
-    const formatted = Number(amount || 0).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-
-    return `KSh ${formatted}`;
-  }
-
-  function escapeHtml(value) {
-    const div = document.createElement("div");
-    div.textContent = value;
-    return div.innerHTML;
-  }
-
-  function renderCartDrawer(data) {
-    const items = data.items || [];
-
-    if (cartCountEl) cartCountEl.innerText = data.count ?? 0;
-    if (cartDrawerTotal) cartDrawerTotal.innerText = formatDrawerCurrency(data.total);
-    if (!cartDrawerBody) return;
-
-    if (items.length === 0) {
-      cartDrawerBody.innerHTML = '<p class="cart-drawer-empty">Your cart is empty.</p>';
-      return;
-    }
-
-    cartDrawerBody.innerHTML = items.map((item) => `
-      <div class="cart-drawer-item">
-        <div class="cart-drawer-item-copy">
-          <strong>${escapeHtml(item.name)}</strong>
-          <span>${formatDrawerCurrency(item.price)} &times; ${item.qty}</span>
-        </div>
-        <div class="cart-drawer-item-actions">
-          <span class="cart-drawer-item-total">${formatDrawerCurrency(item.price * item.qty)}</span>
-          <button type="button" class="cart-drawer-remove" data-vendor-id="${escapeHtml(item.vendorId)}" data-item-id="${escapeHtml(String(item.id))}">Remove</button>
-        </div>
-      </div>
-    `).join("");
-  }
-
-  async function fetchCartDrawer() {
-    try {
-      const response = await fetch("/cart/items");
-      renderCartDrawer(await response.json());
-    } catch (error) {
-      console.error("Failed to load cart:", error);
-    }
-  }
-
-  function openCartDrawer() {
-    cartDrawer?.classList.add("show");
-    cartDrawerOverlay?.classList.add("show");
-    cartDrawer?.setAttribute("aria-hidden", "false");
-    fetchCartDrawer();
-  }
-
-  function closeCartDrawer() {
-    cartDrawer?.classList.remove("show");
-    cartDrawerOverlay?.classList.remove("show");
-    cartDrawer?.setAttribute("aria-hidden", "true");
-  }
-
-  cartTriggers.forEach((trigger) => {
-    trigger.addEventListener("click", (event) => {
-      event.preventDefault();
-      openCartDrawer();
-    });
-  });
-
-  cartDrawerClose?.addEventListener("click", closeCartDrawer);
-  cartDrawerOverlay?.addEventListener("click", closeCartDrawer);
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeCartDrawer();
-  });
-
-  cartDrawerBody?.addEventListener("click", async (event) => {
-    const button = event.target.closest(".cart-drawer-remove");
-    if (!button) return;
-
-    try {
-      const response = await fetch("/cart/update-ajax", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: button.dataset.vendorId,
-          itemId: button.dataset.itemId,
-          qty: 0
-        })
-      });
-      renderCartDrawer(await response.json());
-    } catch (error) {
-      console.error("Failed to remove item:", error);
-    }
-  });
-
   function updatePopularButton(button, data) {
     if (cartCountEl) {
       cartCountEl.innerText = data.cartCount;
     }
 
     triggerCartBounce();
-
-    if (cartDrawer?.classList.contains("show")) {
-      fetchCartDrawer();
-    }
+    window.cartDrawer?.refreshIfOpen();
 
     button.innerText = "Added";
     button.disabled = true;
