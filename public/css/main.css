@@ -505,6 +505,42 @@ button.side-menu-link:active {
   gap: 1.35rem;
 }
 
+.marketplace-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.marketplace-category-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 1.1rem;
+  border: 1px solid #eeeeee;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #191919;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.marketplace-category-tab-active {
+  border-color: var(--green-600);
+  background: linear-gradient(135deg, var(--green-700), var(--green-600));
+  color: #ffffff;
+}
+
+.marketplace-type-panel {
+  display: none;
+}
+
+.marketplace-type-panel-active {
+  display: grid;
+  gap: 1.35rem;
+}
+
 .marketplace-section-head {
   display: flex;
   align-items: end;
@@ -589,11 +625,6 @@ button.side-menu-link:active {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.15rem;
-}
-
-.street-vendors-page {
-  display: grid;
-  gap: 1.6rem;
 }
 
 .street-vendors-head {
@@ -728,6 +759,13 @@ button.side-menu-link:active {
   background: #ffffff;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.marketplace-vendor-logo img {
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  object-fit: contain;
 }
 
 .marketplace-vendor-logo .home-logo-fallback {
@@ -1055,6 +1093,18 @@ body.dark .marketplace-menu-preview span {
 
 body.dark .marketplace-order-controls .marketplace-control-active,
 body.dark .marketplace-filter-bar .marketplace-filter-active {
+  border-color: var(--marketplace-brand-light);
+  background: linear-gradient(135deg, var(--marketplace-brand-dark), var(--marketplace-brand));
+  color: #ffffff;
+}
+
+body.dark .marketplace-category-tab {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #241f1c;
+  color: #fffaf4;
+}
+
+body.dark .marketplace-category-tab-active {
   border-color: var(--marketplace-brand-light);
   background: linear-gradient(135deg, var(--marketplace-brand-dark), var(--marketplace-brand));
   color: #ffffff;
@@ -2745,7 +2795,8 @@ body.dark .partner-benefits li {
 
 .vendor-banner-shell {
   position: relative;
-  min-height: 280px;
+  aspect-ratio: 16 / 7;
+  max-height: 360px;
   border-radius: 30px;
   overflow: hidden;
   border: 1px solid rgba(22, 163, 74, 0.08);
@@ -2823,15 +2874,46 @@ body.dark .partner-benefits li {
 }
 
 .vendor-hero-panel {
+  position: relative;
   display: grid;
   gap: 1rem;
   align-content: start;
+  overflow: hidden;
+}
+
+.vendor-hero-panel-banner {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.vendor-hero-panel-banner .vendor-banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vendor-hero-panel-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 24, 13, 0.4), rgba(6, 24, 13, 0.78));
+}
+
+.vendor-hero-brand,
+.vendor-hero-preview {
+  position: relative;
+  z-index: 1;
 }
 
 .vendor-hero-brand {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.vendor-hero-panel-has-banner .vendor-hero-brand h2 {
+  color: #fff;
 }
 
 .vendor-hero-preview {
@@ -2959,13 +3041,21 @@ body.dark .partner-benefits li {
 }
 
 .menu-page-panel {
+  position: relative;
   display: grid;
   gap: 1rem;
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(13, 122, 67, 0.92), rgba(18, 148, 84, 0.92)),
     #0d7a43;
   color: #fff;
   box-shadow: 0 26px 52px rgba(18, 148, 84, 0.24);
+}
+
+.menu-page-panel-has-banner > .vendor-hero-logo,
+.menu-page-panel-has-banner > .menu-page-panel-grid {
+  position: relative;
+  z-index: 1;
 }
 
 .vendor-hero-logo {
@@ -2974,6 +3064,11 @@ body.dark .partner-benefits li {
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.vendor-hero-logo img {
+  padding: 14px;
+  object-fit: contain;
 }
 
 .menu-page-panel-grid {
@@ -3040,6 +3135,35 @@ body.dark .partner-benefits li {
   overflow: hidden;
   border: 1px solid rgba(22, 17, 13, 0.06);
   box-shadow: var(--shadow-soft);
+}
+
+.menu-card-unavailable {
+  opacity: 0.62;
+}
+
+.menu-card-unavailable .menu-image {
+  filter: grayscale(0.8);
+}
+
+.menu-item-status-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  background: #fde8e8;
+  color: #b42318;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.add-to-cart-btn:disabled {
+  background: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .menu-image {
@@ -5084,4 +5208,172 @@ body.dark .home-vendor-card .vendor-info h3 {
 .order-history-reorder {
   padding: 0.5rem 0.9rem;
   font-size: 0.85rem;
+}
+
+/* =============================
+   RATINGS & REVIEWS
+============================= */
+.vendor-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.12);
+  color: #8a5a00;
+  font-weight: 800;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.vendor-rating-star {
+  color: #f5a623;
+}
+
+.vendor-rating-count {
+  color: var(--ink-500);
+  font-weight: 600;
+}
+
+.vendor-rating-new {
+  background: var(--green-100);
+  color: var(--green-700);
+}
+
+.menu-page-rating,
+.vendor-hero-rating {
+  margin: 0.6rem 0 0.2rem;
+}
+
+.vendor-reviews-section {
+  margin-top: 2.4rem;
+}
+
+.vendor-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.vendor-review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.2rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(22, 163, 74, 0.08);
+  box-shadow: var(--shadow-soft);
+}
+
+.vendor-review-stars {
+  display: inline-flex;
+  gap: 0.1rem;
+  color: #d1d5db;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.vendor-review-stars .is-filled {
+  color: #f5a623;
+}
+
+.vendor-review-comment {
+  margin: 0;
+  color: var(--ink-700);
+  line-height: 1.55;
+}
+
+.vendor-review-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+  font-size: 0.85rem;
+  color: var(--ink-500);
+}
+
+.vendor-review-meta strong {
+  color: var(--ink-900);
+}
+
+/* Review form on the order-history cards */
+.order-review {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.order-review-comment {
+  margin: 0.4rem 0 0;
+  font-style: italic;
+  color: var(--ink-700);
+}
+
+.order-review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.order-review-label {
+  font-weight: 700;
+  color: var(--ink-900);
+  font-size: 0.9rem;
+}
+
+.order-review-form textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  font: inherit;
+  resize: vertical;
+}
+
+.order-review-submit {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* Pure-CSS star input: rendered row-reverse so `~` can light up the
+   hovered/selected star plus every lower one to its left. */
+.star-rating {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 0.1rem;
+}
+
+.star-rating input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.star-rating label {
+  font-size: 1.7rem;
+  line-height: 1;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+  color: #f5a623;
+}
+
+.star-rating input:focus-visible + label {
+  outline: 2px solid var(--green-600);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

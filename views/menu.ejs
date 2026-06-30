@@ -1,21 +1,15 @@
 <%- include("partials/header") %>
 
-<section class="menu-page">
-  <% if (vendor.banner_url) { %>
-    <div class="vendor-banner-shell">
-      <img
-        src="<%= vendor.banner_url %>"
-        alt="<%= vendor.name %> banner"
-        class="vendor-banner-image"
-        loading="lazy"
-      />
-    </div>
-  <% } %>
+<% const isShopper = !currentUser || !["owner", "admin", "driver"].includes(currentUser.role); %>
 
+<section class="menu-page">
   <div class="menu-page-hero">
     <div class="menu-page-copy">
       <span class="feature-eyebrow">Delivery menu</span>
       <h1><%= vendor.name %></h1>
+      <div class="menu-page-rating">
+        <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+      </div>
       <p>
         <%= vendor.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
       </p>
@@ -32,7 +26,18 @@
       </div>
     </div>
 
-    <div class="menu-page-panel">
+    <div class="menu-page-panel <%= vendor.banner_url ? 'menu-page-panel-has-banner' : '' %>">
+      <% if (vendor.banner_url) { %>
+        <div class="vendor-hero-panel-banner">
+          <img
+            src="<%= vendor.banner_url %>"
+            alt="<%= vendor.name %> banner"
+            class="vendor-banner-image"
+            loading="lazy"
+          />
+        </div>
+      <% } %>
+
       <div class="vendor-logo vendor-hero-logo">
         <% if (vendor.logo_url) { %>
           <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy">
@@ -51,8 +56,8 @@
           <span>pages to browse</span>
         </div>
         <div class="vendor-metric">
-          <strong>23 min</strong>
-          <span>average delivery</span>
+          <strong>Free</strong>
+          <span>delivery</span>
         </div>
       </div>
     </div>
@@ -100,7 +105,8 @@
 
   <div class="menu-grid menu-grid-modern">
     <% items.forEach((item, index) => { %>
-      <article class="menu-card modern-menu-card">
+      <% const isItemAvailable = item.status === "Available"; %>
+      <article class="menu-card modern-menu-card <%= isItemAvailable ? '' : 'menu-card-unavailable' %>">
         <% if (item.image_url) { %>
           <% if (item.image_url.includes("-800.jpg")) { %>
             <% const baseName = item.image_url.replace("-800.jpg", ""); %>
@@ -139,33 +145,41 @@
             <span class="menu-price"><%= formatCurrency(item.price) %></span>
           </div>
 
-          <h3><%= item.name %></h3>
+          <h3>
+            <%= item.name %>
+            <% if (!isItemAvailable) { %>
+              <span class="menu-item-status-badge"><%= item.status %></span>
+            <% } %>
+          </h3>
           <p class="menu-description"><%= item.description || "Built for fast delivery decisions." %></p>
 
-          <div class="menu-item-meta">
-            <span class="menu-item-badge"><%= index % 3 === 0 ? "Bestseller" : "Quick pick" %></span>
-            <span class="menu-item-meta-text"><%= 12 + (index * 2) %> min prep</span>
-          </div>
+          <% if (isShopper) { %>
+            <% if (isItemAvailable) { %>
+              <div class="add-to-cart-form modern-add-to-cart-form">
+                <input
+                  type="number"
+                  value="1"
+                  min="1"
+                  class="qty-input"
+                  id="qty-<%= item.id %>"
+                />
 
-          <div class="add-to-cart-form modern-add-to-cart-form">
-            <input
-              type="number"
-              value="1"
-              min="1"
-              class="qty-input"
-              id="qty-<%= item.id %>"
-            />
-
-            <button
-              class="btn add-to-cart-btn"
-              data-id="<%= item.id %>"
-              data-name="<%= item.name %>"
-              data-price="<%= item.price %>"
-              data-vendor="<%= vendor.id %>"
-            >
-              Add to Cart
-            </button>
-          </div>
+                <button
+                  class="btn add-to-cart-btn"
+                  data-id="<%= item.id %>"
+                  data-name="<%= item.name %>"
+                  data-price="<%= item.price %>"
+                  data-vendor="<%= vendor.id %>"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            <% } else { %>
+              <button class="btn add-to-cart-btn" type="button" disabled>
+                <%= item.status %>
+              </button>
+            <% } %>
+          <% } %>
         </div>
       </article>
     <% }) %>
@@ -188,18 +202,20 @@
   </div>
 </section>
 
-<div id="switch-modal" class="modal">
-  <div class="modal-content">
-    <h3>Switch Vendor?</h3>
-    <p>You already have items from another vendor.</p>
-    <p class="warning">Switching will clear your current cart.</p>
+<% if (isShopper) { %>
+  <div id="switch-modal" class="modal">
+    <div class="modal-content">
+      <h3>Switch Vendor?</h3>
+      <p>You already have items from another vendor.</p>
+      <p class="warning">Switching will clear your current cart.</p>
 
-    <div class="modal-actions">
-      <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
-      <button id="confirm-switch" class="btn confirm" type="button">Yes, Switch</button>
+      <div class="modal-actions">
+        <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
+        <button id="confirm-switch" class="btn confirm" type="button">Yes, Switch</button>
+      </div>
     </div>
   </div>
-</div>
+<% } %>
 
 <script>
   const buttons = document.querySelectorAll(".add-to-cart-btn");
@@ -212,8 +228,8 @@
 
   let pendingAction = null;
 
-  const openModal = () => modal.classList.add("show");
-  const closeModal = () => modal.classList.remove("show");
+  const openModal = () => modal?.classList.add("show");
+  const closeModal = () => modal?.classList.remove("show");
 
   function triggerCartBounce() {
     if (!cartIcon) return;
@@ -250,6 +266,12 @@
       try {
         let res = await sendRequest(false);
         let data = await res.json();
+
+        if (!res.ok || data.error) {
+          btn.innerText = data.error || "Unavailable";
+          btn.disabled = true;
+          return;
+        }
 
         if (data.switchRequired) {
           pendingAction = async () => {
@@ -288,6 +310,7 @@
     }
 
     triggerCartBounce();
+    window.cartDrawer?.refreshIfOpen();
 
     btn.innerText = "Added";
     btn.style.background = "#16a34a";

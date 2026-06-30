@@ -46,6 +46,29 @@
               <button type="submit" class="btn vendor-secondary-cta order-history-reorder">Order again</button>
             </form>
           </div>
+
+          <% if (order.review) { %>
+            <div class="order-review order-review-done">
+              <div class="vendor-review-stars" aria-label="You rated <%= order.review.rating %> out of 5">
+                <% for (let star = 1; star <= 5; star++) { %><span class="<%= star <= order.review.rating ? 'is-filled' : '' %>">★</span><% } %>
+              </div>
+              <% if (order.review.comment) { %>
+                <p class="order-review-comment">&ldquo;<%= order.review.comment %>&rdquo;</p>
+              <% } %>
+            </div>
+          <% } else if (order.can_review) { %>
+            <form class="order-review-form" method="POST" action="/orders/<%= order.id %>/review">
+              <span class="order-review-label">Rate this order</span>
+              <div class="star-rating">
+                <% for (let star = 5; star >= 1; star--) { %>
+                  <input type="radio" id="rate-<%= order.id %>-<%= star %>" name="rating" value="<%= star %>" required>
+                  <label for="rate-<%= order.id %>-<%= star %>" title="<%= star %> star<%= star === 1 ? '' : 's' %>">★</label>
+                <% } %>
+              </div>
+              <textarea name="comment" rows="2" maxlength="1000" placeholder="Add a comment (optional)"></textarea>
+              <button type="submit" class="btn vendor-primary-cta order-review-submit">Submit review</button>
+            </form>
+          <% } %>
         </article>
       <% }) %>
     </div>

@@ -14,6 +14,45 @@ function getFilePath(file) {
   return file ? `/images/${file.filename}` : null;
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
+// Basic shared validation for the credential endpoints. Returns an error
+// string to flash, or null when the input is acceptable.
+function validateCredentials(email, password) {
+  if (!EMAIL_PATTERN.test(email)) {
+    return "Enter a valid email address.";
+  }
+
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  }
+
+  return null;
+}
+
+// Logging a user in or signing them up issues a fresh session id, which
+// prevents session-fixation (an attacker can't pre-seed a victim's cookie and
+// inherit the authenticated session). The flash queue and any guest cart live
+// in the session, so we carry them across the regenerated session.
+function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    const { flash, cart } = req.session;
+
+    req.session.regenerate((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      if (flash) req.session.flash = flash;
+      if (cart) req.session.cart = cart;
+
+      resolve();
+    });
+  });
+}
+
 export function showSignup(req, res) {
   res.render("auth/signup", { title: "Create Account", vendorTypes: VENDOR_TYPES });
 }
@@ -25,7 +64,7 @@ export async function signup(req, res) {
     const {
       accountType,
       fullName,
-      email,
+      email: rawEmail,
       password,
       businessName,
       businessDescription,
@@ -34,6 +73,15 @@ export async function signup(req, res) {
       vehicleType,
       licenseNumber
     } = req.body;
+
+    const email = (rawEmail || "").trim().toLowerCase();
+
+    const validationError = validateCredentials(email, password);
+
+    if (validationError) {
+      req.flash("error", validationError);
+      return res.redirect("/auth/signup");
+    }
 
     const normalizedRole =
       accountType === "driver"
@@ -98,6 +146,7 @@ export async function signup(req, res) {
 
       await client.query("COMMIT");
 
+      await regenerateSession(req);
       req.session.user = user;
       req.flash("success", "Business account created.");
       return res.redirect("/admin");
@@ -115,6 +164,7 @@ export async function signup(req, res) {
 
       await client.query("COMMIT");
 
+      await regenerateSession(req);
       req.session.user = user;
       req.flash("success", "Customer account created.");
       return res.redirect("/home");
@@ -143,6 +193,7 @@ export async function signup(req, res) {
 
     await client.query("COMMIT");
 
+    await regenerateSession(req);
     req.session.user = user;
     req.flash("success", "Driver account created.");
     return res.redirect("/driver");
@@ -162,24 +213,32 @@ export function showLogin(req, res) {
 
 export async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const email = (req.body.email || "").trim().toLowerCase();
+    const { password } = req.body;
 
     const user = await getUserByEmail(email);
 
-    if (!user) {
-      req.flash("error", "User not found.");
+    // A single generic message for both "no such user" and "wrong password"
+    // so the form can't be used to enumerate which emails have accounts.
+    const invalidCredentials = () => {
+      req.flash("error", "Invalid email or password.");
       return res.redirect("/auth/login");
+    };
+
+    if (!user) {
+      return invalidCredentials();
     }
 
     const match = await bcrypt.compare(
-      password,
+      password || "",
       user.password_hash
     );
 
     if (!match) {
-      req.flash("error", "Invalid password.");
-      return res.redirect("/auth/login");
+      return invalidCredentials();
     }
+
+    await regenerateSession(req);
 
     req.session.user = {
       id: user.id,

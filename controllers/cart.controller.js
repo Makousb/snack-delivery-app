@@ -37,11 +37,15 @@ function saveSession(req) {
 
 async function getMenuItem(itemId, vendorId) {
   const result = await pool.query(
-    "SELECT id, name, price FROM menu_items WHERE id = $1 AND vendor_id = $2",
+    "SELECT id, name, price, status FROM menu_items WHERE id = $1 AND vendor_id = $2",
     [itemId, vendorId]
   );
 
   return result.rows[0];
+}
+
+function isAvailable(menuItem) {
+  return menuItem?.status === "Available";
 }
 
 function upsertCartItem(items, menuItem, quantity) {
@@ -72,6 +76,11 @@ export async function addToCart(req, res, next) {
       return res.status(404).send("Item not found");
     }
 
+    if (!isAvailable(menuItem)) {
+      req.flash("error", `${menuItem.name} is currently unavailable.`);
+      return res.redirect(req.get("Referrer") || `/vendor/${vendorId}/menu`);
+    }
+
     const vendorCart = ensureVendorCart(req, vendorId);
     upsertCartItem(vendorCart, menuItem, quantity);
 
@@ -95,6 +104,10 @@ export async function addToCartAjax(req, res, next) {
 
     if (!menuItem) {
       return res.status(404).json({ error: "Item not found" });
+    }
+
+    if (!isAvailable(menuItem)) {
+      return res.status(409).json({ error: `${menuItem.name} is currently unavailable.` });
     }
 
     if (!req.session.cart) {

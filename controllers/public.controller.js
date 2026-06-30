@@ -1,6 +1,11 @@
 import { pool } from "../db/index.js";
 import { createMessage } from "../db/queries/messages.js";
 import { getUsualOrder } from "../db/queries/usualOrder.js";
+import {
+  getVendorRating,
+  getVendorReviews,
+  withVendorRatings
+} from "../db/queries/reviews.js";
 import { VENDOR_TYPES } from "../utils/vendorTypes.js";
 
 function vendorTypeLabel(vendorType) {
@@ -14,6 +19,18 @@ function withVendorTypeLabel(vendor) {
 export const renderLanding = (req, res) => {
   res.render("landing", {
     title: "Snack Delivery"
+  });
+};
+
+export const renderDriverLanding = (req, res) => {
+  res.render("landing-driver", {
+    title: "Drive with Snack"
+  });
+};
+
+export const renderVendorLanding = (req, res) => {
+  res.render("landing-vendor", {
+    title: "Sell on Snack"
   });
 };
 
@@ -41,7 +58,7 @@ export const renderHome = async (req, res, next) => {
       `)
     ]);
 
-    const vendors = vendorsResult.rows.map(withVendorTypeLabel);
+    const vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
     const popularItems = popularItemsResult.rows;
 
     const vendorSections = VENDOR_TYPES
@@ -119,6 +136,26 @@ export const renderStreetVendors = async (req, res, next) => {
       vendors,
       itemsByVendor,
       priceComparisons
+    });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+export const renderAllVendors = async (req, res, next) => {
+  try {
+    const vendorsResult = await pool.query("SELECT * FROM vendors ORDER BY name ASC");
+    const vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+
+    const vendorSections = VENDOR_TYPES.map((type) => ({
+      value: type.value,
+      vendors: vendors.filter((vendor) => vendor.vendor_type === type.value)
+    }));
+
+    res.render("vendors", {
+      title: "All Vendors",
+      vendorSections
     });
   } catch (err) {
     console.error(err);
@@ -208,6 +245,10 @@ export const renderMenu = async (req, res, next) => {
       return res.status(404).render("404", { title: "Vendor Not Found" });
     }
 
+    const rating = await getVendorRating(id);
+    vendor.rating_average = rating.average;
+    vendor.rating_count = rating.count;
+
     res.render("menu", {
       title: vendor.name,
       items: itemsResult.rows,
@@ -241,10 +282,18 @@ export const showVendor = async (req, res, next) => {
 
     const featuredItems = menuResult.rows;
 
+    const rating = await getVendorRating(id);
+    const reviews = await getVendorReviews(id, 8);
+
     res.render("vendor", {
       title: vendor.name,
-      vendor: withVendorTypeLabel(vendor),
-      featuredItems
+      vendor: {
+        ...withVendorTypeLabel(vendor),
+        rating_average: rating.average,
+        rating_count: rating.count
+      },
+      featuredItems,
+      reviews
     });
   } catch (err) {
     console.error(err);

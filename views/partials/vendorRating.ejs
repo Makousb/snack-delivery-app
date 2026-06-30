@@ -1,0 +1,14 @@
+<%
+  // Compact rating chip. Expects `average` (number|null) and `count` (number).
+  const ratingCount = typeof count === "number" ? count : 0;
+  const ratingAverage = average != null ? Number(average) : null;
+%>
+<% if (ratingCount > 0 && ratingAverage != null) { %>
+  <span class="vendor-rating" title="<%= ratingAverage.toFixed(1) %> from <%= ratingCount %> review<%= ratingCount === 1 ? '' : 's' %>">
+    <span class="vendor-rating-star" aria-hidden="true">★</span>
+    <span class="vendor-rating-value"><%= ratingAverage.toFixed(1) %></span>
+    <span class="vendor-rating-count">(<%= ratingCount %>)</span>
+  </span>
+<% } else { %>
+  <span class="vendor-rating vendor-rating-new">New</span>
+<% } %>
