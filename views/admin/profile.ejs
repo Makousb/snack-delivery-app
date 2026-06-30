@@ -1,4 +1,7 @@
-<%- include("../partials/header") %>
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("../partials/adminSidebar", { currentPage: "profile" }) %>
 
 <%
   const safeVendor = vendor || {};
@@ -153,6 +156,7 @@
     </div>
   </form>
 </section>
+</div>
 
 <script>
   document.querySelectorAll("[data-file-input]").forEach((input) => {

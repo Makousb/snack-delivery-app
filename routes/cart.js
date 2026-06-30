@@ -12,8 +12,11 @@ import {
   viewCart,
   viewGlobalCart
 } from "../controllers/cart.controller.js";
+import { blockRoles } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
+
+router.use(blockRoles(["owner", "admin", "driver"]));
 
 router.get("/vendor/:id/cart", viewCart);
 router.post("/vendor/:id/cart/add", addToCart);

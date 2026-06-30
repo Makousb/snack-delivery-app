@@ -1,4 +1,7 @@
-<%- include("../partials/header") %>
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("../partials/adminSidebar", { currentPage: "orders" }) %>
 
 <div class="container">
   <h1>Incoming Orders</h1>
@@ -52,6 +55,7 @@
       <% }) %>
     </tbody>
   </table>
+</div>
 </div>
 
 <style>

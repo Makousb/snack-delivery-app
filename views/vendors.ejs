@@ -1,0 +1,131 @@
+<%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<%
+  const safeVendorSections = vendorSections || [];
+  const fallbackVendorImages = [
+    "/homepage_images/Restaurant_items.avif",
+    "/homepage_images/papa-johns-banner.webp",
+    "/homepage_images/PizzaInnBanner.jpg",
+    "/homepage_images/meat.avif",
+    "/homepage_images/greek.avif"
+  ];
+  const vendorBadges = ["Free delivery", "Top rated", "Great value", "Fast delivery"];
+  const sectionMeta = {
+    restaurant: { label: "Restaurants" },
+    store: { label: "Grocery & convenience" },
+    street_vendor: { label: "Street vendor" }
+  };
+%>
+
+<div class="marketplace-home-layout">
+  <%- include("partials/sidebar", { currentPage: "vendors" }) %>
+
+<section class="marketplace-page">
+  <div class="street-vendors-head">
+    <span class="feature-eyebrow">All vendors</span>
+    <h1>Browse every vendor on Snack.</h1>
+    <p>Restaurants, grocery &amp; convenience stores, and street vendors — the full directory in one place.</p>
+  </div>
+
+  <div class="marketplace-category-tabs" role="tablist" aria-label="Vendor categories">
+    <% safeVendorSections.forEach((section, sectionIndex) => { %>
+      <% const meta = sectionMeta[section.value] || { label: section.value }; %>
+      <button
+        type="button"
+        class="marketplace-category-tab <%= sectionIndex === 0 ? "marketplace-category-tab-active" : "" %>"
+        role="tab"
+        aria-selected="<%= sectionIndex === 0 %>"
+        data-vendor-tab-target="vendor-panel-<%= section.value %>"
+      >
+        <%= meta.label %>
+      </button>
+    <% }) %>
+  </div>
+
+  <% safeVendorSections.forEach((section, sectionIndex) => { %>
+    <% const meta = sectionMeta[section.value] || { label: section.value }; %>
+
+    <div
+      class="marketplace-type-panel <%= sectionIndex === 0 ? "marketplace-type-panel-active" : "" %>"
+      id="vendor-panel-<%= section.value %>"
+      role="tabpanel"
+    >
+      <section class="marketplace-section marketplace-type-section">
+        <div class="marketplace-section-head">
+          <div>
+            <span><%= meta.label %></span>
+            <h2><%= section.vendors.length %> available</h2>
+          </div>
+        </div>
+
+        <% if (section.vendors.length === 0) { %>
+          <p class="home-empty-state">No <%= meta.label.toLowerCase() %> yet.</p>
+        <% } else { %>
+          <div class="marketplace-vendor-grid">
+            <% section.vendors.forEach((vendor, index) => { %>
+              <%
+                const etaStart = 18 + (index % 5) * 3;
+                const etaEnd = etaStart + 10;
+                const rating = (4.8 - (index % 4) * 0.1).toFixed(1);
+                const badge = vendorBadges[index % vendorBadges.length];
+                const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
+              %>
+
+              <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card">
+                <div class="marketplace-vendor-media">
+                  <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
+                  <span class="marketplace-store-badge"><%= badge %></span>
+                  <span class="marketplace-vendor-logo">
+                    <% if (vendor.logo_url) { %>
+                      <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
+                    <% } else { %>
+                      <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+                    <% } %>
+                  </span>
+                </div>
+
+                <div class="marketplace-vendor-content">
+                  <div class="marketplace-vendor-title">
+                    <div>
+                      <h3><%= vendor.name %></h3>
+                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
+                    </div>
+                    <strong><%= rating %></strong>
+                  </div>
+
+                  <p class="marketplace-vendor-description">
+                    <%= vendor.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
+                  </p>
+                </div>
+              </a>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+    </div>
+  <% }) %>
+</section>
+</div>
+
+<script>
+  const vendorCategoryTabs = document.querySelectorAll("[data-vendor-tab-target]");
+  const vendorTypePanels = document.querySelectorAll(".marketplace-type-panel");
+
+  vendorCategoryTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const targetId = tab.dataset.vendorTabTarget;
+
+      vendorCategoryTabs.forEach((otherTab) => {
+        const isActive = otherTab === tab;
+        otherTab.classList.toggle("marketplace-category-tab-active", isActive);
+        otherTab.setAttribute("aria-selected", String(isActive));
+      });
+
+      vendorTypePanels.forEach((panel) => {
+        panel.classList.toggle("marketplace-type-panel-active", panel.id === targetId);
+      });
+    });
+  });
+</script>
+
+<%- include("partials/footer") %>

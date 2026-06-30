@@ -1,4 +1,7 @@
-<%- include("../partials/header") %>
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("../partials/adminSidebar", { currentPage: "menu-new" }) %>
 
 <div class="container">
   <h1>Add Menu Item</h1>
@@ -57,6 +60,7 @@
 
     <button type="submit">Add Item</button>
   </form>
+</div>
 </div>
 
 <script>

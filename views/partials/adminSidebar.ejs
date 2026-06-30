@@ -1,0 +1,49 @@
+<%
+  const activePage = typeof currentPage !== "undefined" ? currentPage : "dashboard";
+  const sidebarVendorId = typeof currentUser !== "undefined" && currentUser ? currentUser.vendor_id : null;
+%>
+<aside class="marketplace-side-menu" aria-label="Business menu">
+  <nav class="side-menu-section" aria-label="Business sections">
+    <span class="side-menu-section-title">Workspace</span>
+    <a href="/admin" class="side-menu-link <%= activePage === 'dashboard' ? 'side-menu-link-active' : '' %>">
+      <span class="side-menu-icon" aria-hidden="true">D</span>
+      <span>Dashboard</span>
+    </a>
+    <% if (sidebarVendorId) { %>
+      <a href="/admin/vendor/<%= sidebarVendorId %>/orders" class="side-menu-link <%= activePage === 'orders' ? 'side-menu-link-active' : '' %>">
+        <span class="side-menu-icon" aria-hidden="true">O</span>
+        <span>Orders</span>
+      </a>
+    <% } %>
+    <a href="/admin/menu/new" class="side-menu-link <%= activePage === 'menu-new' ? 'side-menu-link-active' : '' %>">
+      <span class="side-menu-icon" aria-hidden="true">+</span>
+      <span>Add Menu Item</span>
+    </a>
+    <a href="/admin/profile" class="side-menu-link <%= activePage === 'profile' ? 'side-menu-link-active' : '' %>">
+      <span class="side-menu-icon" aria-hidden="true">P</span>
+      <span>Business Profile</span>
+    </a>
+    <a href="/admin/messages" class="side-menu-link <%= activePage === 'messages' ? 'side-menu-link-active' : '' %>">
+      <span class="side-menu-icon" aria-hidden="true">M</span>
+      <span>Messages</span>
+    </a>
+  </nav>
+
+  <nav class="side-menu-section" aria-label="Account links">
+    <span class="side-menu-section-title">Account</span>
+    <button type="button" class="side-menu-link" data-theme-toggle>
+      <span class="side-menu-icon" aria-hidden="true">T</span>
+      <span>Dark Mode</span>
+    </button>
+  </nav>
+
+  <div class="side-menu-account">
+    <% if (typeof currentUser !== "undefined" && currentUser) { %>
+      <span class="side-menu-avatar" aria-hidden="true"><%= currentUser.email.charAt(0).toUpperCase() %></span>
+      <div>
+        <strong><%= currentUser.email %></strong>
+        <a href="/auth/logout">Logout</a>
+      </div>
+    <% } %>
+  </div>
+</aside>
