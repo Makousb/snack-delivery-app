@@ -1,11 +1,26 @@
 import { pool } from "../db/index.js";
 import { config } from "../config/env.js";
 import { initiateSTKPush } from "../services/mpesa.js";
+import { createReview, getReviewByOrderId } from "../db/queries/reviews.js";
 
 function parseCoordinate(value, max) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
 }
+
+// The only statuses a vendor is allowed to set from the orders dashboard.
+// Anything else (e.g. a hand-crafted POST) is rejected so the status column
+// can't be filled with arbitrary text.
+const VENDOR_SETTABLE_STATUSES = new Set([
+  "Pending Payment",
+  "Payment Pending Verification",
+  "Paid",
+  "Cash Pending",
+  "Preparing",
+  "Driver Assigned",
+  "Out for Delivery",
+  "Completed"
+]);
 
 export const createOrder = async (req, res) => {
   const { vendorId } = req.params;
@@ -272,8 +287,22 @@ export const customerOrders = async (req, res) => {
         return groups;
       }, {});
 
+      // Pull any existing reviews so completed orders show either the rating
+      // the customer already left or a prompt to leave one.
+      const reviewsResult = await pool.query(
+        "SELECT order_id, rating, comment FROM reviews WHERE order_id = ANY($1)",
+        [orders.map((order) => order.id)]
+      );
+
+      const reviewByOrder = reviewsResult.rows.reduce((map, row) => {
+        map[row.order_id] = row;
+        return map;
+      }, {});
+
       orders.forEach((order) => {
         order.items = itemsByOrder[order.id] || [];
+        order.review = reviewByOrder[order.id] || null;
+        order.can_review = order.status === "Completed" && !order.review;
       });
     }
 
@@ -284,6 +313,69 @@ export const customerOrders = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).render("500", { title: "Server Error" });
+  }
+};
+
+export const submitReview = async (req, res) => {
+  const { orderId } = req.params;
+  const userId = req.session.user?.id;
+
+  if (!userId) {
+    req.flash("error", "Log in to leave a review.");
+    return res.redirect("/auth/login");
+  }
+
+  const rating = Number.parseInt(req.body.rating, 10);
+  const comment = (req.body.comment || "").trim().slice(0, 1000) || null;
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    req.flash("error", "Pick a star rating between 1 and 5.");
+    return res.redirect("/orders");
+  }
+
+  try {
+    const orderResult = await pool.query(
+      "SELECT id, vendor_id, user_id, status FROM orders WHERE id = $1",
+      [orderId]
+    );
+    const order = orderResult.rows[0];
+
+    // Only the customer who placed the order, and only once it's completed,
+    // can review it.
+    if (!order || order.user_id !== userId) {
+      req.flash("error", "Order not found.");
+      return res.redirect("/orders");
+    }
+
+    if (order.status !== "Completed") {
+      req.flash("error", "You can review an order once it's completed.");
+      return res.redirect("/orders");
+    }
+
+    if (await getReviewByOrderId(orderId)) {
+      req.flash("error", "You've already reviewed this order.");
+      return res.redirect("/orders");
+    }
+
+    await createReview({
+      vendorId: order.vendor_id,
+      userId,
+      orderId: order.id,
+      rating,
+      comment
+    });
+
+    req.flash("success", "Thanks for your review!");
+    return res.redirect("/orders");
+  } catch (err) {
+    // UNIQUE(order_id) violation — a concurrent submit already reviewed it.
+    if (err.code === "23505") {
+      req.flash("error", "You've already reviewed this order.");
+      return res.redirect("/orders");
+    }
+
+    console.error(err);
+    return res.status(500).render("500", { title: "Server Error" });
   }
 };
 
@@ -322,6 +414,11 @@ export const updateOrderStatus = async (req, res) => {
   if (!vendorId) {
     req.flash("error", "No vendor is linked to this account.");
     return res.redirect("/admin");
+  }
+
+  if (!VENDOR_SETTABLE_STATUSES.has(status)) {
+    req.flash("error", "That order status isn't allowed.");
+    return res.redirect(`/admin/vendor/${vendorId}/orders`);
   }
 
   try {

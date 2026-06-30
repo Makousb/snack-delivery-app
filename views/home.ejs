@@ -289,6 +289,7 @@
                       <h3><%= vendor.name %></h3>
                       <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Free delivery</p>
                     </div>
+                    <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
                   </div>
 
                   <p class="marketplace-vendor-description">
