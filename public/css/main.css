@@ -5566,3 +5566,26 @@ body.dark .home-vendor-card .vendor-info h3 {
   cursor: default;
   opacity: 0.7;
 }
+
+/* Search filters */
+.search-controls {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.4rem;
+}
+
+.search-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.search-filter-row select {
+  padding: 0.6rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: #fff;
+  font: inherit;
+  color: var(--ink-700);
+}
