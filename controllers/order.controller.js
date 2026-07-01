@@ -6,6 +6,7 @@ import { distanceKm } from "../utils/geo.js";
 import { computeDeliveryFee } from "../utils/pricing.js";
 import { isVendorOpen } from "../utils/hours.js";
 import { validatePromo } from "../db/queries/promos.js";
+import { sendOrderConfirmation } from "../services/email.js";
 
 function parseCoordinate(value, max) {
   const parsed = Number(value);
@@ -183,6 +184,17 @@ export const createOrder = async (req, res) => {
         orderId,
         status: initialStatus
       });
+    }
+
+    // Fire-and-forget order confirmation to the signed-in customer. No-ops when
+    // email isn't configured; never blocks or fails the checkout response.
+    if (req.session.user?.email) {
+      sendOrderConfirmation({
+        to: req.session.user.email,
+        order: { id: orderId, total, discount, delivery_fee: deliveryFee, tip },
+        items: cartItems,
+        vendorName: vendor?.name || "the vendor"
+      }).catch(() => {});
     }
 
     if (paymentMethod === "mpesa" && phone) {
