@@ -6,6 +6,7 @@ import {
   getPositiveQuantity
 } from "../utils/cart.js";
 import { getUsualOrder } from "../db/queries/usualOrder.js";
+import { getUserAddresses } from "../db/queries/addresses.js";
 import { distanceKm } from "../utils/geo.js";
 import { computeDeliveryFee, estimateEta } from "../utils/pricing.js";
 
@@ -240,7 +241,18 @@ export async function updateCartItemAjax(req, res, next) {
   }
 }
 
-export function viewCart(req, res) {
+async function loadSavedAddresses(req) {
+  const userId = req.session.user?.id;
+  if (!userId) return [];
+  try {
+    return await getUserAddresses(userId);
+  } catch (error) {
+    console.error("Failed to load addresses:", error.message);
+    return [];
+  }
+}
+
+export async function viewCart(req, res) {
   const { id: vendorId } = req.params;
   const cartItems = ensureVendorCart(req, vendorId);
   const total = calculateCartTotal(cartItems);
@@ -254,11 +266,12 @@ export function viewCart(req, res) {
     cartItems,
     total,
     deliveryFee,
-    grandTotal: total + deliveryFee
+    grandTotal: total + deliveryFee,
+    savedAddresses: await loadSavedAddresses(req)
   });
 }
 
-export function viewGlobalCart(req, res) {
+export async function viewGlobalCart(req, res) {
   const cartItems = flattenCart(req.session.cart || {});
   const total = calculateCartTotal(cartItems);
   const deliveryFee = computeDeliveryFee(null);
@@ -269,7 +282,8 @@ export function viewGlobalCart(req, res) {
     total,
     deliveryFee,
     grandTotal: total + deliveryFee,
-    vendorId: cartItems[0]?.vendorId || null
+    vendorId: cartItems[0]?.vendorId || null,
+    savedAddresses: await loadSavedAddresses(req)
   });
 }
 

@@ -16,6 +16,7 @@ import adminRoutes from "./routes/admin.js";
 import apiRoutes from "./routes/api.js";
 import authRoutes from "./routes/auth.js";
 import cartRoutes from "./routes/cart.js";
+import addressRoutes from "./routes/addresses.js";
 import driverRoutes from "./routes/driver.js";
 import favoritesRoutes from "./routes/favorites.js";
 import orderRoutes from "./routes/order.js";
@@ -139,6 +140,7 @@ app.use("/admin", adminRoutes);
 app.use("/driver", driverRoutes);
 app.use("/api", apiRoutes);
 app.use("/favorites", favoritesRoutes);
+app.use("/addresses", addressRoutes);
 app.use("/", orderRoutes);
 app.use("/", cartRoutes);
 
