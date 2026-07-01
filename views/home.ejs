@@ -132,7 +132,7 @@
       <span class="marketplace-kicker">Snack marketplace</span>
       <h1>Food, groceries, and more from vendors near you.</h1>
 
-      <form class="marketplace-search" method="GET" action="/vendors/search">
+      <form class="marketplace-search" method="GET" action="/search">
         <label class="sr-only" for="marketplace-search-input">Search vendors</label>
         <span class="marketplace-search-icon" aria-hidden="true">Search</span>
         <input
@@ -145,12 +145,6 @@
         />
         <button type="submit">Find Food</button>
       </form>
-
-      <% if (vendorNotFound) { %>
-        <p class="flash flash-error home-search-feedback">
-          No vendor matched "<%= searchQuery %>". Try another name.
-        </p>
-      <% } %>
 
       <div class="marketplace-order-controls" aria-label="Order options">
         <button class="marketplace-control-active" type="button">Delivery</button>
