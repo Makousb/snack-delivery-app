@@ -5527,3 +5527,42 @@ body.dark .home-vendor-card .vendor-info h3 {
   font-size: 0.9rem;
   color: #9a3412;
 }
+
+/* =============================
+   FAVOURITE (HEART) TOGGLE
+============================= */
+.favorite-toggle {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #c9ced6;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(16, 32, 19, 0.18);
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+.favorite-toggle:hover {
+  transform: scale(1.08);
+  color: #f2708a;
+}
+
+.favorite-toggle.is-favorited {
+  color: #e11d48;
+}
+
+.favorite-toggle:disabled {
+  cursor: default;
+  opacity: 0.7;
+}

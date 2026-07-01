@@ -17,8 +17,10 @@ import apiRoutes from "./routes/api.js";
 import authRoutes from "./routes/auth.js";
 import cartRoutes from "./routes/cart.js";
 import driverRoutes from "./routes/driver.js";
+import favoritesRoutes from "./routes/favorites.js";
 import orderRoutes from "./routes/order.js";
 import publicRoutes from "./routes/public.js";
+import { getFavoriteVendorIdSet } from "./db/queries/favorites.js";
 import { getCartSummary } from "./utils/cart.js";
 import { formatCurrency } from "./utils/currency.js";
 import { DELIVERY_PRICING } from "./utils/pricing.js";
@@ -114,11 +116,29 @@ app.use((req, res, next) => {
   next();
 });
 
+// Load the shopper's favourite vendor ids once per request so any view can mark
+// hearts as filled. Only runs for logged-in customers.
+app.use(async (req, res, next) => {
+  res.locals.favoriteVendorIds = new Set();
+
+  const user = req.session.user;
+  if (user && !["owner", "admin", "driver"].includes(user.role)) {
+    try {
+      res.locals.favoriteVendorIds = await getFavoriteVendorIdSet(user.id);
+    } catch (error) {
+      console.error("Failed to load favourites:", error.message);
+    }
+  }
+
+  next();
+});
+
 app.use("/", publicRoutes);
 app.use("/auth", authRoutes);
 app.use("/admin", adminRoutes);
 app.use("/driver", driverRoutes);
 app.use("/api", apiRoutes);
+app.use("/favorites", favoritesRoutes);
 app.use("/", orderRoutes);
 app.use("/", cartRoutes);
 

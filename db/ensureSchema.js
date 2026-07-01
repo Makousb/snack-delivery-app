@@ -171,5 +171,16 @@ export async function ensureSchema() {
       ON reviews(vendor_id)
   `);
 
+  // Saved/favourite vendors. One row per (customer, vendor).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE (user_id, vendor_id)
+    )
+  `);
+
   await ensureVendorSlugs();
 }

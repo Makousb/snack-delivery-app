@@ -1,0 +1,55 @@
+<%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("partials/sidebar", { currentPage: "favorites" }) %>
+
+  <section class="marketplace-page">
+    <div class="street-vendors-head">
+      <span class="feature-eyebrow">Favourites</span>
+      <h1>Your saved vendors.</h1>
+      <p>Everywhere you've tapped the heart, gathered in one place.</p>
+    </div>
+
+    <% if (!vendors.length) { %>
+      <section class="menu-empty-state">
+        <h2>No favourites yet.</h2>
+        <p>Tap the heart on any vendor to save it here for next time.</p>
+        <a href="/home" class="btn vendor-primary-cta">Browse Vendors</a>
+      </section>
+    <% } else { %>
+      <div class="marketplace-vendor-grid">
+        <% vendors.forEach((vendor) => { %>
+          <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card">
+            <div class="marketplace-vendor-media">
+              <img src="<%= vendor.banner_url || '/images/placeholder.png' %>" alt="<%= vendor.name %>" loading="lazy" />
+              <%- include("partials/favoriteButton", { vendorId: vendor.id }) %>
+              <span class="marketplace-vendor-logo">
+                <% if (vendor.logo_url) { %>
+                  <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
+                <% } else { %>
+                  <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+                <% } %>
+              </span>
+            </div>
+
+            <div class="marketplace-vendor-content">
+              <div class="marketplace-vendor-title">
+                <div>
+                  <h3><%= vendor.name %></h3>
+                  <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= vendorOpenStatus(vendor).label %></p>
+                </div>
+                <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+              </div>
+
+              <p class="marketplace-vendor-description">
+                <%= vendor.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
+              </p>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+</div>
+
+<%- include("partials/footer") %>

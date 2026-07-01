@@ -49,6 +49,7 @@
             <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card">
               <div class="marketplace-vendor-media">
                 <img src="<%= vendor.banner_url || '/images/placeholder.png' %>" alt="<%= vendor.name %>" loading="lazy" />
+                <%- include("partials/favoriteButton", { vendorId: vendor.id }) %>
                 <span class="marketplace-vendor-logo">
                   <% if (vendor.logo_url) { %>
                     <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
