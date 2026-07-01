@@ -5377,3 +5377,104 @@ body.dark .home-vendor-card .vendor-info h3 {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* =============================
+   GLOBAL SEARCH RESULTS
+============================= */
+.search-head {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.search-page-search {
+  margin-top: 0.4rem;
+  max-width: 560px;
+}
+
+.search-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.2rem;
+  margin-top: 1rem;
+}
+
+.search-item-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--shadow-soft);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-item-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-strong);
+}
+
+.search-item-media {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+
+.search-item-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.search-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.9rem 1rem 1.05rem;
+}
+
+.search-item-body h3 {
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
+}
+
+.search-item-vendor {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.search-item-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-500);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.search-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+}
+
+.search-item-footer strong {
+  font-size: 1.05rem;
+}
+
+.search-item-cta {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--green-600);
+}
+
+.search-item-card .menu-category {
+  align-self: flex-start;
+}

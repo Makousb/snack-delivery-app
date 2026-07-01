@@ -37,7 +37,6 @@ export const renderVendorLanding = (req, res) => {
 export const renderHome = async (req, res, next) => {
   try {
     const searchQuery = (req.query.search || "").trim();
-    const vendorNotFound = req.query.notFound === "1";
     const [vendorsResult, popularItemsResult] = await Promise.all([
       pool.query("SELECT * FROM vendors WHERE vendor_type != 'street_vendor' ORDER BY name ASC"),
       pool.query(`
@@ -79,8 +78,7 @@ export const renderHome = async (req, res, next) => {
       popularItems,
       vendorSections,
       usualOrder,
-      searchQuery,
-      vendorNotFound
+      searchQuery
     });
   } catch (err) {
     console.error(err);
@@ -163,39 +161,71 @@ export const renderAllVendors = async (req, res, next) => {
   }
 };
 
-export const searchVendors = async (req, res, next) => {
+// Global search across menu items (name/description/category) AND vendor names,
+// so a customer can search for a dish ("pizza") and see matching items from
+// every vendor, not just vendors whose name matches. Best (exact, then
+// prefix, then contains) matches are ordered first.
+export const searchResults = async (req, res, next) => {
   try {
-    const query = (req.query.search || "").trim();
+    const query = (req.query.search || req.query.q || "").trim();
 
     if (!query) {
       return res.redirect("/home");
     }
 
-    const result = await pool.query(
-      `
-        SELECT id, name
-        FROM vendors
-        WHERE LOWER(name) LIKE LOWER($1)
-        ORDER BY
-          CASE
-            WHEN LOWER(name) = LOWER($2) THEN 0
-            WHEN LOWER(name) LIKE LOWER($3) THEN 1
-            ELSE 2
-          END,
-          LENGTH(name) ASC,
-          name ASC
-        LIMIT 1
-      `,
-      [`%${query}%`, query, `${query}%`]
-    );
+    const contains = `%${query}%`;
+    const prefix = `${query}%`;
 
-    const match = result.rows[0];
+    const [itemsResult, vendorsResult] = await Promise.all([
+      pool.query(
+        `SELECT mi.id, mi.name, mi.description, mi.price, mi.image_url, mi.category,
+                v.id AS vendor_id, v.name AS vendor_name, v.vendor_type
+         FROM menu_items mi
+         JOIN vendors v ON v.id = mi.vendor_id
+         WHERE mi.status = 'Available'
+           AND (LOWER(mi.name) LIKE LOWER($1)
+                OR LOWER(mi.description) LIKE LOWER($1)
+                OR LOWER(mi.category) LIKE LOWER($1))
+         ORDER BY
+           CASE
+             WHEN LOWER(mi.name) = LOWER($2) THEN 0
+             WHEN LOWER(mi.name) LIKE LOWER($3) THEN 1
+             ELSE 2
+           END,
+           mi.name ASC
+         LIMIT 60`,
+        [contains, query, prefix]
+      ),
+      pool.query(
+        `SELECT *
+         FROM vendors
+         WHERE LOWER(name) LIKE LOWER($1)
+         ORDER BY
+           CASE
+             WHEN LOWER(name) = LOWER($2) THEN 0
+             WHEN LOWER(name) LIKE LOWER($3) THEN 1
+             ELSE 2
+           END,
+           name ASC
+         LIMIT 12`,
+        [contains, query, prefix]
+      )
+    ]);
 
-    if (!match) {
-      return res.redirect(`/home?search=${encodeURIComponent(query)}&notFound=1`);
-    }
+    const items = itemsResult.rows.map((item) => ({
+      ...item,
+      price: Number(item.price),
+      vendor_type_label: vendorTypeLabel(item.vendor_type)
+    }));
 
-    return res.redirect(`/vendor/${match.id}/menu`);
+    const vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+
+    res.render("search", {
+      title: `Search: ${query}`,
+      query,
+      items,
+      vendors
+    });
   } catch (err) {
     console.error(err);
     next(err);

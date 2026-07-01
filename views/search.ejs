@@ -1,0 +1,116 @@
+<%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("partials/sidebar", { currentPage: "search" }) %>
+
+  <section class="marketplace-page search-page">
+    <div class="street-vendors-head search-head">
+      <span class="feature-eyebrow">Search</span>
+      <h1>Results for &ldquo;<%= query %>&rdquo;</h1>
+      <p>
+        <%= items.length %> item<%= items.length === 1 ? "" : "s" %>
+        and <%= vendors.length %> vendor<%= vendors.length === 1 ? "" : "s" %> matched.
+      </p>
+
+      <form class="marketplace-search search-page-search" method="GET" action="/search">
+        <label class="sr-only" for="search-page-input">Search</label>
+        <span class="marketplace-search-icon" aria-hidden="true">Search</span>
+        <input
+          id="search-page-input"
+          type="text"
+          name="search"
+          value="<%= query %>"
+          placeholder="Search vendors or items"
+          aria-label="Search vendors or items"
+        />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+
+    <% if (!items.length && !vendors.length) { %>
+      <section class="menu-empty-state">
+        <h2>No matches for &ldquo;<%= query %>&rdquo;.</h2>
+        <p>Try a different dish, cuisine, or vendor name.</p>
+        <a href="/home" class="btn vendor-primary-cta">Back to Discovery</a>
+      </section>
+    <% } %>
+
+    <% if (vendors.length) { %>
+      <section class="marketplace-section">
+        <div class="marketplace-section-head">
+          <div>
+            <span>Vendors</span>
+            <h2><%= vendors.length %> match<%= vendors.length === 1 ? "" : "es" %></h2>
+          </div>
+        </div>
+
+        <div class="marketplace-vendor-grid">
+          <% vendors.forEach((vendor) => { %>
+            <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card">
+              <div class="marketplace-vendor-media">
+                <img src="<%= vendor.banner_url || '/images/placeholder.png' %>" alt="<%= vendor.name %>" loading="lazy" />
+                <span class="marketplace-vendor-logo">
+                  <% if (vendor.logo_url) { %>
+                    <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
+                  <% } else { %>
+                    <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+                  <% } %>
+                </span>
+              </div>
+
+              <div class="marketplace-vendor-content">
+                <div class="marketplace-vendor-title">
+                  <div>
+                    <h3><%= vendor.name %></h3>
+                    <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Free delivery</p>
+                  </div>
+                  <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+                </div>
+
+                <p class="marketplace-vendor-description">
+                  <%= vendor.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
+                </p>
+              </div>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (items.length) { %>
+      <section class="marketplace-section">
+        <div class="marketplace-section-head">
+          <div>
+            <span>Dishes</span>
+            <h2><%= items.length %> item<%= items.length === 1 ? "" : "s" %></h2>
+          </div>
+        </div>
+
+        <div class="search-item-grid">
+          <% items.forEach((item) => { %>
+            <a href="/vendor/<%= item.vendor_id %>/menu?search=<%= encodeURIComponent(item.name) %>" class="search-item-card">
+              <div class="search-item-media">
+                <img src="<%= item.image_url || '/images/placeholder.png' %>" alt="<%= item.name %>" loading="lazy" />
+              </div>
+
+              <div class="search-item-body">
+                <span class="menu-category"><%= item.category || "Popular" %></span>
+                <h3><%= item.name %></h3>
+                <p class="search-item-vendor"><%= item.vendor_name %> · <%= item.vendor_type_label %></p>
+                <% if (item.description) { %>
+                  <p class="search-item-desc"><%= item.description %></p>
+                <% } %>
+                <div class="search-item-footer">
+                  <strong><%= formatCurrency(item.price) %></strong>
+                  <span class="search-item-cta">View &rarr;</span>
+                </div>
+              </div>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+  </section>
+</div>
+
+<%- include("partials/footer") %>
