@@ -3,6 +3,7 @@ import {
   addToCart,
   addToCartAjax,
   addUsualOrderToCart,
+  deliveryEstimate,
   forceSwitchCart,
   getCartItems,
   removeFromCart,
@@ -19,6 +20,7 @@ const router = express.Router();
 router.use(blockRoles(["owner", "admin", "driver"]));
 
 router.get("/vendor/:id/cart", viewCart);
+router.get("/vendor/:id/delivery-estimate", deliveryEstimate);
 router.post("/vendor/:id/cart/add", addToCart);
 router.post("/vendor/:id/cart/remove", removeFromCart);
 

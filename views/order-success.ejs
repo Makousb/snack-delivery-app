@@ -54,9 +54,21 @@
     <aside class="order-card order-summary-card">
       <span class="feature-eyebrow">Summary</span>
       <h2>Everything looks good.</h2>
+
+      <div class="cart-summary-breakdown">
+        <div class="cart-summary-row">
+          <span>Subtotal</span>
+          <strong><%= formatCurrency(order.total) %></strong>
+        </div>
+        <div class="cart-summary-row">
+          <span>Delivery</span>
+          <strong><%= formatCurrency(order.delivery_fee || 0) %></strong>
+        </div>
+      </div>
+
       <div class="cart-summary-total">
         <span>Total</span>
-        <strong><%= formatCurrency(order.total) %></strong>
+        <strong><%= formatCurrency(Number(order.total) + Number(order.delivery_fee || 0)) %></strong>
       </div>
 
       <div class="order-summary-meta">

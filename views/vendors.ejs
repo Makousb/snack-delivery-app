@@ -9,7 +9,7 @@
     "/homepage_images/meat.avif",
     "/homepage_images/greek.avif"
   ];
-  const vendorBadges = ["Free delivery", "Top rated", "Great value", "Fast delivery"];
+  const vendorBadges = ["Low fees", "Top rated", "Great value", "Fast delivery"];
   const sectionMeta = {
     restaurant: { label: "Restaurants" },
     store: { label: "Grocery & convenience" },
@@ -87,7 +87,7 @@
                   <div class="marketplace-vendor-title">
                     <div>
                       <h3><%= vendor.name %></h3>
-                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
+                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Delivery from KSh <%= deliveryBaseFee %></p>
                     </div>
                     <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
                   </div>

@@ -81,13 +81,13 @@
         <% }) %>
       </div>
 
-      <aside class="cart-summary-card">
+      <aside class="cart-summary-card" data-cart-summary data-vendor-id="<%= vendorId || "" %>" data-subtotal="<%= total %>">
         <span class="feature-eyebrow">Checkout</span>
         <h2>Ready to place the order?</h2>
 
         <div class="cart-summary-stats">
           <div class="cart-summary-stat">
-            <strong>22-30 min</strong>
+            <strong data-eta-window>25-40 min</strong>
             <span>delivery window</span>
           </div>
           <div class="cart-summary-stat">
@@ -102,14 +102,14 @@
             <strong><%= formatCurrency(total) %></strong>
           </div>
           <div class="cart-summary-row">
-            <span>Delivery</span>
-            <strong>Included</strong>
+            <span>Delivery <span class="cart-delivery-note" data-delivery-note>(estimated)</span></span>
+            <strong data-delivery-fee><%= formatCurrency(deliveryFee) %></strong>
           </div>
         </div>
 
         <div class="cart-summary-total">
           <span>Total</span>
-          <strong><%= formatCurrency(total) %></strong>
+          <strong data-grand-total><%= formatCurrency(grandTotal) %></strong>
         </div>
 
         <form method="POST" action="/vendor/<%= vendorId || 1 %>/order" class="checkout-form modern-checkout-form">
@@ -187,5 +187,49 @@
     </div>
   <% } %>
 </section>
+
+<script>
+  (function () {
+    const summary = document.querySelector("[data-cart-summary]");
+    if (!summary) return;
+
+    const vendorId = summary.dataset.vendorId;
+    const subtotal = Number(summary.dataset.subtotal) || 0;
+    const feeEl = summary.querySelector("[data-delivery-fee]");
+    const totalEl = summary.querySelector("[data-grand-total]");
+    const etaEl = summary.querySelector("[data-eta-window]");
+    const noteEl = summary.querySelector("[data-delivery-note]");
+
+    const money = (n) =>
+      "KSh " + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const applyQuote = (q) => {
+      if (feeEl) feeEl.textContent = money(q.fee);
+      if (totalEl) totalEl.textContent = money(subtotal + q.fee);
+      if (etaEl) etaEl.textContent = q.etaMin + "-" + q.etaMax + " min";
+      if (noteEl) noteEl.textContent = q.hasCoords ? "(" + q.distanceKm + " km away)" : "(estimated)";
+    };
+
+    // Fired by address-memory.js whenever delivery coordinates change (GPS or
+    // Places autocomplete). Re-price the trip from the vendor.
+    document.querySelector(".checkout-form")?.addEventListener("snack:delivery-coords", async (event) => {
+      if (!vendorId) return;
+      const { lat, lng } = event.detail || {};
+
+      try {
+        const params = new URLSearchParams();
+        if (lat != null && lng != null) {
+          params.set("lat", lat);
+          params.set("lng", lng);
+        }
+        const res = await fetch("/vendor/" + encodeURIComponent(vendorId) + "/delivery-estimate?" + params.toString());
+        if (!res.ok) return;
+        applyQuote(await res.json());
+      } catch (_) {
+        // Leave the current estimate in place if the quote request fails.
+      }
+    });
+  })();
+</script>
 
 <%- include("partials/footer") %>

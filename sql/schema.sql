@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS orders (
   mpesa_manual_code TEXT,
   delivery_lat NUMERIC(10, 6),
   delivery_lng NUMERIC(10, 6),
+  delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

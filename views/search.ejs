@@ -62,7 +62,7 @@
                 <div class="marketplace-vendor-title">
                   <div>
                     <h3><%= vendor.name %></h3>
-                    <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Free delivery</p>
+                    <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Delivery from KSh <%= deliveryBaseFee %></p>
                   </div>
                   <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
                 </div>

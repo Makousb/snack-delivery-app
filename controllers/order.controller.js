@@ -2,6 +2,8 @@ import { pool } from "../db/index.js";
 import { config } from "../config/env.js";
 import { initiateSTKPush } from "../services/mpesa.js";
 import { createReview, getReviewByOrderId } from "../db/queries/reviews.js";
+import { distanceKm } from "../utils/geo.js";
+import { computeDeliveryFee } from "../utils/pricing.js";
 
 function parseCoordinate(value, max) {
   const parsed = Number(value);
@@ -60,14 +62,37 @@ export const createOrder = async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    // Fetch the vendor up front so we can price delivery by distance before the
+    // order row is written. Fee is authoritative here (never trusted from the
+    // client); the cart page only shows an estimate.
+    const vendorInfo = await client.query(
+      "SELECT name, latitude, longitude FROM vendors WHERE id = $1",
+      [vendorId]
+    );
+    const vendor = vendorInfo.rows[0];
+
+    const hasBothCoords =
+      vendor?.latitude != null &&
+      vendor?.longitude != null &&
+      parsedLat != null &&
+      parsedLng != null;
+
+    const distance = hasBothCoords
+      ? distanceKm(Number(vendor.latitude), Number(vendor.longitude), parsedLat, parsedLng)
+      : null;
+
+    const deliveryFee = computeDeliveryFee(distance);
+    const grandTotal = total + deliveryFee;
+
     const orderResult = await client.query(
-      `INSERT INTO orders (vendor_id, user_id, total, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
       [
         vendorId,
         userId,
         total,
+        deliveryFee,
         initialStatus,
         deliveryAddress || null,
         phone || null,
@@ -87,11 +112,6 @@ export const createOrder = async (req, res) => {
       );
     }
 
-    const vendorInfo = await client.query(
-      "SELECT name FROM vendors WHERE id = $1",
-      [vendorId]
-    );
-
     await client.query(
       `INSERT INTO deliveries (
          order_id,
@@ -106,7 +126,7 @@ export const createOrder = async (req, res) => {
         orderId,
         "Available",
         "Awaiting driver",
-        vendorInfo.rows[0]?.name || "Pickup point",
+        vendor?.name || "Pickup point",
         deliveryAddress || null,
         parsedTipAmount
       ]
@@ -134,7 +154,7 @@ export const createOrder = async (req, res) => {
 
     if (paymentMethod === "mpesa" && phone) {
       try {
-        const stkResponse = await initiateSTKPush(phone, total);
+        const stkResponse = await initiateSTKPush(phone, grandTotal);
 
         if (stkResponse?.CheckoutRequestID) {
           await pool.query(
