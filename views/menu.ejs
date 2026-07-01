@@ -1,6 +1,7 @@
 <%- include("partials/header") %>
 
 <% const isShopper = !currentUser || !["owner", "admin", "driver"].includes(currentUser.role); %>
+<% const menuVendorStatus = vendorOpenStatus(vendor); %>
 
 <section class="menu-page">
   <div class="menu-page-hero">
@@ -9,6 +10,9 @@
       <h1><%= vendor.name %></h1>
       <div class="menu-page-rating">
         <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+        <span class="vendor-status-pill vendor-status-<%= menuVendorStatus.open ? "open" : "closed" %>">
+          <%= menuVendorStatus.label %> · <%= formatVendorHours(vendor) %>
+        </span>
       </div>
       <p>
         <%= vendor.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
@@ -62,6 +66,13 @@
       </div>
     </div>
   </div>
+
+  <% if (!menuVendorStatus.open) { %>
+    <div class="vendor-closed-banner">
+      <strong><%= vendor.name %> is currently closed.</strong>
+      <span>Opening hours: <%= formatVendorHours(vendor) %>. You can browse the menu, but ordering resumes when they reopen.</span>
+    </div>
+  <% } %>
 
   <section class="menu-filter-card">
     <form id="filterForm" method="GET" action="/vendor/<%= vendor.id %>/menu" class="menu-filter-form">
@@ -154,7 +165,7 @@
           <p class="menu-description"><%= item.description || "Built for fast delivery decisions." %></p>
 
           <% if (isShopper) { %>
-            <% if (isItemAvailable) { %>
+            <% if (isItemAvailable && menuVendorStatus.open) { %>
               <div class="add-to-cart-form modern-add-to-cart-form">
                 <input
                   type="number"
@@ -176,7 +187,7 @@
               </div>
             <% } else { %>
               <button class="btn add-to-cart-btn" type="button" disabled>
-                <%= item.status %>
+                <%= !menuVendorStatus.open ? "Closed" : item.status %>
               </button>
             <% } %>
           <% } %>

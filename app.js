@@ -22,6 +22,7 @@ import publicRoutes from "./routes/public.js";
 import { getCartSummary } from "./utils/cart.js";
 import { formatCurrency } from "./utils/currency.js";
 import { DELIVERY_PRICING } from "./utils/pricing.js";
+import { vendorOpenStatus, formatVendorHours } from "./utils/hours.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -107,6 +108,8 @@ app.use((req, res, next) => {
   res.locals.formatCurrency = formatCurrency;
   res.locals.mpesaEnabled = config.payments.mpesaEnabled;
   res.locals.deliveryBaseFee = DELIVERY_PRICING.baseFee;
+  res.locals.vendorOpenStatus = vendorOpenStatus;
+  res.locals.formatVendorHours = formatVendorHours;
 
   next();
 });

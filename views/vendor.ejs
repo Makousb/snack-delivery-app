@@ -59,7 +59,10 @@
         </div>
 
         <div>
-          <span class="showcase-label">Open now</span>
+          <% const spotlightStatus = vendorOpenStatus(vendor); %>
+          <span class="showcase-label vendor-status-pill vendor-status-<%= spotlightStatus.open ? "open" : "closed" %>">
+            <%= spotlightStatus.label %> · <%= formatVendorHours(vendor) %>
+          </span>
           <h2><%= vendor.name %></h2>
         </div>
       </div>

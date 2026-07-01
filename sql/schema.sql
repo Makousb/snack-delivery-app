@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS vendors (
   slug TEXT,
   latitude NUMERIC(10, 6),
   longitude NUMERIC(10, 6),
+  opening_time TIME,
+  closing_time TIME,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

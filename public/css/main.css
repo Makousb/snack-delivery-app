@@ -5484,3 +5484,46 @@ body.dark .home-vendor-card .vendor-info h3 {
   color: var(--ink-500);
   font-weight: 500;
 }
+
+/* =============================
+   VENDOR OPEN / CLOSED STATE
+============================= */
+.vendor-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.vendor-status-open {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.vendor-status-closed {
+  background: #fde8e8;
+  color: #b42318;
+}
+
+.vendor-closed-banner {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1.2rem;
+  border-radius: 18px;
+  background: #fff4f4;
+  border: 1px solid rgba(180, 35, 24, 0.18);
+  margin-bottom: 1rem;
+}
+
+.vendor-closed-banner strong {
+  font-size: 1.02rem;
+  color: #7a271a;
+}
+
+.vendor-closed-banner span {
+  font-size: 0.9rem;
+  color: #9a3412;
+}

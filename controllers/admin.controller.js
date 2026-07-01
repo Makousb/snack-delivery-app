@@ -297,12 +297,20 @@ export async function updateBusinessProfile(req, res) {
       businessName,
       businessDescription,
       vendorType,
-      email
+      email,
+      openingTime,
+      closingTime
     } = req.body;
 
     const safeName = (businessName || "").trim();
     const safeDescription = (businessDescription || "").trim();
     const safeEmail = (email || "").trim().toLowerCase();
+
+    // Accept HH:MM only; anything else (incl. blank) clears the window so the
+    // vendor reads as always-open.
+    const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const safeOpeningTime = timePattern.test((openingTime || "").trim()) ? openingTime.trim() : null;
+    const safeClosingTime = timePattern.test((closingTime || "").trim()) ? closingTime.trim() : null;
 
     if (!userId) {
       req.flash("error", "Please log in first");
@@ -356,8 +364,10 @@ export async function updateBusinessProfile(req, res) {
            logo_url = $3,
            banner_url = $4,
            slug = $5,
-           vendor_type = $6
-       WHERE id = $7`,
+           vendor_type = $6,
+           opening_time = $7,
+           closing_time = $8
+       WHERE id = $9`,
       [
         safeName,
         safeDescription || null,
@@ -365,6 +375,8 @@ export async function updateBusinessProfile(req, res) {
         bannerUrl,
         slug,
         safeVendorType,
+        safeOpeningTime,
+        safeClosingTime,
         vendorId
       ]
     );
