@@ -74,6 +74,7 @@
       <div class="order-summary-meta">
         <span>Order #<%= order.id %></span>
         <span><%= order.vendor_name %></span>
+        <span><%= order.fulfillment_type === "pickup" ? "Pickup — collect from vendor" : "Delivery" %></span>
       </div>
 
       <div class="order-summary-actions">
