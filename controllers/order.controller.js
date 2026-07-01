@@ -5,6 +5,7 @@ import { createReview, getReviewByOrderId } from "../db/queries/reviews.js";
 import { distanceKm } from "../utils/geo.js";
 import { computeDeliveryFee } from "../utils/pricing.js";
 import { isVendorOpen } from "../utils/hours.js";
+import { validatePromo } from "../db/queries/promos.js";
 
 function parseCoordinate(value, max) {
   const parsed = Number(value);
@@ -94,11 +95,25 @@ export const createOrder = async (req, res) => {
 
     const deliveryFee = fulfillmentType === "pickup" ? 0 : computeDeliveryFee(distance);
     const tip = fulfillmentType === "pickup" ? 0 : parsedTipAmount;
-    const grandTotal = total + deliveryFee + tip;
+
+    // Re-validate any promo code against the server-side subtotal so the
+    // discount can't be tampered with from the client.
+    let discount = 0;
+    let appliedPromoCode = null;
+    const promoInput = (req.body.promoCode || "").trim();
+    if (promoInput) {
+      const promoResult = await validatePromo(vendorId, promoInput, total);
+      if (!promoResult.error) {
+        discount = promoResult.discount;
+        appliedPromoCode = promoResult.code;
+      }
+    }
+
+    const grandTotal = total - discount + deliveryFee + tip;
 
     const orderResult = await client.query(
-      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, fulfillment_type, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, fulfillment_type, promo_code, discount, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING id`,
       [
         vendorId,
@@ -106,6 +121,8 @@ export const createOrder = async (req, res) => {
         total,
         deliveryFee,
         fulfillmentType,
+        appliedPromoCode,
+        discount,
         initialStatus,
         fulfillmentType === "pickup" ? null : deliveryAddress || null,
         phone || null,

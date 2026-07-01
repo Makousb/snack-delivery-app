@@ -5688,6 +5688,25 @@ body.dark .home-vendor-card .vendor-info h3 {
   color: var(--green-700);
 }
 
+/* Promo codes */
+.promo-apply {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.promo-apply input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-summary-discount strong {
+  color: var(--green-700);
+}
+
+.promo-inactive {
+  opacity: 0.6;
+}
+
 /* Owner review replies */
 .admin-reviews-list {
   display: grid;

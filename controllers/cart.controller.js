@@ -7,6 +7,7 @@ import {
 } from "../utils/cart.js";
 import { getUsualOrder } from "../db/queries/usualOrder.js";
 import { getUserAddresses } from "../db/queries/addresses.js";
+import { validatePromo } from "../db/queries/promos.js";
 import { distanceKm } from "../utils/geo.js";
 import { computeDeliveryFee, estimateEta } from "../utils/pricing.js";
 
@@ -195,6 +196,30 @@ export async function addToCartAjax(req, res, next) {
       cartCount,
       switchRequired: false
     });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+// Validate a promo code against the current single-vendor cart. Subtotal is
+// computed server-side so a client can't inflate the discount.
+export async function applyPromo(req, res, next) {
+  try {
+    const { id: vendorId } = req.params;
+    const cartItems = req.session.cart?.[vendorId] || [];
+
+    if (!cartItems.length) {
+      return res.status(400).json({ valid: false, error: "Your cart is empty." });
+    }
+
+    const subtotal = calculateCartTotal(cartItems);
+    const result = await validatePromo(vendorId, req.body.code, subtotal);
+
+    if (result.error) {
+      return res.json({ valid: false, error: result.error });
+    }
+
+    return res.json({ valid: true, code: result.code, discount: result.discount });
   } catch (error) {
     return next(error);
   }

@@ -60,6 +60,12 @@
           <span>Subtotal</span>
           <strong><%= formatCurrency(order.total) %></strong>
         </div>
+        <% if (Number(order.discount) > 0) { %>
+          <div class="cart-summary-row cart-summary-discount">
+            <span>Discount<% if (order.promo_code) { %> (<%= order.promo_code %>)<% } %></span>
+            <strong>-<%= formatCurrency(order.discount) %></strong>
+          </div>
+        <% } %>
         <div class="cart-summary-row">
           <span><%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %></span>
           <strong><%= formatCurrency(order.delivery_fee || 0) %></strong>
@@ -74,7 +80,7 @@
 
       <div class="cart-summary-total">
         <span>Total</span>
-        <strong><%= formatCurrency(Number(order.total) + Number(order.delivery_fee || 0) + Number(order.tip || 0)) %></strong>
+        <strong><%= formatCurrency(Number(order.total) - Number(order.discount || 0) + Number(order.delivery_fee || 0) + Number(order.tip || 0)) %></strong>
       </div>
 
       <div class="order-summary-meta">

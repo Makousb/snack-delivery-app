@@ -11,6 +11,7 @@ import {
 } from "../db/queries/menu.js";
 import { getAllMessages, markMessageRead } from "../db/queries/messages.js";
 import { getReviewsForVendor, addOwnerReply } from "../db/queries/reviews.js";
+import { getVendorPromos, createPromo, togglePromo, deletePromo } from "../db/queries/promos.js";
 import { buildUniqueVendorSlug } from "../utils/slugify.js";
 import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
 
@@ -629,6 +630,71 @@ export async function toggleMenuStatus(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false });
+  }
+}
+
+export async function listPromos(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const promos = await getVendorPromos(vendorId);
+    res.render("admin/promos", { title: "Promo Codes", promos });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function createPromoHandler(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const code = (req.body.code || "").trim().toUpperCase().replace(/\s+/g, "");
+    const discountType = req.body.discountType === "fixed" ? "fixed" : "percent";
+    const discountValue = Number(req.body.discountValue);
+    const minOrder = Math.max(0, Number(req.body.minOrder || 0));
+    const expiresAt = (req.body.expiresAt || "").trim() || null;
+
+    if (!code || !Number.isFinite(discountValue) || discountValue <= 0) {
+      req.flash("error", "Enter a code and a positive discount value.");
+      return res.redirect("/admin/promos");
+    }
+    if (discountType === "percent" && discountValue > 100) {
+      req.flash("error", "A percentage discount can't exceed 100%.");
+      return res.redirect("/admin/promos");
+    }
+
+    await createPromo(vendorId, { code, discountType, discountValue, minOrder, expiresAt });
+    req.flash("success", "Promo code created.");
+    res.redirect("/admin/promos");
+  } catch (error) {
+    if (error.code === "23505") {
+      req.flash("error", "You already have a code with that name.");
+      return res.redirect("/admin/promos");
+    }
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function togglePromoHandler(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    await togglePromo(Number.parseInt(req.params.id, 10), vendorId);
+    res.redirect("/admin/promos");
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function deletePromoHandler(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    await deletePromo(Number.parseInt(req.params.id, 10), vendorId);
+    req.flash("success", "Promo code deleted.");
+    res.redirect("/admin/promos");
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
   }
 }
 

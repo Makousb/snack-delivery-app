@@ -109,6 +109,10 @@
             <span>Driver tip</span>
             <strong data-tip-display><%= formatCurrency(0) %></strong>
           </div>
+          <div class="cart-summary-row cart-summary-discount" data-discount-row hidden>
+            <span>Discount <span class="cart-delivery-note" data-discount-code></span></span>
+            <strong data-discount-display>-<%= formatCurrency(0) %></strong>
+          </div>
         </div>
 
         <div class="cart-summary-total">
@@ -200,6 +204,23 @@
             />
           </div>
 
+          <div class="checkout-field">
+            <label for="promoCode"><strong>Promo code:</strong></label>
+            <div class="promo-apply">
+              <input
+                type="text"
+                id="promoCode"
+                name="promoCode"
+                class="checkout-input"
+                placeholder="Enter code"
+                autocomplete="off"
+                data-promo-input
+              />
+              <button type="button" class="btn vendor-secondary-cta" data-promo-apply>Apply</button>
+            </div>
+            <p class="checkout-address-note" data-promo-status></p>
+          </div>
+
           <div class="checkout-actions">
             <% if (typeof mpesaEnabled !== "undefined" && mpesaEnabled) { %>
               <button
@@ -250,6 +271,14 @@
     const tipDisplay = summary.querySelector("[data-tip-display]");
     let tip = 0;
 
+    const discountRow = summary.querySelector("[data-discount-row]");
+    const discountDisplay = summary.querySelector("[data-discount-display]");
+    const discountCodeEl = summary.querySelector("[data-discount-code]");
+    const promoInput = document.querySelector("[data-promo-input]");
+    const promoStatus = document.querySelector("[data-promo-status]");
+    let discount = 0;
+    let promoCode = "";
+
     const money = (n) =>
       "KSh " + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -259,7 +288,10 @@
       if (feeEl) feeEl.textContent = money(fee);
       if (tipDisplay) tipDisplay.textContent = money(tipValue);
       if (tipRow) tipRow.hidden = tipValue <= 0;
-      if (totalEl) totalEl.textContent = money(subtotal + fee + tipValue);
+      if (discountRow) discountRow.hidden = discount <= 0;
+      if (discountDisplay) discountDisplay.textContent = "-" + money(discount);
+      if (discountCodeEl) discountCodeEl.textContent = promoCode ? "(" + promoCode + ")" : "";
+      if (totalEl) totalEl.textContent = money(Math.max(0, subtotal + fee + tipValue - discount));
       if (etaEl) etaEl.textContent = pickup ? "Ready ~15 min" : quote.etaMin + "-" + quote.etaMax + " min";
       if (noteEl) {
         noteEl.textContent = pickup
@@ -316,6 +348,42 @@
     tipInput?.addEventListener("input", () => {
       tip = Math.max(0, Number(tipInput.value) || 0);
       render();
+    });
+
+    // Promo code: validate against the server-side subtotal, then reflect the
+    // discount in the summary. The code field itself submits with the order.
+    document.querySelector("[data-promo-apply]")?.addEventListener("click", async () => {
+      if (!vendorId) return;
+      const code = (promoInput?.value || "").trim();
+      if (!code) return;
+
+      try {
+        const res = await fetch("/vendor/" + encodeURIComponent(vendorId) + "/promo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+
+        if (data.valid) {
+          discount = data.discount;
+          promoCode = data.code;
+          if (promoStatus) {
+            promoStatus.textContent = "Code applied — you saved " + money(data.discount) + ".";
+            promoStatus.style.color = "var(--green-700)";
+          }
+        } else {
+          discount = 0;
+          promoCode = "";
+          if (promoStatus) {
+            promoStatus.textContent = data.error || "That code isn't valid.";
+            promoStatus.style.color = "#b42318";
+          }
+        }
+        render();
+      } catch (_) {
+        // Leave any existing discount in place on failure.
+      }
     });
 
     // Saved-address chips: fill the address + coordinates and re-price delivery.
