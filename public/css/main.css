@@ -5478,3 +5478,9 @@ body.dark .home-vendor-card .vendor-info h3 {
 .search-item-card .menu-category {
   align-self: flex-start;
 }
+
+.cart-delivery-note {
+  font-size: 0.78rem;
+  color: var(--ink-500);
+  font-weight: 500;
+}

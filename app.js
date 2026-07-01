@@ -21,6 +21,7 @@ import orderRoutes from "./routes/order.js";
 import publicRoutes from "./routes/public.js";
 import { getCartSummary } from "./utils/cart.js";
 import { formatCurrency } from "./utils/currency.js";
+import { DELIVERY_PRICING } from "./utils/pricing.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -105,6 +106,7 @@ app.use((req, res, next) => {
   res.locals.googleMapsApiKey = config.googleMapsApiKey;
   res.locals.formatCurrency = formatCurrency;
   res.locals.mpesaEnabled = config.payments.mpesaEnabled;
+  res.locals.deliveryBaseFee = DELIVERY_PRICING.baseFee;
 
   next();
 });

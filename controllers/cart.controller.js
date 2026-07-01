@@ -6,6 +6,52 @@ import {
   getPositiveQuantity
 } from "../utils/cart.js";
 import { getUsualOrder } from "../db/queries/usualOrder.js";
+import { distanceKm } from "../utils/geo.js";
+import { computeDeliveryFee, estimateEta } from "../utils/pricing.js";
+
+function parseCoord(value, max) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
+}
+
+// Live delivery quote for the checkout page: given the customer's coordinates,
+// price the trip from the vendor. Falls back to a flat fee when either side
+// has no coordinates. The order endpoint recomputes this authoritatively.
+export async function deliveryEstimate(req, res, next) {
+  try {
+    const { id: vendorId } = req.params;
+    const lat = parseCoord(req.query.lat, 90);
+    const lng = parseCoord(req.query.lng, 180);
+
+    const result = await pool.query(
+      "SELECT latitude, longitude FROM vendors WHERE id = $1",
+      [vendorId]
+    );
+    const vendor = result.rows[0];
+
+    if (!vendor) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    const distance =
+      vendor.latitude != null && vendor.longitude != null && lat != null && lng != null
+        ? distanceKm(Number(vendor.latitude), Number(vendor.longitude), lat, lng)
+        : null;
+
+    const fee = computeDeliveryFee(distance);
+    const eta = estimateEta(distance);
+
+    return res.json({
+      fee,
+      etaMin: eta.min,
+      etaMax: eta.max,
+      distanceKm: distance != null ? Math.round(distance * 10) / 10 : null,
+      hasCoords: distance != null
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
 
 // Replace the whole cart with a single vendor's items. Used by the "usual
 // order" and "order again" flows, which always start a fresh cart (the cart
@@ -198,23 +244,31 @@ export function viewCart(req, res) {
   const { id: vendorId } = req.params;
   const cartItems = ensureVendorCart(req, vendorId);
   const total = calculateCartTotal(cartItems);
+  // Pre-address estimate: flat fallback until the customer supplies coordinates,
+  // at which point the checkout page refreshes it against the live endpoint.
+  const deliveryFee = computeDeliveryFee(null);
 
   return res.render("cart", {
     title: "Your Cart",
     vendorId,
     cartItems,
-    total
+    total,
+    deliveryFee,
+    grandTotal: total + deliveryFee
   });
 }
 
 export function viewGlobalCart(req, res) {
   const cartItems = flattenCart(req.session.cart || {});
   const total = calculateCartTotal(cartItems);
+  const deliveryFee = computeDeliveryFee(null);
 
   return res.render("cart", {
     title: "Your Cart",
     cartItems,
     total,
+    deliveryFee,
+    grandTotal: total + deliveryFee,
     vendorId: cartItems[0]?.vendorId || null
   });
 }

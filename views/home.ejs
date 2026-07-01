@@ -62,7 +62,7 @@
     "Pickup",
     "New on Snack"
   ];
-  const vendorBadges = ["Free delivery", "Top rated", "Great value", "Fast delivery"];
+  const vendorBadges = ["Low fees", "Top rated", "Great value", "Fast delivery"];
   const vendorItems = safePopularItems.reduce((groups, item) => {
     const key = String(item.vendor_id);
     groups[key] = groups[key] || [];
@@ -174,7 +174,7 @@
   <section class="marketplace-deals" id="marketplace-highlights" aria-label="Marketplace highlights">
     <article>
       <span>Featured offer</span>
-      <strong>Free delivery on every order</strong>
+      <strong>Low delivery fees from KSh <%= deliveryBaseFee %></strong>
       <a href="#featured-vendors">Browse offers</a>
     </article>
     <article>
@@ -259,7 +259,7 @@
           <div class="marketplace-vendor-grid">
             <% section.vendors.forEach((vendor, index) => { %>
               <%
-                const badge = "Free delivery";
+                const badge = "Fast delivery";
                 const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
                 const previewItems = vendorItems[String(vendor.id)] || [];
               %>
@@ -281,7 +281,7 @@
                   <div class="marketplace-vendor-title">
                     <div>
                       <h3><%= vendor.name %></h3>
-                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Free delivery</p>
+                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Delivery from KSh <%= deliveryBaseFee %></p>
                     </div>
                     <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
                   </div>

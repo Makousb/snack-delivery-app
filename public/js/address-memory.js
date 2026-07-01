@@ -24,6 +24,17 @@ const clearAddress = () => {
   }
 };
 
+// Notify the page (e.g. the cart's live delivery quote) that the customer's
+// delivery coordinates changed. lat/lng are null when they can't be resolved.
+const emitCoordsChanged = (form, lat, lng) => {
+  if (!form) return;
+  form.dispatchEvent(
+    new CustomEvent("snack:delivery-coords", {
+      detail: { lat: lat != null ? Number(lat) : null, lng: lng != null ? Number(lng) : null }
+    })
+  );
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   const addressInputs = document.querySelectorAll("[data-delivery-address-input]");
   const statusMessages = document.querySelectorAll("[data-delivery-address-status]");
@@ -162,6 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
           latInput.value = position.coords.latitude;
           lngInput.value = position.coords.longitude;
           if (statusEl) statusEl.textContent = "Location captured — your rider will get exact coordinates.";
+          emitCoordsChanged(form, position.coords.latitude, position.coords.longitude);
         },
         () => {
           latInput.value = "";
@@ -169,6 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (statusEl) {
             statusEl.textContent = "Couldn't get your location. The address above will be used instead.";
           }
+          emitCoordsChanged(form, null, null);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
@@ -204,6 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (latInput) latInput.value = lat;
           if (lngInput) lngInput.value = lng;
+          emitCoordsChanged(input.closest("form"), lat, lng);
         }
       });
     });
