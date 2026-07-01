@@ -61,14 +61,20 @@
           <strong><%= formatCurrency(order.total) %></strong>
         </div>
         <div class="cart-summary-row">
-          <span>Delivery</span>
+          <span><%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %></span>
           <strong><%= formatCurrency(order.delivery_fee || 0) %></strong>
         </div>
+        <% if (Number(order.tip) > 0) { %>
+          <div class="cart-summary-row">
+            <span>Driver tip</span>
+            <strong><%= formatCurrency(order.tip) %></strong>
+          </div>
+        <% } %>
       </div>
 
       <div class="cart-summary-total">
         <span>Total</span>
-        <strong><%= formatCurrency(Number(order.total) + Number(order.delivery_fee || 0)) %></strong>
+        <strong><%= formatCurrency(Number(order.total) + Number(order.delivery_fee || 0) + Number(order.tip || 0)) %></strong>
       </div>
 
       <div class="order-summary-meta">
