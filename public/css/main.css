@@ -5567,6 +5567,30 @@ body.dark .home-vendor-card .vendor-info h3 {
   opacity: 0.7;
 }
 
+/* Tip presets */
+.tip-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.4rem 0 0.55rem;
+}
+
+.tip-preset {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.tip-preset:hover {
+  border-color: var(--green-600);
+  color: var(--green-700);
+}
+
 /* Owner review replies */
 .admin-reviews-list {
   display: grid;

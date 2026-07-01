@@ -105,6 +105,10 @@
             <span>Delivery <span class="cart-delivery-note" data-delivery-note>(estimated)</span></span>
             <strong data-delivery-fee><%= formatCurrency(deliveryFee) %></strong>
           </div>
+          <div class="cart-summary-row" data-tip-row hidden>
+            <span>Driver tip</span>
+            <strong data-tip-display><%= formatCurrency(0) %></strong>
+          </div>
         </div>
 
         <div class="cart-summary-total">
@@ -160,8 +164,14 @@
             </div>
           <% } %>
 
-          <div class="checkout-field">
+          <div class="checkout-field" data-delivery-only>
             <label for="tipAmount"><strong>Driver Tip (KSh, optional):</strong></label>
+            <div class="tip-presets">
+              <button type="button" class="tip-preset" data-tip-percent="5">5%</button>
+              <button type="button" class="tip-preset" data-tip-percent="10">10%</button>
+              <button type="button" class="tip-preset" data-tip-percent="15">15%</button>
+              <button type="button" class="tip-preset" data-tip-clear>None</button>
+            </div>
             <input
               type="number"
               id="tipAmount"
@@ -170,6 +180,7 @@
               step="10"
               placeholder="0"
               class="checkout-input"
+              data-tip-input
             />
           </div>
 
@@ -218,13 +229,21 @@
     let quote = { fee: fallbackFee, etaMin: 25, etaMax: 40, hasCoords: false, distanceKm: null };
     let pickup = false;
 
+    const tipInput = document.querySelector("[data-tip-input]");
+    const tipRow = summary.querySelector("[data-tip-row]");
+    const tipDisplay = summary.querySelector("[data-tip-display]");
+    let tip = 0;
+
     const money = (n) =>
       "KSh " + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const render = () => {
       const fee = pickup ? 0 : quote.fee;
+      const tipValue = pickup ? 0 : tip;
       if (feeEl) feeEl.textContent = money(fee);
-      if (totalEl) totalEl.textContent = money(subtotal + fee);
+      if (tipDisplay) tipDisplay.textContent = money(tipValue);
+      if (tipRow) tipRow.hidden = tipValue <= 0;
+      if (totalEl) totalEl.textContent = money(subtotal + fee + tipValue);
       if (etaEl) etaEl.textContent = pickup ? "Ready ~15 min" : quote.etaMin + "-" + quote.etaMax + " min";
       if (noteEl) {
         noteEl.textContent = pickup
@@ -263,6 +282,24 @@
         deliveryOnly.forEach((el) => { el.hidden = pickup; });
         render();
       });
+    });
+
+    // Tip presets (a percentage of the subtotal) plus free-text entry.
+    document.querySelectorAll("[data-tip-percent]").forEach((button) => {
+      button.addEventListener("click", () => {
+        tip = Math.round((subtotal * Number(button.dataset.tipPercent)) / 100);
+        if (tipInput) tipInput.value = tip;
+        render();
+      });
+    });
+    document.querySelector("[data-tip-clear]")?.addEventListener("click", () => {
+      tip = 0;
+      if (tipInput) tipInput.value = "";
+      render();
+    });
+    tipInput?.addEventListener("input", () => {
+      tip = Math.max(0, Number(tipInput.value) || 0);
+      render();
     });
 
     render();

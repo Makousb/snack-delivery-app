@@ -93,7 +93,8 @@ export const createOrder = async (req, res) => {
       : null;
 
     const deliveryFee = fulfillmentType === "pickup" ? 0 : computeDeliveryFee(distance);
-    const grandTotal = total + deliveryFee;
+    const tip = fulfillmentType === "pickup" ? 0 : parsedTipAmount;
+    const grandTotal = total + deliveryFee + tip;
 
     const orderResult = await client.query(
       `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, fulfillment_type, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
@@ -142,7 +143,7 @@ export const createOrder = async (req, res) => {
           "Awaiting driver",
           vendor?.name || "Pickup point",
           deliveryAddress || null,
-          parsedTipAmount
+          tip
         ]
       );
     }
@@ -199,9 +200,10 @@ export const orderSuccess = async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.*, v.name AS vendor_name
+      `SELECT o.*, v.name AS vendor_name, COALESCE(d.tips, 0) AS tip
        FROM orders o
        JOIN vendors v ON v.id = o.vendor_id
+       LEFT JOIN deliveries d ON d.order_id = o.id
        WHERE o.id = $1`,
       [orderId]
     );
