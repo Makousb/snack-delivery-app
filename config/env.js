@@ -45,6 +45,17 @@ export const config = {
   payments: {
     mpesaEnabled: process.env.MPESA_ENABLED === "true"
   },
+  // Transactional email is opt-in. Without SMTP credentials the app runs
+  // exactly as before — order confirmations simply aren't sent.
+  email: {
+    enabled: process.env.EMAIL_ENABLED === "true",
+    host: process.env.SMTP_HOST || "",
+    port: getOptionalNumber("SMTP_PORT", 587),
+    secure: process.env.SMTP_SECURE === "true",
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
+    from: process.env.EMAIL_FROM || "Snack <no-reply@snack.local>"
+  },
   mpesa: {
     stkPushUrl:
       process.env.MPESA_STK_PUSH_URL ||
@@ -55,6 +66,13 @@ export const config = {
     callbackUrl: process.env.MPESA_CALLBACK_URL || ""
   }
 };
+
+export function isEmailConfigured() {
+  return (
+    config.email.enabled &&
+    Boolean(config.email.host && config.email.user && config.email.pass)
+  );
+}
 
 export function getMissingMpesaConfig() {
   const requiredValues = {
