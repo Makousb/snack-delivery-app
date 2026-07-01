@@ -12,18 +12,48 @@
         and <%= vendors.length %> vendor<%= vendors.length === 1 ? "" : "s" %> matched.
       </p>
 
-      <form class="marketplace-search search-page-search" method="GET" action="/search">
-        <label class="sr-only" for="search-page-input">Search</label>
-        <span class="marketplace-search-icon" aria-hidden="true">Search</span>
-        <input
-          id="search-page-input"
-          type="text"
-          name="search"
-          value="<%= query %>"
-          placeholder="Search vendors or items"
-          aria-label="Search vendors or items"
-        />
-        <button type="submit">Search</button>
+      <form class="search-controls" method="GET" action="/search">
+        <div class="marketplace-search search-page-search">
+          <label class="sr-only" for="search-page-input">Search</label>
+          <span class="marketplace-search-icon" aria-hidden="true">Search</span>
+          <input
+            id="search-page-input"
+            type="text"
+            name="search"
+            value="<%= query %>"
+            placeholder="Search vendors or items"
+            aria-label="Search vendors or items"
+          />
+          <button type="submit">Search</button>
+        </div>
+
+        <div class="search-filter-row">
+          <label class="sr-only" for="search-type">Vendor type</label>
+          <select id="search-type" name="type">
+            <option value="">All vendor types</option>
+            <option value="restaurant" <%= filters.type === "restaurant" ? "selected" : "" %>>Restaurants</option>
+            <option value="store" <%= filters.type === "store" ? "selected" : "" %>>Stores</option>
+            <option value="street_vendor" <%= filters.type === "street_vendor" ? "selected" : "" %>>Street vendors</option>
+          </select>
+
+          <label class="sr-only" for="search-category">Category</label>
+          <select id="search-category" name="category">
+            <option value="">All categories</option>
+            <% ["Starter", "Main", "Dessert", "Drinks"].forEach((cat) => { %>
+              <option value="<%= cat %>" <%= filters.category === cat ? "selected" : "" %>><%= cat %></option>
+            <% }) %>
+          </select>
+
+          <label class="sr-only" for="search-sort">Sort</label>
+          <select id="search-sort" name="sort">
+            <option value="relevance" <%= filters.sort === "relevance" ? "selected" : "" %>>Best match</option>
+            <option value="price_asc" <%= filters.sort === "price_asc" ? "selected" : "" %>>Price: low to high</option>
+            <option value="price_desc" <%= filters.sort === "price_desc" ? "selected" : "" %>>Price: high to low</option>
+            <option value="rating" <%= filters.sort === "rating" ? "selected" : "" %>>Top rated vendors</option>
+          </select>
+
+          <button type="submit" class="btn vendor-secondary-cta">Apply</button>
+        </div>
       </form>
     </div>
 

@@ -6,7 +6,7 @@ import {
   getVendorReviews,
   withVendorRatings
 } from "../db/queries/reviews.js";
-import { VENDOR_TYPES } from "../utils/vendorTypes.js";
+import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
 
 function vendorTypeLabel(vendorType) {
   return VENDOR_TYPES.find((type) => type.value === vendorType)?.label || vendorType;
@@ -173,8 +173,58 @@ export const searchResults = async (req, res, next) => {
       return res.redirect("/home");
     }
 
+    // Optional filters/sort. Whitelisted so they can be dropped straight into
+    // the SQL without injection risk.
+    const type = VENDOR_TYPE_VALUES.includes(req.query.type) ? req.query.type : "";
+    const category = (req.query.category || "").trim();
+    const sort = ["price_asc", "price_desc", "rating"].includes(req.query.sort)
+      ? req.query.sort
+      : "relevance";
+
     const contains = `%${query}%`;
     const prefix = `${query}%`;
+
+    // --- Items query (name/description/category match, plus optional filters) ---
+    // $2/$3 (exact/prefix ranking) are only referenced by the relevance sort,
+    // so bind them only then — pg rejects extra, unused parameters.
+    const itemParams = [contains];
+    let itemWhere =
+      `mi.status = 'Available'
+       AND (LOWER(mi.name) LIKE LOWER($1)
+            OR LOWER(mi.description) LIKE LOWER($1)
+            OR LOWER(mi.category) LIKE LOWER($1))`;
+
+    let itemOrder;
+    if (sort === "price_asc") {
+      itemOrder = "mi.price ASC, mi.name ASC";
+    } else if (sort === "price_desc") {
+      itemOrder = "mi.price DESC, mi.name ASC";
+    } else {
+      itemParams.push(query, prefix); // $2, $3
+      itemOrder =
+        `CASE
+           WHEN LOWER(mi.name) = LOWER($2) THEN 0
+           WHEN LOWER(mi.name) LIKE LOWER($3) THEN 1
+           ELSE 2
+         END, mi.name ASC`;
+    }
+
+    if (type) {
+      itemParams.push(type);
+      itemWhere += ` AND v.vendor_type = $${itemParams.length}`;
+    }
+    if (category) {
+      itemParams.push(category);
+      itemWhere += ` AND mi.category = $${itemParams.length}`;
+    }
+
+    // --- Vendors query (name match, optional type filter) ---
+    const vendorParams = [contains, query, prefix];
+    let vendorWhere = "LOWER(name) LIKE LOWER($1)";
+    if (type) {
+      vendorParams.push(type);
+      vendorWhere += ` AND vendor_type = $${vendorParams.length}`;
+    }
 
     const [itemsResult, vendorsResult] = await Promise.all([
       pool.query(
@@ -182,24 +232,15 @@ export const searchResults = async (req, res, next) => {
                 v.id AS vendor_id, v.name AS vendor_name, v.vendor_type
          FROM menu_items mi
          JOIN vendors v ON v.id = mi.vendor_id
-         WHERE mi.status = 'Available'
-           AND (LOWER(mi.name) LIKE LOWER($1)
-                OR LOWER(mi.description) LIKE LOWER($1)
-                OR LOWER(mi.category) LIKE LOWER($1))
-         ORDER BY
-           CASE
-             WHEN LOWER(mi.name) = LOWER($2) THEN 0
-             WHEN LOWER(mi.name) LIKE LOWER($3) THEN 1
-             ELSE 2
-           END,
-           mi.name ASC
+         WHERE ${itemWhere}
+         ORDER BY ${itemOrder}
          LIMIT 60`,
-        [contains, query, prefix]
+        itemParams
       ),
       pool.query(
         `SELECT *
          FROM vendors
-         WHERE LOWER(name) LIKE LOWER($1)
+         WHERE ${vendorWhere}
          ORDER BY
            CASE
              WHEN LOWER(name) = LOWER($2) THEN 0
@@ -208,7 +249,7 @@ export const searchResults = async (req, res, next) => {
            END,
            name ASC
          LIMIT 12`,
-        [contains, query, prefix]
+        vendorParams
       )
     ]);
 
@@ -218,13 +259,19 @@ export const searchResults = async (req, res, next) => {
       vendor_type_label: vendorTypeLabel(item.vendor_type)
     }));
 
-    const vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+    let vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+    if (sort === "rating") {
+      vendors = vendors
+        .slice()
+        .sort((a, b) => (b.rating_average || 0) - (a.rating_average || 0));
+    }
 
     res.render("search", {
       title: `Search: ${query}`,
       query,
       items,
-      vendors
+      vendors,
+      filters: { type, category, sort }
     });
   } catch (err) {
     console.error(err);
