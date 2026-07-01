@@ -81,7 +81,7 @@
         <% }) %>
       </div>
 
-      <aside class="cart-summary-card" data-cart-summary data-vendor-id="<%= vendorId || "" %>" data-subtotal="<%= total %>">
+      <aside class="cart-summary-card" data-cart-summary data-vendor-id="<%= vendorId || "" %>" data-subtotal="<%= total %>" data-fallback-fee="<%= deliveryFee %>">
         <span class="feature-eyebrow">Checkout</span>
         <h2>Ready to place the order?</h2>
 
@@ -114,6 +114,18 @@
 
         <form method="POST" action="/vendor/<%= vendorId || 1 %>/order" class="checkout-form modern-checkout-form">
           <div class="checkout-field">
+            <span class="checkout-fulfillment-label"><strong>How would you like it?</strong></span>
+            <div class="fulfillment-options">
+              <label class="fulfillment-option">
+                <input type="radio" name="fulfillmentType" value="delivery" checked data-fulfillment-input> Delivery
+              </label>
+              <label class="fulfillment-option">
+                <input type="radio" name="fulfillmentType" value="pickup" data-fulfillment-input> Pickup (collect from vendor)
+              </label>
+            </div>
+          </div>
+
+          <div class="checkout-field" data-delivery-only>
             <label for="delivery-address"><strong>Delivery Address:</strong></label>
             <textarea
               id="delivery-address"
@@ -200,14 +212,27 @@
     const etaEl = summary.querySelector("[data-eta-window]");
     const noteEl = summary.querySelector("[data-delivery-note]");
 
+    const fallbackFee = Number(summary.dataset.fallbackFee) || 0;
+    const deliveryOnly = document.querySelectorAll("[data-delivery-only]");
+
+    let quote = { fee: fallbackFee, etaMin: 25, etaMax: 40, hasCoords: false, distanceKm: null };
+    let pickup = false;
+
     const money = (n) =>
       "KSh " + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    const applyQuote = (q) => {
-      if (feeEl) feeEl.textContent = money(q.fee);
-      if (totalEl) totalEl.textContent = money(subtotal + q.fee);
-      if (etaEl) etaEl.textContent = q.etaMin + "-" + q.etaMax + " min";
-      if (noteEl) noteEl.textContent = q.hasCoords ? "(" + q.distanceKm + " km away)" : "(estimated)";
+    const render = () => {
+      const fee = pickup ? 0 : quote.fee;
+      if (feeEl) feeEl.textContent = money(fee);
+      if (totalEl) totalEl.textContent = money(subtotal + fee);
+      if (etaEl) etaEl.textContent = pickup ? "Ready ~15 min" : quote.etaMin + "-" + quote.etaMax + " min";
+      if (noteEl) {
+        noteEl.textContent = pickup
+          ? "(pickup)"
+          : quote.hasCoords
+            ? "(" + quote.distanceKm + " km away)"
+            : "(estimated)";
+      }
     };
 
     // Fired by address-memory.js whenever delivery coordinates change (GPS or
@@ -224,11 +249,23 @@
         }
         const res = await fetch("/vendor/" + encodeURIComponent(vendorId) + "/delivery-estimate?" + params.toString());
         if (!res.ok) return;
-        applyQuote(await res.json());
+        quote = await res.json();
+        render();
       } catch (_) {
         // Leave the current estimate in place if the quote request fails.
       }
     });
+
+    // Delivery vs pickup toggle: pickup zeroes the fee and hides the address.
+    document.querySelectorAll("[data-fulfillment-input]").forEach((input) => {
+      input.addEventListener("change", () => {
+        pickup = document.querySelector("[data-fulfillment-input]:checked")?.value === "pickup";
+        deliveryOnly.forEach((el) => { el.hidden = pickup; });
+        render();
+      });
+    });
+
+    render();
   })();
 </script>
 

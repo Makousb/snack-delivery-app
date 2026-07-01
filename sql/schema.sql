@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS orders (
   delivery_lat NUMERIC(10, 6),
   delivery_lng NUMERIC(10, 6),
   delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'delivery',
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

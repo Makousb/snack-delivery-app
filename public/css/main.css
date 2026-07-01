@@ -5567,6 +5567,32 @@ body.dark .home-vendor-card .vendor-info h3 {
   opacity: 0.7;
 }
 
+/* Delivery / pickup toggle */
+.fulfillment-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.fulfillment-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.fulfillment-option:has(input:checked) {
+  border-color: var(--green-600);
+  background: #f0fdf4;
+  font-weight: 700;
+}
+
 /* Search filters */
 .search-controls {
   display: grid;

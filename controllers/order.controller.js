@@ -31,6 +31,7 @@ export const createOrder = async (req, res) => {
   const { phone, paymentMethod, deliveryAddress, tipAmount, deliveryLat, deliveryLng } = req.body;
   const parsedLat = parseCoordinate(deliveryLat, 90);
   const parsedLng = parseCoordinate(deliveryLng, 180);
+  const fulfillmentType = req.body.fulfillmentType === "pickup" ? "pickup" : "delivery";
 
   if (
     !req.session.cart ||
@@ -79,7 +80,9 @@ export const createOrder = async (req, res) => {
       return res.redirect(`/vendor/${vendorId}/cart`);
     }
 
+    // Pickup orders skip delivery entirely: no fee, no driver job.
     const hasBothCoords =
+      fulfillmentType === "delivery" &&
       vendor?.latitude != null &&
       vendor?.longitude != null &&
       parsedLat != null &&
@@ -89,24 +92,25 @@ export const createOrder = async (req, res) => {
       ? distanceKm(Number(vendor.latitude), Number(vendor.longitude), parsedLat, parsedLng)
       : null;
 
-    const deliveryFee = computeDeliveryFee(distance);
+    const deliveryFee = fulfillmentType === "pickup" ? 0 : computeDeliveryFee(distance);
     const grandTotal = total + deliveryFee;
 
     const orderResult = await client.query(
-      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, fulfillment_type, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [
         vendorId,
         userId,
         total,
         deliveryFee,
+        fulfillmentType,
         initialStatus,
-        deliveryAddress || null,
+        fulfillmentType === "pickup" ? null : deliveryAddress || null,
         phone || null,
         paymentMethod || null,
-        parsedLat,
-        parsedLng
+        fulfillmentType === "pickup" ? null : parsedLat,
+        fulfillmentType === "pickup" ? null : parsedLng
       ]
     );
 
@@ -120,25 +124,28 @@ export const createOrder = async (req, res) => {
       );
     }
 
-    await client.query(
-      `INSERT INTO deliveries (
-         order_id,
-         status,
-         current_stage,
-         pickup_location,
-         dropoff_location,
-         tips
-       )
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        orderId,
-        "Available",
-        "Awaiting driver",
-        vendor?.name || "Pickup point",
-        deliveryAddress || null,
-        parsedTipAmount
-      ]
-    );
+    // Pickup orders don't need a driver, so no delivery job is created.
+    if (fulfillmentType === "delivery") {
+      await client.query(
+        `INSERT INTO deliveries (
+           order_id,
+           status,
+           current_stage,
+           pickup_location,
+           dropoff_location,
+           tips
+         )
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          orderId,
+          "Available",
+          "Awaiting driver",
+          vendor?.name || "Pickup point",
+          deliveryAddress || null,
+          parsedTipAmount
+        ]
+      );
+    }
 
     await client.query("COMMIT");
 

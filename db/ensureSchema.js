@@ -97,7 +97,8 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS mpesa_manual_code TEXT,
       ADD COLUMN IF NOT EXISTS delivery_lat NUMERIC(10, 6),
       ADD COLUMN IF NOT EXISTS delivery_lng NUMERIC(10, 6),
-      ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0
+      ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'delivery'
   `);
 
   await pool.query(`
