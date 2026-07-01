@@ -1,0 +1,63 @@
+<%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("partials/sidebar", { currentPage: "addresses" }) %>
+
+  <section class="marketplace-page">
+    <div class="street-vendors-head">
+      <span class="feature-eyebrow">Address book</span>
+      <h1>Your saved addresses.</h1>
+      <p>Save the places you order to most, then pick one at checkout.</p>
+    </div>
+
+    <div class="address-book-layout">
+      <div class="address-list">
+        <% if (!addresses.length) { %>
+          <p class="home-empty-state">No saved addresses yet — add one on the right.</p>
+        <% } else { %>
+          <% addresses.forEach((addr) => { %>
+            <article class="address-card <%= addr.is_default ? "is-default" : "" %>">
+              <div>
+                <strong>
+                  <%= addr.label || "Address" %>
+                  <% if (addr.is_default) { %><span class="address-default-badge">Default</span><% } %>
+                </strong>
+                <p><%= addr.address %></p>
+                <% if (addr.latitude != null) { %><span class="address-coords">&#128205; Location pinned</span><% } %>
+              </div>
+              <div class="address-actions">
+                <% if (!addr.is_default) { %>
+                  <form method="POST" action="/addresses/<%= addr.id %>/default">
+                    <button type="submit" class="btn vendor-secondary-cta">Set default</button>
+                  </form>
+                <% } %>
+                <form method="POST" action="/addresses/<%= addr.id %>/delete">
+                  <button type="submit" class="btn cart-remove-btn">Delete</button>
+                </form>
+              </div>
+            </article>
+          <% }) %>
+        <% } %>
+      </div>
+
+      <form method="POST" action="/addresses" class="address-add-form auth-form-card">
+        <h2>Add an address</h2>
+        <div>
+          <label for="addr-label">Label</label>
+          <input type="text" id="addr-label" name="label" maxlength="60" placeholder="Home, Work…" />
+        </div>
+        <div>
+          <label for="addr-address">Address</label>
+          <textarea id="addr-address" name="address" rows="3" required placeholder="Street, building, landmark"></textarea>
+        </div>
+        <button type="button" class="btn vendor-secondary-cta" data-capture-location>Use my current location</button>
+        <p class="checkout-address-note" data-location-status></p>
+        <input type="hidden" name="deliveryLat" />
+        <input type="hidden" name="deliveryLng" />
+        <button type="submit" class="btn vendor-primary-cta">Save address</button>
+      </form>
+    </div>
+  </section>
+</div>
+
+<%- include("partials/footer") %>

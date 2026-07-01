@@ -191,5 +191,19 @@ export async function ensureSchema() {
     )
   `);
 
+  // Saved delivery addresses (address book) per customer.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS addresses (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      label TEXT,
+      address TEXT NOT NULL,
+      latitude NUMERIC(10, 6),
+      longitude NUMERIC(10, 6),
+      is_default BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await ensureVendorSlugs();
 }

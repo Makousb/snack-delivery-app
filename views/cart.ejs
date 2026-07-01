@@ -131,6 +131,22 @@
 
           <div class="checkout-field" data-delivery-only>
             <label for="delivery-address"><strong>Delivery Address:</strong></label>
+
+            <% if (typeof savedAddresses !== "undefined" && savedAddresses.length) { %>
+              <div class="saved-address-picker">
+                <% savedAddresses.forEach((addr) => { %>
+                  <button
+                    type="button"
+                    class="saved-address-chip <%= addr.is_default ? "is-default" : "" %>"
+                    data-saved-address
+                    data-address="<%= addr.address %>"
+                    data-lat="<%= addr.latitude != null ? addr.latitude : "" %>"
+                    data-lng="<%= addr.longitude != null ? addr.longitude : "" %>"
+                  ><%= addr.label || "Saved" %></button>
+                <% }) %>
+              </div>
+            <% } %>
+
             <textarea
               id="delivery-address"
               name="deliveryAddress"
@@ -300,6 +316,29 @@
     tipInput?.addEventListener("input", () => {
       tip = Math.max(0, Number(tipInput.value) || 0);
       render();
+    });
+
+    // Saved-address chips: fill the address + coordinates and re-price delivery.
+    const checkoutForm = document.querySelector(".checkout-form");
+    document.querySelectorAll("[data-saved-address]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const textarea = document.querySelector("[data-checkout-address]");
+        const latInput = checkoutForm?.querySelector('[name="deliveryLat"]');
+        const lngInput = checkoutForm?.querySelector('[name="deliveryLng"]');
+        const lat = chip.dataset.lat || "";
+        const lng = chip.dataset.lng || "";
+
+        if (textarea) textarea.value = chip.dataset.address || "";
+        if (latInput) latInput.value = lat;
+        if (lngInput) lngInput.value = lng;
+
+        checkoutForm?.dispatchEvent(new CustomEvent("snack:delivery-coords", {
+          detail: { lat: lat !== "" ? Number(lat) : null, lng: lng !== "" ? Number(lng) : null }
+        }));
+
+        document.querySelectorAll("[data-saved-address]").forEach((c) => c.classList.remove("is-selected"));
+        chip.classList.add("is-selected");
+      });
     });
 
     render();
