@@ -96,6 +96,28 @@
       ><%= safeVendor.description || "" %></textarea>
     </div>
 
+    <div class="auth-grid">
+      <div>
+        <label for="openingTime">Opening time</label>
+        <input
+          type="time"
+          id="openingTime"
+          name="openingTime"
+          value="<%= safeVendor.opening_time ? String(safeVendor.opening_time).slice(0, 5) : "" %>"
+        />
+      </div>
+      <div>
+        <label for="closingTime">Closing time</label>
+        <input
+          type="time"
+          id="closingTime"
+          name="closingTime"
+          value="<%= safeVendor.closing_time ? String(safeVendor.closing_time).slice(0, 5) : "" %>"
+        />
+      </div>
+    </div>
+    <p class="checkout-address-note">Leave both blank to stay open 24/7. Customers can't order while you're closed.</p>
+
     <div class="business-profile-assets">
       <div class="business-profile-upload">
         <label for="businessLogo">Logo</label>

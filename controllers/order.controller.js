@@ -4,6 +4,7 @@ import { initiateSTKPush } from "../services/mpesa.js";
 import { createReview, getReviewByOrderId } from "../db/queries/reviews.js";
 import { distanceKm } from "../utils/geo.js";
 import { computeDeliveryFee } from "../utils/pricing.js";
+import { isVendorOpen } from "../utils/hours.js";
 
 function parseCoordinate(value, max) {
   const parsed = Number(value);
@@ -66,10 +67,17 @@ export const createOrder = async (req, res) => {
     // order row is written. Fee is authoritative here (never trusted from the
     // client); the cart page only shows an estimate.
     const vendorInfo = await client.query(
-      "SELECT name, latitude, longitude FROM vendors WHERE id = $1",
+      "SELECT name, latitude, longitude, opening_time, closing_time FROM vendors WHERE id = $1",
       [vendorId]
     );
     const vendor = vendorInfo.rows[0];
+
+    // Don't accept orders while the vendor is closed.
+    if (vendor && !isVendorOpen(vendor)) {
+      await client.query("ROLLBACK");
+      req.flash("error", `${vendor.name} is closed right now — please order during their opening hours.`);
+      return res.redirect(`/vendor/${vendorId}/cart`);
+    }
 
     const hasBothCoords =
       vendor?.latitude != null &&
