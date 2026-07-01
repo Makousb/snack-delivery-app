@@ -53,7 +53,7 @@ export async function getVendorRating(vendorId) {
 // Most recent reviews for a vendor, with the reviewer's display name.
 export async function getVendorReviews(vendorId, limit = 10) {
   const result = await pool.query(
-    `SELECT r.rating, r.comment, r.created_at, u.full_name
+    `SELECT r.rating, r.comment, r.owner_reply, r.owner_reply_at, r.created_at, u.full_name
      FROM reviews r
      LEFT JOIN users u ON u.id = r.user_id
      WHERE r.vendor_id = $1
@@ -63,6 +63,34 @@ export async function getVendorReviews(vendorId, limit = 10) {
   );
 
   return result.rows;
+}
+
+// Every review for a vendor (owner-facing, no limit).
+export async function getReviewsForVendor(vendorId) {
+  const result = await pool.query(
+    `SELECT r.id, r.rating, r.comment, r.owner_reply, r.owner_reply_at, r.created_at, u.full_name
+     FROM reviews r
+     LEFT JOIN users u ON u.id = r.user_id
+     WHERE r.vendor_id = $1
+     ORDER BY r.created_at DESC`,
+    [vendorId]
+  );
+
+  return result.rows;
+}
+
+// Save an owner's reply, scoped to their own vendor. Returns true if a matching
+// review was updated.
+export async function addOwnerReply(reviewId, vendorId, reply) {
+  const result = await pool.query(
+    `UPDATE reviews
+     SET owner_reply = $1, owner_reply_at = NOW()
+     WHERE id = $2 AND vendor_id = $3
+     RETURNING id`,
+    [reply, reviewId, vendorId]
+  );
+
+  return result.rows.length > 0;
 }
 
 // Attach `rating_average` / `rating_count` to each vendor object so views can

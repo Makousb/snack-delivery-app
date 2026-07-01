@@ -5567,6 +5567,76 @@ body.dark .home-vendor-card .vendor-info h3 {
   opacity: 0.7;
 }
 
+/* Owner review replies */
+.admin-reviews-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-review-card {
+  padding: 1.1rem 1.25rem;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-review-meta {
+  font-size: 0.85rem;
+  color: var(--ink-500);
+}
+
+.admin-review-comment {
+  margin: 0.5rem 0 0.75rem;
+  color: var(--ink-700);
+}
+
+.admin-review-reply-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.admin-review-reply-form textarea {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  font: inherit;
+  resize: vertical;
+}
+
+.admin-review-reply,
+.vendor-review-owner-reply {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--green-500);
+  background: #f3fdf6;
+  border-radius: 0 12px 12px 0;
+}
+
+.admin-review-reply strong,
+.vendor-review-owner-reply strong {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--green-700);
+  margin-bottom: 0.2rem;
+}
+
+.admin-review-reply p,
+.vendor-review-owner-reply p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-700);
+}
+
 /* Delivery / pickup toggle */
 .fulfillment-options {
   display: flex;

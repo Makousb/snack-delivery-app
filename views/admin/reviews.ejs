@@ -1,0 +1,58 @@
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("../partials/adminSidebar", { currentPage: "reviews" }) %>
+
+  <section class="business-profile-shell">
+    <div class="business-profile-hero">
+      <div>
+        <span class="feature-eyebrow">Customer reviews</span>
+        <h1>
+          <%= reviews.length %> review<%= reviews.length === 1 ? "" : "s" %><% if (averageRating != null) { %> · <%= averageRating.toFixed(1) %>★ average<% } %>
+        </h1>
+        <p>Reply publicly — your response appears under the review on your storefront. <%= repliedCount %> replied so far.</p>
+      </div>
+    </div>
+
+    <% if (!reviews.length) { %>
+      <section class="menu-empty-state">
+        <h2>No reviews yet.</h2>
+        <p>Once customers rate a completed order, their feedback shows up here.</p>
+      </section>
+    <% } else { %>
+      <div class="admin-reviews-list">
+        <% reviews.forEach((review) => { %>
+          <article class="admin-review-card">
+            <div class="admin-review-head">
+              <div class="vendor-review-stars" aria-label="<%= review.rating %> out of 5 stars">
+                <% for (let star = 1; star <= 5; star++) { %><span class="<%= star <= review.rating ? "is-filled" : "" %>">★</span><% } %>
+              </div>
+              <span class="admin-review-meta">
+                <%= review.full_name || "Verified customer" %> · <%= new Date(review.created_at).toLocaleDateString() %>
+              </span>
+            </div>
+
+            <% if (review.comment) { %>
+              <p class="admin-review-comment"><%= review.comment %></p>
+            <% } %>
+
+            <% if (review.owner_reply) { %>
+              <div class="admin-review-reply">
+                <strong>Your reply</strong>
+                <p><%= review.owner_reply %></p>
+              </div>
+            <% } else { %>
+              <form method="POST" action="/admin/reviews/<%= review.id %>/reply" class="admin-review-reply-form">
+                <label class="sr-only" for="reply-<%= review.id %>">Reply to this review</label>
+                <textarea id="reply-<%= review.id %>" name="reply" rows="2" maxlength="1000" placeholder="Write a public reply…" required></textarea>
+                <button type="submit" class="btn vendor-primary-cta">Post reply</button>
+              </form>
+            <% } %>
+          </article>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+</div>
+
+<%- include("../partials/footer") %>
