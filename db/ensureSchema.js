@@ -98,7 +98,9 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS delivery_lat NUMERIC(10, 6),
       ADD COLUMN IF NOT EXISTS delivery_lng NUMERIC(10, 6),
       ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'delivery'
+      ADD COLUMN IF NOT EXISTS fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'delivery',
+      ADD COLUMN IF NOT EXISTS promo_code TEXT,
+      ADD COLUMN IF NOT EXISTS discount NUMERIC(10, 2) NOT NULL DEFAULT 0
   `);
 
   await pool.query(`
@@ -188,6 +190,22 @@ export async function ensureSchema() {
       vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       UNIQUE (user_id, vendor_id)
+    )
+  `);
+
+  // Vendor-scoped promo codes.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id SERIAL PRIMARY KEY,
+      vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+      code TEXT NOT NULL,
+      discount_type VARCHAR(10) NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
+      discount_value NUMERIC(10, 2) NOT NULL CHECK (discount_value > 0),
+      min_order NUMERIC(10, 2) NOT NULL DEFAULT 0,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      expires_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE (vendor_id, code)
     )
   `);
 

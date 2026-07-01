@@ -4,12 +4,16 @@ import {
   adminDashboard,
   businessProfileForm,
   deleteMenu,
+  createPromoHandler,
+  deletePromoHandler,
   editMenuForm,
   listMessages,
+  listPromos,
   listReviews,
   markMessageReadHandler,
   newMenuForm,
   replyToReview,
+  togglePromoHandler,
   toggleMenuStatus,
   updateBusinessProfile,
   updateMenu,
@@ -45,6 +49,11 @@ router.post("/edit/:id", upload.single("image"), optimizeImage, updateMenu);
 router.post("/delete/:id", deleteMenu);
 router.post("/menu/reorder", updateMenuOrder);
 router.post("/menu/:id/toggle-status", toggleMenuStatus);
+
+router.get("/promos", listPromos);
+router.post("/promos", createPromoHandler);
+router.post("/promos/:id/toggle", togglePromoHandler);
+router.post("/promos/:id/delete", deletePromoHandler);
 
 router.get("/reviews", listReviews);
 router.post("/reviews/:reviewId/reply", replyToReview);

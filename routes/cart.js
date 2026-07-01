@@ -3,6 +3,7 @@ import {
   addToCart,
   addToCartAjax,
   addUsualOrderToCart,
+  applyPromo,
   deliveryEstimate,
   forceSwitchCart,
   getCartItems,
@@ -21,6 +22,7 @@ router.use(blockRoles(["owner", "admin", "driver"]));
 
 router.get("/vendor/:id/cart", viewCart);
 router.get("/vendor/:id/delivery-estimate", deliveryEstimate);
+router.post("/vendor/:id/promo", applyPromo);
 router.post("/vendor/:id/cart/add", addToCart);
 router.post("/vendor/:id/cart/remove", removeFromCart);
 
