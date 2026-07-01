@@ -6,8 +6,10 @@ import {
   deleteMenu,
   editMenuForm,
   listMessages,
+  listReviews,
   markMessageReadHandler,
   newMenuForm,
+  replyToReview,
   toggleMenuStatus,
   updateBusinessProfile,
   updateMenu,
@@ -43,6 +45,9 @@ router.post("/edit/:id", upload.single("image"), optimizeImage, updateMenu);
 router.post("/delete/:id", deleteMenu);
 router.post("/menu/reorder", updateMenuOrder);
 router.post("/menu/:id/toggle-status", toggleMenuStatus);
+
+router.get("/reviews", listReviews);
+router.post("/reviews/:reviewId/reply", replyToReview);
 
 router.get("/messages", listMessages);
 router.post("/messages/:id/read", markMessageReadHandler);

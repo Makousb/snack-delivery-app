@@ -163,8 +163,16 @@ export async function ensureSchema() {
       order_id INTEGER UNIQUE NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
       rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
       comment TEXT,
+      owner_reply TEXT,
+      owner_reply_at TIMESTAMP,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE reviews
+      ADD COLUMN IF NOT EXISTS owner_reply TEXT,
+      ADD COLUMN IF NOT EXISTS owner_reply_at TIMESTAMP
   `);
 
   await pool.query(`

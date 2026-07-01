@@ -142,6 +142,13 @@
               <strong><%= review.full_name || "Verified customer" %></strong>
               <span><%= new Date(review.created_at).toLocaleDateString() %></span>
             </div>
+
+            <% if (review.owner_reply) { %>
+              <div class="vendor-review-owner-reply">
+                <strong>Response from <%= vendor.name %></strong>
+                <p><%= review.owner_reply %></p>
+              </div>
+            <% } %>
           </article>
         <% }) %>
       </div>

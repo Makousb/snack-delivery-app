@@ -10,6 +10,7 @@ import {
   createMenuItem
 } from "../db/queries/menu.js";
 import { getAllMessages, markMessageRead } from "../db/queries/messages.js";
+import { getReviewsForVendor, addOwnerReply } from "../db/queries/reviews.js";
 import { buildUniqueVendorSlug } from "../utils/slugify.js";
 import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
 
@@ -628,6 +629,47 @@ export async function toggleMenuStatus(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false });
+  }
+}
+
+export async function listReviews(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const reviews = await getReviewsForVendor(vendorId);
+    const averageRating = reviews.length
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+      : null;
+    const repliedCount = reviews.filter((review) => review.owner_reply).length;
+
+    res.render("admin/reviews", {
+      title: "Customer Reviews",
+      reviews,
+      averageRating,
+      repliedCount
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function replyToReview(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const reviewId = Number.parseInt(req.params.reviewId, 10);
+    const reply = (req.body.reply || "").trim().slice(0, 1000);
+
+    if (!Number.isInteger(reviewId) || !reply) {
+      req.flash("error", "Your reply can't be empty.");
+      return res.redirect("/admin/reviews");
+    }
+
+    const updated = await addOwnerReply(reviewId, vendorId, reply);
+    req.flash(updated ? "success" : "error", updated ? "Reply posted." : "Review not found.");
+    res.redirect("/admin/reviews");
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
   }
 }
 
