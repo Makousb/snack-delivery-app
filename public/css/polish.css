@@ -528,6 +528,40 @@ button:focus-visible,
 }
 
 /* -----------------------------
+   Compact mobile navbar
+   (the two-row header was eating ~24% of a phone viewport)
+------------------------------ */
+@media (max-width: 780px) {
+  .nav-container {
+    padding: 10px 14px;
+    row-gap: 0.5rem;
+  }
+
+  .nav-delivery-pill {
+    padding: 5px 12px;
+    min-width: 0;
+  }
+
+  .nav-delivery-label {
+    display: none;
+  }
+
+  .nav-delivery-status:empty {
+    display: none;
+  }
+
+  .cart-link,
+  .burger-btn {
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .cart-link {
+    padding: 0 0.8rem;
+  }
+}
+
+/* -----------------------------
    Mobile side-menu rail
 ------------------------------ */
 @media (max-width: 920px) {
@@ -675,6 +709,11 @@ body.dark .marketplace-control-divider {
   display: grid;
   gap: 0.45rem;
   margin-top: 0.65rem;
+}
+
+/* `display: grid` above would otherwise defeat the hidden attribute. */
+[data-schedule-only][hidden] {
+  display: none;
 }
 
 .admin-scheduled-note {
@@ -921,7 +960,8 @@ body.dark .checkout-step-current .checkout-step-label {
     display: none;
   }
 
-  .checkout-step-current .checkout-step-label {
+  .checkout-step-current .checkout-step-label,
+  .checkout-step-done:last-child .checkout-step-label {
     display: inline;
   }
 }
