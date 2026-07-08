@@ -6,6 +6,10 @@
 
   <title><%= typeof title !== "undefined" ? title : "Snack" %></title>
 
+  <meta name="description" content="Snack — food, groceries, and more delivered from restaurants, stores, and street vendors near you." />
+  <meta name="theme-color" content="#16a34a" />
+  <link rel="icon" href="/images/snack-logo.svg" type="image/svg+xml" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -16,8 +20,10 @@
   <!-- Main Styles -->
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/pages/admin.css" />
+  <link rel="stylesheet" href="/css/polish.css" />
 
   <!-- Scripts -->
+  <script src="/js/ui.js" defer></script>
   <script src="/js/navbar.js" defer></script>
   <script src="/js/address-memory.js" defer></script>
   <script src="/js/cart-drawer.js" defer></script>
@@ -58,9 +64,9 @@
       <span class="nav-delivery-label">Deliver to</span>
 
       <div class="nav-delivery-input-wrapper">
-        
+
         <!-- Icon -->
-        <span class="location-icon">📍</span>
+        <span class="location-icon" aria-hidden="true"><%- include("icon", { name: "pin" }) %></span>
 
         <!-- Input -->
         <input
@@ -102,10 +108,12 @@
     <!-- Right Side -->
     <div class="nav-right">
 
-      <!-- Cart (customer-only — owners and drivers use their own hub) -->
-      <% if (typeof currentUser === "undefined" || !currentUser || !["owner", "admin", "driver"].includes(currentUser.role)) { %>
+      <!-- Cart (customer-only — owners and drivers use their own hub;
+           hidden on the login/signup pages) -->
+      <% const isAuthPage = typeof authPage !== "undefined" && authPage; %>
+      <% if (!isAuthPage && (typeof currentUser === "undefined" || !currentUser || !["owner", "admin", "driver"].includes(currentUser.role))) { %>
         <a href="/cart" class="cart-link" id="cart-icon" aria-label="Open cart">
-          <span class="cart-icon-glyph" aria-hidden="true">&#128722;</span>
+          <span class="cart-icon-glyph" aria-hidden="true"><%- include("icon", { name: "cart" }) %></span>
           <span class="cart-link-label">Cart</span>
           <span class="cart-badge" id="cart-count">
             <%= typeof cartCount !== "undefined" ? cartCount : 0 %>
@@ -120,7 +128,7 @@
         aria-label="Open menu"
         aria-expanded="false"
       >
-        &#9776;
+        <%- include("icon", { name: "menu" }) %>
       </button>
 
     </div>
