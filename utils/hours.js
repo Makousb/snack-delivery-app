@@ -33,3 +33,46 @@ export function formatVendorHours(vendor) {
   const hhmm = (time) => String(time).slice(0, 5);
   return `${hhmm(vendor.opening_time)} – ${hhmm(vendor.closing_time)}`;
 }
+
+// Human label for a scheduled-order time: "Today 14:30", "Tomorrow 09:00",
+// or "Mon 12 Jan, 10:00" further out.
+export function formatSlotLabel(date, now = new Date()) {
+  const slot = new Date(date);
+  const time = slot.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dayDiff = Math.round((startOfDay(slot) - startOfDay(now)) / 86400000);
+
+  if (dayDiff === 0) return `Today ${time}`;
+  if (dayDiff === 1) return `Tomorrow ${time}`;
+  return `${slot.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
+}
+
+// Pickup/delivery slots for scheduled orders: half-hour marks over the next
+// `days` days, only while the vendor is open, starting `leadMinutes` from now
+// so the kitchen always has prep time.
+export function generateOrderSlots(
+  vendor,
+  { days = 2, intervalMinutes = 30, leadMinutes = 45, maxSlots = 48, now = new Date() } = {}
+) {
+  const slots = [];
+
+  const first = new Date(now.getTime() + leadMinutes * 60000);
+  first.setSeconds(0, 0);
+  const remainder = first.getMinutes() % intervalMinutes;
+  if (remainder) {
+    first.setMinutes(first.getMinutes() + (intervalMinutes - remainder));
+  }
+
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+
+  for (
+    let slot = new Date(first);
+    slot < end && slots.length < maxSlots;
+    slot = new Date(slot.getTime() + intervalMinutes * 60000)
+  ) {
+    if (!isVendorOpen(vendor, slot)) continue;
+    slots.push({ value: slot.toISOString(), label: formatSlotLabel(slot, now) });
+  }
+
+  return slots;
+}

@@ -13,5 +13,5 @@
     aria-pressed="<%= isFav %>"
     aria-label="<%= isFav ? "Remove from favourites" : "Save to favourites" %>"
     title="<%= isFav ? "Saved to favourites" : "Save to favourites" %>"
-  >&#10084;</button>
+  ><%- include("icon", { name: "heart" }) %></button>
 <% } %>

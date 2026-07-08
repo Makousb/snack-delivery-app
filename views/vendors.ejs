@@ -9,7 +9,6 @@
     "/homepage_images/meat.avif",
     "/homepage_images/greek.avif"
   ];
-  const vendorBadges = ["Low fees", "Top rated", "Great value", "Fast delivery"];
   const sectionMeta = {
     restaurant: { label: "Restaurants" },
     store: { label: "Grocery & convenience" },
@@ -64,16 +63,27 @@
           <div class="marketplace-vendor-grid">
             <% section.vendors.forEach((vendor, index) => { %>
               <%
-                const etaStart = 18 + (index % 5) * 3;
-                const etaEnd = etaStart + 10;
-                const badge = vendorBadges[index % vendorBadges.length];
+                const cardStatus = vendorOpenStatus(vendor);
+                const isTopRated = Number(vendor.rating_average || 0) >= 4.5 && Number(vendor.rating_count || 0) > 0;
+                let badge = "";
+                let badgeClass = "";
+                if (!cardStatus.open) {
+                  badge = "Closed";
+                  badgeClass = "marketplace-store-badge-closed";
+                } else if (isTopRated) {
+                  badge = "Top rated";
+                } else if (Number(vendor.rating_count || 0) === 0) {
+                  badge = "New on Snack";
+                }
                 const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
               %>
 
               <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card">
                 <div class="marketplace-vendor-media">
                   <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
-                  <span class="marketplace-store-badge"><%= badge %></span>
+                  <% if (badge) { %>
+                    <span class="marketplace-store-badge <%= badgeClass %>"><%= badge %></span>
+                  <% } %>
                   <%- include("partials/favoriteButton", { vendorId: vendor.id }) %>
                   <span class="marketplace-vendor-logo">
                     <% if (vendor.logo_url) { %>
@@ -88,7 +98,7 @@
                   <div class="marketplace-vendor-title">
                     <div>
                       <h3><%= vendor.name %></h3>
-                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= etaStart %>-<%= etaEnd %> min · Delivery from KSh <%= deliveryBaseFee %></p>
+                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= cardStatus.label %> · Delivery from KSh <%= deliveryBaseFee %></p>
                     </div>
                     <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
                   </div>

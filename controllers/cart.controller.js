@@ -10,6 +10,7 @@ import { getUserAddresses } from "../db/queries/addresses.js";
 import { validatePromo } from "../db/queries/promos.js";
 import { distanceKm } from "../utils/geo.js";
 import { computeDeliveryFee, estimateEta } from "../utils/pricing.js";
+import { generateOrderSlots, vendorOpenStatus } from "../utils/hours.js";
 
 function parseCoord(value, max) {
   const parsed = Number(value);
@@ -277,6 +278,32 @@ async function loadSavedAddresses(req) {
   }
 }
 
+// Vendor context for checkout: pickup instructions, live open status, and the
+// scheduled-order slots that fall inside the vendor's opening hours.
+async function loadCheckoutVendor(vendorId) {
+  if (!vendorId) {
+    return { cartVendor: null, vendorStatus: null, orderSlots: [] };
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT id, name, opening_time, closing_time, pickup_instructions
+       FROM vendors WHERE id = $1`,
+      [vendorId]
+    );
+    const cartVendor = result.rows[0] || null;
+
+    return {
+      cartVendor,
+      vendorStatus: cartVendor ? vendorOpenStatus(cartVendor) : null,
+      orderSlots: cartVendor ? generateOrderSlots(cartVendor) : []
+    };
+  } catch (error) {
+    console.error("Failed to load checkout vendor:", error.message);
+    return { cartVendor: null, vendorStatus: null, orderSlots: [] };
+  }
+}
+
 export async function viewCart(req, res) {
   const { id: vendorId } = req.params;
   const cartItems = ensureVendorCart(req, vendorId);
@@ -292,7 +319,8 @@ export async function viewCart(req, res) {
     total,
     deliveryFee,
     grandTotal: total + deliveryFee,
-    savedAddresses: await loadSavedAddresses(req)
+    savedAddresses: await loadSavedAddresses(req),
+    ...(await loadCheckoutVendor(vendorId))
   });
 }
 
@@ -300,6 +328,7 @@ export async function viewGlobalCart(req, res) {
   const cartItems = flattenCart(req.session.cart || {});
   const total = calculateCartTotal(cartItems);
   const deliveryFee = computeDeliveryFee(null);
+  const vendorId = cartItems[0]?.vendorId || null;
 
   return res.render("cart", {
     title: "Your Cart",
@@ -307,8 +336,9 @@ export async function viewGlobalCart(req, res) {
     total,
     deliveryFee,
     grandTotal: total + deliveryFee,
-    vendorId: cartItems[0]?.vendorId || null,
-    savedAddresses: await loadSavedAddresses(req)
+    vendorId,
+    savedAddresses: await loadSavedAddresses(req),
+    ...(await loadCheckoutVendor(vendorId))
   });
 }
 

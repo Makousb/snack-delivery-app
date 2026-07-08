@@ -3,25 +3,45 @@
 <footer class="app-footer">
   <div class="app-footer-inner">
     <div class="app-footer-brand">
-      <span class="app-footer-kicker">Snack Delivery</span>
+      <a href="/home" class="app-footer-logo" aria-label="Snack home">
+        <img src="/images/snack-logo.svg" alt="" width="40" height="40" />
+        <span>Snack</span>
+      </a>
       <h2>Fast discovery, clean menus, and checkout that feels ready to move.</h2>
       <p>
-        Built with the same sharp, mobile-first energy that makes the best delivery apps feel effortless.
+        Food, groceries, and street-vendor favourites from the people near you —
+        delivered with live tracking and a checkout that stays out of your way.
       </p>
     </div>
 
-    <div class="app-footer-links">
+    <nav class="app-footer-col" aria-label="Explore">
+      <span class="app-footer-col-title">Explore</span>
       <a href="/home">Discover vendors</a>
-      <a href="/cart">Open cart</a>
+      <a href="/vendors">All vendors</a>
+      <a href="/street-vendors">Street vendors</a>
+      <a href="/search">Search</a>
+    </nav>
+
+    <nav class="app-footer-col" aria-label="Account">
+      <span class="app-footer-col-title">Account</span>
       <a href="/orders">Track orders</a>
+      <a href="/cart">Open cart</a>
+      <a href="/favorites">Favourites</a>
+      <a href="/addresses">Addresses</a>
+    </nav>
+
+    <nav class="app-footer-col" aria-label="Company">
+      <span class="app-footer-col-title">Snack</span>
       <a href="/about">About</a>
       <a href="/contact">Support</a>
-    </div>
+      <a href="/partner">Partner with us</a>
+      <a href="/drive">Deliver with us</a>
+    </nav>
   </div>
 
   <div class="app-footer-bottom">
-    <span>&copy; <%= new Date().getFullYear() %> Snack</span>
-    <span>Delivery marketplace interface.</span>
+    <span>&copy; <%= new Date().getFullYear() %> Snack &middot; Delivery marketplace</span>
+    <span class="app-footer-stack">Express &middot; EJS &middot; PostgreSQL &middot; Socket.IO</span>
   </div>
 </footer>
 

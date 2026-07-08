@@ -3,8 +3,8 @@
 <section class="orders-page">
   <div class="orders-page-head">
     <span class="feature-eyebrow">Order history</span>
-    <h1>Your recent delivery activity.</h1>
-    <p>Track completed and in-progress orders in one clean place.</p>
+    <h1>Your recent orders.</h1>
+    <p>Track completed and in-progress delivery and pickup orders in one clean place.</p>
   </div>
 
   <% if (!orders.length) { %>
@@ -23,6 +23,16 @@
           </div>
 
           <h2><%= order.status %></h2>
+          <div class="order-history-chips">
+            <span class="fulfillment-chip <%= order.fulfillment_type === "pickup" ? "fulfillment-chip-pickup" : "" %>">
+              <%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %>
+            </span>
+            <% if (order.scheduled_for) { %>
+              <span class="fulfillment-chip fulfillment-chip-scheduled">
+                <%= formatSlotLabel(order.scheduled_for) %>
+              </span>
+            <% } %>
+          </div>
 
           <% if (order.items && order.items.length) { %>
             <ul class="order-history-items">

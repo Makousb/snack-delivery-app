@@ -1,0 +1,27 @@
+<%
+  // Checkout progress indicator.
+  // stage: "cart" (reviewing items + details) or "confirmed" (order placed).
+  const stepStage = typeof stage !== "undefined" ? stage : "cart";
+  const checkoutSteps = [
+    { key: "cart", label: "Cart" },
+    { key: "details", label: "Details" },
+    { key: "confirmed", label: "Confirmation" }
+  ];
+  const stepStates = stepStage === "confirmed"
+    ? ["done", "done", "done"]
+    : ["done", "current", "upcoming"];
+%>
+<ol class="checkout-steps" aria-label="Checkout progress">
+  <% checkoutSteps.forEach((step, index) => { %>
+    <li class="checkout-step checkout-step-<%= stepStates[index] %>" <%= stepStates[index] === "current" ? 'aria-current="step"' : "" %>>
+      <span class="checkout-step-marker" aria-hidden="true">
+        <% if (stepStates[index] === "done") { %>
+          <%- include("icon", { name: "check" }) %>
+        <% } else { %>
+          <%= index + 1 %>
+        <% } %>
+      </span>
+      <span class="checkout-step-label"><%= step.label %></span>
+    </li>
+  <% }) %>
+</ol>

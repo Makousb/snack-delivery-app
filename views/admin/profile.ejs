@@ -96,6 +96,20 @@
       ><%= safeVendor.description || "" %></textarea>
     </div>
 
+    <div>
+      <label for="pickupInstructions">Pickup instructions</label>
+      <textarea
+        id="pickupInstructions"
+        name="pickupInstructions"
+        rows="3"
+        maxlength="500"
+        placeholder="e.g. Use the side entrance on Moi Avenue and quote your order number at the counter."
+      ><%= safeVendor.pickup_instructions || "" %></textarea>
+      <p class="checkout-address-note">
+        Shown to customers who choose pickup — at checkout and on their order confirmation.
+      </p>
+    </div>
+
     <div class="auth-grid">
       <div>
         <label for="openingTime">Opening time</label>
