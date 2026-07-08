@@ -7,27 +7,58 @@ EJS, and PostgreSQL.
 
 ## Features
 
-- Browse vendors (restaurants, stores, and street vendors), filter by type,
-  search, and order from per-vendor menus
-- Cart and checkout with cash-on-delivery or M-Pesa STK Push
-- Customer ratings & reviews: 1–5★ with an optional comment, left on a
-  completed order (one per order), aggregated onto vendor cards and pages
-- Sold-out items are marked on the menu and can't be added to the cart
-- Live order status updates via Socket.IO
-- Role-based accounts: customer, vendor owner, driver, admin
-- Owner business hub: menu management with drag-to-reorder and automatic
-  image resizing, business profile editing (including vendor type), order
-  management, contact inbox
-- Driver dashboard for accepting deliveries and updating delivery stage
-- Session-based auth with bcrypt password hashing
+### Customers
+
+- Browse restaurants, neighborhood stores, and street vendors; search across
+  vendors and dishes, and filter by open now / top rated / new on Snack
+- Street-vendor price comparison — the same snack priced across nearby carts
+- **Delivery or pickup** on every order: pickup skips the delivery fee and
+  shows the vendor's own pickup instructions
+- **ASAP or scheduled orders**: pick a 30-minute slot inside the vendor's
+  opening hours — including booking ahead while the vendor is closed
+- Checkout with promo codes, driver tips, a saved address book (Google
+  Places autocomplete), and distance-based delivery fees and ETAs
+- Cash on delivery/pickup, or M-Pesa STK Push
+- Live order tracking via Socket.IO, including driver location updates
+- Ratings & reviews (1–5★, one per completed order) aggregated onto vendor
+  cards, favourites, "order your usual", and one-click reorder
+- Opt-in order confirmation emails
+
+### Vendor owners
+
+- Business hub dashboard: revenue trend, top sellers, inventory health, and
+  a service-time scorecard
+- **Scheduled queue** with live countdowns that escalate as a slot
+  approaches (amber inside an hour, red pulse when due) and update in real
+  time as new orders arrive over the socket
+- Live orders table with real-time inserts, color-coded status pills, and a
+  "Ready for Pickup" flow for pickup orders
+- Menu management with drag-to-reorder and automatic image resizing;
+  sold-out items are blocked from carts
+- Business profile: vendor type, opening hours, pickup instructions, logo
+  and banner
+- Promo code management, review replies, and a contact inbox
+
+### Drivers
+
+- Driver dashboard for accepting delivery jobs, updating the delivery
+  stage, and tracking tips — pickup orders never reach the driver pool
+
+### Platform
+
+- Role-based accounts (customer, vendor owner, driver, admin) with
+  session-based auth and bcrypt password hashing
+- Responsive, mobile-first UI with dark mode, toast notifications, and a
+  shared SVG icon system
 
 ## Tech Stack
 
 - Node.js + Express 5, EJS templating
 - PostgreSQL via `pg`, sessions stored with `connect-pg-simple`
-- Socket.IO for real-time order/delivery updates
+- Socket.IO for real-time order, delivery, and vendor-queue updates
 - Multer + Sharp for image upload and optimization
 - Axios for the M-Pesa Daraja API
+- Nodemailer for opt-in transactional email
 
 ## Project Structure
 
@@ -36,8 +67,8 @@ controllers/   Request handlers, grouped by feature
 routes/        Express routers, one per feature area
 middlewares/    Auth guards, file upload, image optimization, error handling
 db/             Postgres connection pool, schema bootstrap, query modules
-services/       Third-party integrations (M-Pesa)
-utils/          Small framework-agnostic helpers (cart math, slugs)
+services/       Third-party integrations (M-Pesa, transactional email)
+utils/          Small framework-agnostic helpers (cart math, pricing, opening hours, slugs)
 views/          EJS templates
 public/         Static assets (CSS, client-side JS, images)
 sql/            schema.sql (fresh install) and seed.sql (demo data)
@@ -64,8 +95,9 @@ cp .env.example .env
 ```
 
 Fill in your database credentials. `SESSION_SECRET` is required in
-production; `GOOGLE_MAPS_API_KEY` and the `MPESA_*` vars are optional —
-cash checkout works without them.
+production; `GOOGLE_MAPS_API_KEY`, the `MPESA_*` vars, and the
+`EMAIL_*`/`SMTP_*` vars are all optional — cash checkout works without
+any of them.
 
 ### 3. Create the database
 
