@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS vendors (
   longitude NUMERIC(10, 6),
   opening_time TIME,
   closing_time TIME,
+  pickup_instructions TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS orders (
   delivery_lng NUMERIC(10, 6),
   delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
   fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'delivery',
+  scheduled_for TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

@@ -77,6 +77,49 @@
     </article>
   </div>
 
+  <% const scheduledQueue = safeDashboard.scheduledQueue || []; %>
+  <section class="ops-panel ops-panel-wide ops-schedule-panel">
+    <div class="ops-panel-head">
+      <div>
+        <span class="ops-panel-kicker">Scheduled queue</span>
+        <h2>Upcoming scheduled orders</h2>
+      </div>
+      <span class="ops-chip" data-schedule-count><%= scheduledQueue.length %> upcoming</span>
+    </div>
+
+    <p class="ops-empty" data-schedule-empty <%= scheduledQueue.length === 0 ? "" : "hidden" %>>
+      No scheduled orders coming up. When customers book a time slot at checkout,
+      it appears here soonest-first with a live countdown.
+    </p>
+
+    <div class="ops-schedule-list" data-schedule-list <%= scheduledQueue.length === 0 ? "hidden" : "" %>>
+      <% scheduledQueue.forEach((order) => { %>
+        <div
+          class="ops-schedule-row"
+          data-order-id="<%= order.id %>"
+          data-scheduled-at="<%= new Date(order.scheduledFor).toISOString() %>"
+          data-order-ref="#<%= order.id %>"
+        >
+          <div class="ops-schedule-when">
+            <strong><%= formatSlotLabel(order.scheduledFor) %></strong>
+            <span class="ops-schedule-countdown" data-countdown></span>
+          </div>
+          <div class="ops-schedule-what">
+            <strong>Order #<%= order.id %></strong>
+            <span><%= order.itemCount %> item<%= order.itemCount === 1 ? "" : "s" %> · <%= formatCurrency(order.total) %></span>
+          </div>
+          <div class="ops-schedule-meta">
+            <span class="fulfillment-chip <%= order.fulfillmentType === "pickup" ? "fulfillment-chip-pickup" : "" %>">
+              <%= order.fulfillmentType === "pickup" ? "Pickup" : "Delivery" %>
+            </span>
+            <span class="admin-status-pill" data-status="<%= order.status %>"><%= order.status %></span>
+          </div>
+          <a href="/admin/vendor/<%= vendorId %>/orders" class="ops-schedule-open">Open &rarr;</a>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+
   <div class="ops-main-grid">
     <section class="ops-panel">
       <div class="ops-panel-head">
@@ -432,9 +475,11 @@
 
 <div id="toast" class="toast hidden">Saved</div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
   const canManage = <%= canManage ? "true" : "false" %>;
+  const dashboardVendorId = "<%= vendorId %>";
   const searchInput = document.getElementById("searchInput");
   const categoryFilter = document.getElementById("categoryFilter");
   const cards = document.querySelectorAll(".admin-card");
@@ -502,6 +547,146 @@
         toast.classList.add("hidden");
       }, 300);
     }, 2000);
+  }
+
+  // Scheduled queue: live countdowns that escalate as a slot approaches
+  // (amber inside an hour, red pulse when due) and nudge with a toast the
+  // moment an order crosses into "due now". Rows are queried live because
+  // new scheduled orders can arrive over the socket while the page is open.
+  const scheduleList = document.querySelector("[data-schedule-list]");
+  const scheduleEmpty = document.querySelector("[data-schedule-empty]");
+  const scheduleCount = document.querySelector("[data-schedule-count]");
+
+  function refreshScheduleCountdowns() {
+    document.querySelectorAll("[data-scheduled-at]").forEach((row) => {
+      const at = new Date(row.dataset.scheduledAt).getTime();
+      const label = row.querySelector("[data-countdown]");
+      if (!label || Number.isNaN(at)) return;
+
+      const diffMin = Math.round((at - Date.now()) / 60000);
+      let text;
+      let state = "";
+
+      if (diffMin <= 0) {
+        text = "Due now";
+        state = "due";
+      } else if (diffMin <= 60) {
+        text = "in " + diffMin + " min";
+        state = "soon";
+      } else {
+        const hours = Math.floor(diffMin / 60);
+        const minutes = diffMin % 60;
+        text = "in " + hours + " h" + (minutes ? " " + minutes + " min" : "");
+      }
+
+      label.textContent = text;
+      const wasDue = row.classList.contains("is-due");
+      row.classList.toggle("is-due", state === "due");
+      row.classList.toggle("is-soon", state === "soon");
+
+      if (state === "due" && !wasDue && row.dataset.dueNotified !== "1") {
+        row.dataset.dueNotified = "1";
+        window.snackToast?.("Scheduled order " + (row.dataset.orderRef || "") + " is due now");
+      }
+    });
+  }
+
+  refreshScheduleCountdowns();
+  setInterval(refreshScheduleCountdowns, 30000);
+
+  function syncScheduleUI() {
+    if (!scheduleList) return;
+    const count = scheduleList.querySelectorAll("[data-scheduled-at]").length;
+    if (scheduleCount) scheduleCount.textContent = count + " upcoming";
+    scheduleList.hidden = count === 0;
+    if (scheduleEmpty) scheduleEmpty.hidden = count > 0;
+  }
+
+  // Mirrors the server-side formatSlotLabel so live rows match rendered ones.
+  function scheduleSlotLabel(date) {
+    const slot = new Date(date);
+    const time = slot.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayDiff = Math.round((startOfDay(slot) - startOfDay(new Date())) / 86400000);
+
+    if (dayDiff === 0) return "Today " + time;
+    if (dayDiff === 1) return "Tomorrow " + time;
+    return slot.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + ", " + time;
+  }
+
+  function money(value) {
+    return "KSh " + Number(value || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function insertScheduleRow(order) {
+    if (!scheduleList || scheduleList.querySelector('[data-order-id="' + order.orderId + '"]')) return;
+
+    const isPickup = order.fulfillmentType === "pickup";
+    const itemCount = Number(order.itemCount || 0);
+    const row = document.createElement("div");
+    row.className = "ops-schedule-row";
+    row.dataset.orderId = order.orderId;
+    row.dataset.scheduledAt = order.scheduledFor;
+    row.dataset.orderRef = "#" + order.orderId;
+    row.innerHTML =
+      '<div class="ops-schedule-when"><strong></strong><span class="ops-schedule-countdown" data-countdown></span></div>' +
+      '<div class="ops-schedule-what"><strong></strong><span></span></div>' +
+      '<div class="ops-schedule-meta">' +
+        '<span class="fulfillment-chip ' + (isPickup ? "fulfillment-chip-pickup" : "") + '">' + (isPickup ? "Pickup" : "Delivery") + "</span>" +
+        '<span class="admin-status-pill"></span>' +
+      "</div>" +
+      '<a href="/admin/vendor/' + dashboardVendorId + '/orders" class="ops-schedule-open">Open →</a>';
+
+    row.querySelector(".ops-schedule-when strong").textContent = scheduleSlotLabel(order.scheduledFor);
+    row.querySelector(".ops-schedule-what strong").textContent = "Order #" + order.orderId;
+    row.querySelector(".ops-schedule-what span").textContent =
+      itemCount + " item" + (itemCount === 1 ? "" : "s") + " · " + money(order.total);
+    const statusPill = row.querySelector(".admin-status-pill");
+    statusPill.textContent = order.status;
+    statusPill.setAttribute("data-status", order.status);
+
+    // Keep the queue chronological: insert before the first later slot.
+    const laterRow = [...scheduleList.querySelectorAll("[data-scheduled-at]")].find(
+      (existing) => new Date(existing.dataset.scheduledAt) > new Date(order.scheduledFor)
+    );
+    scheduleList.insertBefore(row, laterRow || null);
+
+    syncScheduleUI();
+    refreshScheduleCountdowns();
+    window.snackToast?.("New scheduled order #" + order.orderId + " — " + scheduleSlotLabel(order.scheduledFor));
+  }
+
+  // Live updates: new scheduled orders slot into the queue as they arrive,
+  // status changes update in place, completed orders leave the queue.
+  if (window.io) {
+    const socket = io();
+    socket.emit("joinVendor", dashboardVendorId);
+
+    socket.on("newOrder", (order) => {
+      if (order.scheduledFor) {
+        insertScheduleRow(order);
+      }
+    });
+
+    socket.on("orderUpdated", (data) => {
+      const row = scheduleList?.querySelector('[data-order-id="' + data.orderId + '"]');
+      if (!row) return;
+
+      if (data.status === "Completed") {
+        row.remove();
+        syncScheduleUI();
+        return;
+      }
+
+      const pill = row.querySelector(".admin-status-pill");
+      if (pill) {
+        pill.textContent = data.status;
+        pill.setAttribute("data-status", data.status);
+      }
+    });
   }
 
   if (canManage) {

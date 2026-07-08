@@ -6,27 +6,27 @@
   <nav class="side-menu-section" aria-label="Home sections">
     <span class="side-menu-section-title">Menu</span>
     <a href="<%= homeHref('#marketplace-top') %>" class="side-menu-link <%= activePage === 'home' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">H</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "home" }) %></span>
       <span>Home</span>
     </a>
     <a href="<%= homeHref('#marketplace-categories') %>" class="side-menu-link">
-      <span class="side-menu-icon" aria-hidden="true">C</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "grid" }) %></span>
       <span>Categories</span>
     </a>
     <a href="<%= homeHref('#marketplace-highlights') %>" class="side-menu-link">
-      <span class="side-menu-icon" aria-hidden="true">%</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "tag" }) %></span>
       <span>Offers</span>
     </a>
     <a href="<%= homeHref('#popular-now') %>" class="side-menu-link">
-      <span class="side-menu-icon" aria-hidden="true">*</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "star" }) %></span>
       <span>Popular</span>
     </a>
     <a href="/vendors" class="side-menu-link <%= activePage === 'vendors' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">V</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "storefront" }) %></span>
       <span>Vendors</span>
     </a>
     <a href="/street-vendors" class="side-menu-link <%= activePage === 'street-vendors' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">&#127805;</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "stall" }) %></span>
       <span>Street Vendors</span>
     </a>
   </nav>
@@ -35,35 +35,35 @@
     <span class="side-menu-section-title">Account</span>
     <% if (typeof currentUser === "undefined" || !currentUser || !["owner", "admin", "driver"].includes(currentUser.role)) { %>
       <a href="/orders" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">O</span>
+        <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "receipt" }) %></span>
         <span>Orders</span>
       </a>
       <a href="/favorites" class="side-menu-link <%= activePage === 'favorites' ? 'side-menu-link-active' : '' %>">
-        <span class="side-menu-icon" aria-hidden="true">&#10084;</span>
+        <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "heart" }) %></span>
         <span>Favourites</span>
       </a>
       <a href="/addresses" class="side-menu-link <%= activePage === 'addresses' ? 'side-menu-link-active' : '' %>">
-        <span class="side-menu-icon" aria-hidden="true">&#128205;</span>
+        <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "pin" }) %></span>
         <span>Addresses</span>
       </a>
       <a href="/cart" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">&#128722;</span>
+        <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "cart" }) %></span>
         <span>Cart</span>
       </a>
     <% } %>
     <% if (typeof currentUser !== "undefined" && currentUser?.role === "driver") { %>
       <a href="/driver" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">D</span>
+        <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "truck" }) %></span>
         <span>Driver Hub</span>
       </a>
     <% } else if (typeof currentUser !== "undefined" && ["owner", "admin"].includes(currentUser?.role)) { %>
       <a href="/admin" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">B</span>
+        <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "briefcase" }) %></span>
         <span>Business Hub</span>
       </a>
     <% } %>
     <button type="button" class="side-menu-link" data-theme-toggle>
-      <span class="side-menu-icon" aria-hidden="true">T</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "moon" }) %></span>
       <span>Dark Mode</span>
     </button>
   </nav>

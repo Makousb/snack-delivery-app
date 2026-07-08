@@ -1,6 +1,8 @@
 <%- include("partials/header") %>
 
 <section class="cart-page">
+  <%- include("partials/checkoutSteps", { stage: "cart" }) %>
+
   <div class="cart-page-head">
     <div>
       <span class="feature-eyebrow">Cart and checkout</span>
@@ -88,7 +90,7 @@
         <div class="cart-summary-stats">
           <div class="cart-summary-stat">
             <strong data-eta-window>25-40 min</strong>
-            <span>delivery window</span>
+            <span data-eta-caption>delivery window</span>
           </div>
           <div class="cart-summary-stat">
             <strong>Saved</strong>
@@ -121,6 +123,13 @@
         </div>
 
         <form method="POST" action="/vendor/<%= vendorId || 1 %>/order" class="checkout-form modern-checkout-form">
+          <%
+            const safeOrderSlots = typeof orderSlots !== "undefined" ? orderSlots : [];
+            const safeVendorStatus = typeof vendorStatus !== "undefined" ? vendorStatus : null;
+            const safeCartVendor = typeof cartVendor !== "undefined" ? cartVendor : null;
+            const vendorClosedNow = safeVendorStatus ? !safeVendorStatus.open : false;
+          %>
+
           <div class="checkout-field">
             <span class="checkout-fulfillment-label"><strong>How would you like it?</strong></span>
             <div class="fulfillment-options">
@@ -130,6 +139,55 @@
               <label class="fulfillment-option">
                 <input type="radio" name="fulfillmentType" value="pickup" data-fulfillment-input> Pickup (collect from vendor)
               </label>
+            </div>
+            <% if (safeCartVendor?.pickup_instructions) { %>
+              <p class="checkout-address-note pickup-instructions-note" data-pickup-note hidden>
+                <strong>Pickup instructions from <%= safeCartVendor.name %>:</strong>
+                <%= safeCartVendor.pickup_instructions %>
+              </p>
+            <% } %>
+          </div>
+
+          <div class="checkout-field">
+            <span class="checkout-fulfillment-label"><strong>When do you want it?</strong></span>
+            <% if (vendorClosedNow) { %>
+              <p class="checkout-address-note vendor-closed-note">
+                <%= safeCartVendor?.name || "This vendor" %> is closed right now — pick a
+                scheduled time below and your order will be ready when they open.
+              </p>
+            <% } %>
+            <div class="fulfillment-options">
+              <label class="fulfillment-option <%= vendorClosedNow ? "fulfillment-option-disabled" : "" %>">
+                <input
+                  type="radio"
+                  name="orderTiming"
+                  value="asap"
+                  <%= vendorClosedNow ? "disabled" : "checked" %>
+                  data-timing-input
+                > ASAP
+              </label>
+              <label class="fulfillment-option">
+                <input
+                  type="radio"
+                  name="orderTiming"
+                  value="scheduled"
+                  <%= vendorClosedNow ? "checked" : "" %>
+                  <%= safeOrderSlots.length === 0 ? "disabled" : "" %>
+                  data-timing-input
+                > Schedule for later
+              </label>
+            </div>
+
+            <div data-schedule-only <%= vendorClosedNow ? "" : "hidden" %>>
+              <label class="sr-only" for="scheduledFor">Choose a time</label>
+              <select id="scheduledFor" name="scheduledFor" class="checkout-input" data-schedule-select>
+                <% safeOrderSlots.forEach((slot) => { %>
+                  <option value="<%= slot.value %>"><%= slot.label %></option>
+                <% }) %>
+              </select>
+              <p class="checkout-address-note">
+                Times match <%= safeCartVendor?.name || "the vendor" %>'s opening hours.
+              </p>
             </div>
           </div>
 
@@ -238,6 +296,7 @@
               name="paymentMethod"
               value="cash"
               class="btn <%= (typeof mpesaEnabled !== "undefined" && mpesaEnabled) ? "checkout-secondary-btn" : "checkout-primary-btn" %>"
+              data-cash-btn
             >
               Pay on Delivery
             </button>
@@ -282,6 +341,16 @@
     const money = (n) =>
       "KSh " + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    const etaCaptionEl = summary.querySelector("[data-eta-caption]");
+    const cashBtn = document.querySelector("[data-cash-btn]");
+    const pickupNote = document.querySelector("[data-pickup-note]");
+    const scheduleOnly = document.querySelector("[data-schedule-only]");
+    const scheduleSelect = document.querySelector("[data-schedule-select]");
+    let scheduled = document.querySelector("[data-timing-input][value='scheduled']")?.checked || false;
+
+    const selectedSlotLabel = () =>
+      scheduleSelect?.selectedOptions?.[0]?.textContent.trim() || "Scheduled";
+
     const render = () => {
       const fee = pickup ? 0 : quote.fee;
       const tipValue = pickup ? 0 : tip;
@@ -292,7 +361,22 @@
       if (discountDisplay) discountDisplay.textContent = "-" + money(discount);
       if (discountCodeEl) discountCodeEl.textContent = promoCode ? "(" + promoCode + ")" : "";
       if (totalEl) totalEl.textContent = money(Math.max(0, subtotal + fee + tipValue - discount));
-      if (etaEl) etaEl.textContent = pickup ? "Ready ~15 min" : quote.etaMin + "-" + quote.etaMax + " min";
+      if (etaEl) {
+        etaEl.textContent = scheduled
+          ? selectedSlotLabel()
+          : pickup
+            ? "Ready ~15 min"
+            : quote.etaMin + "-" + quote.etaMax + " min";
+      }
+      if (etaCaptionEl) {
+        etaCaptionEl.textContent = scheduled
+          ? "scheduled for"
+          : pickup
+            ? "pickup window"
+            : "delivery window";
+      }
+      if (cashBtn) cashBtn.textContent = pickup ? "Pay on Pickup" : "Pay on Delivery";
+      if (pickupNote) pickupNote.hidden = !pickup;
       if (noteEl) {
         noteEl.textContent = pickup
           ? "(pickup)"
@@ -324,13 +408,62 @@
     });
 
     // Delivery vs pickup toggle: pickup zeroes the fee and hides the address.
+    // Kept in sync with the home-page preference (localStorage).
+    const applyPickupState = () => {
+      pickup = document.querySelector("[data-fulfillment-input]:checked")?.value === "pickup";
+      deliveryOnly.forEach((el) => { el.hidden = pickup; });
+      render();
+    };
+
     document.querySelectorAll("[data-fulfillment-input]").forEach((input) => {
       input.addEventListener("change", () => {
-        pickup = document.querySelector("[data-fulfillment-input]:checked")?.value === "pickup";
-        deliveryOnly.forEach((el) => { el.hidden = pickup; });
-        render();
+        localStorage.setItem("snackFulfillment", input.value === "pickup" ? "pickup" : "delivery");
+        applyPickupState();
       });
     });
+
+    // Preselect the option chosen on the home page.
+    if (localStorage.getItem("snackFulfillment") === "pickup") {
+      const pickupInput = document.querySelector('[data-fulfillment-input][value="pickup"]');
+      if (pickupInput) {
+        pickupInput.checked = true;
+        applyPickupState();
+      }
+    }
+
+    // ASAP vs scheduled: scheduling reveals the slot picker. Synced with the
+    // home-page timing preference. When the vendor is closed, ASAP is disabled
+    // server-side and "scheduled" is already preselected.
+    const applyTimingState = () => {
+      scheduled = document.querySelector("[data-timing-input][value='scheduled']")?.checked || false;
+      if (scheduleOnly) scheduleOnly.hidden = !scheduled;
+      render();
+    };
+
+    document.querySelectorAll("[data-timing-input]").forEach((input) => {
+      input.addEventListener("change", () => {
+        localStorage.setItem("snackTiming", input.value === "scheduled" ? "scheduled" : "asap");
+        applyTimingState();
+      });
+    });
+
+    scheduleSelect?.addEventListener("change", render);
+
+    const asapInput = document.querySelector("[data-timing-input][value='asap']");
+    const scheduledInput = document.querySelector("[data-timing-input][value='scheduled']");
+    if (
+      localStorage.getItem("snackTiming") === "scheduled" &&
+      scheduledInput &&
+      !scheduledInput.disabled &&
+      !scheduledInput.checked
+    ) {
+      scheduledInput.checked = true;
+    }
+    // If the vendor closed and ASAP is disabled, make sure scheduled stays on.
+    if (asapInput?.disabled && scheduledInput && !scheduledInput.disabled) {
+      scheduledInput.checked = true;
+    }
+    applyTimingState();
 
     // Tip presets (a percentage of the subtotal) plus free-text entry.
     document.querySelectorAll("[data-tip-percent]").forEach((button) => {

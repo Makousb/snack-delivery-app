@@ -3,71 +3,88 @@
 <div class="marketplace-home-layout">
   <%- include("../partials/adminSidebar", { currentPage: "orders" }) %>
 
-<div class="container">
-  <h1>Incoming Orders</h1>
+<div class="container admin-orders-page">
+  <div class="ops-panel-head admin-orders-head">
+    <div>
+      <span class="ops-panel-kicker">Live queue</span>
+      <h1>Incoming Orders</h1>
+    </div>
+    <span class="ops-chip"><%= orders.length %> order<%= orders.length === 1 ? "" : "s" %> total</span>
+  </div>
 
   <% if (orders.length === 0) { %>
-    <p id="no-orders">No orders yet.</p>
+    <p id="no-orders" class="ops-empty">No orders yet. New checkouts appear here in real time.</p>
   <% } %>
 
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Total</th>
-        <th>Status</th>
-        <th>M-Pesa Code</th>
-        <th>Address</th>
-        <th>Created</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="orders-table-body">
-      <% orders.forEach(order => { %>
-        <tr id="order-<%= order.id %>">
-          <td><%= order.id %></td>
-          <td><%= formatCurrency(order.total) %></td>
-          <td class="status"><%= order.status %></td>
-          <td><%= order.mpesa_manual_code || "—" %></td>
-          <td>
-            <%= order.delivery_address || "—" %>
-            <% if (order.delivery_lat && order.delivery_lng) { %>
-              <a href="https://www.google.com/maps?q=<%= order.delivery_lat %>,<%= order.delivery_lng %>" target="_blank" rel="noopener">Map</a>
-            <% } %>
-          </td>
-          <td><%= order.created_at.toLocaleString() %></td>
-          <td>
-            <form method="POST" action="/admin/order/<%= order.id %>/status">
-              <select name="status">
-                <option <%= order.status === "Pending Payment" ? "selected" : "" %>>Pending Payment</option>
-                <option <%= order.status === "Payment Pending Verification" ? "selected" : "" %>>Payment Pending Verification</option>
-                <option <%= order.status === "Paid" ? "selected" : "" %>>Paid</option>
-                <option <%= order.status === "Cash Pending" ? "selected" : "" %>>Cash Pending</option>
-                <option <%= order.status === "Preparing" ? "selected" : "" %>>Preparing</option>
-                <option <%= order.status === "Driver Assigned" ? "selected" : "" %>>Driver Assigned</option>
-                <option <%= order.status === "Out for Delivery" ? "selected" : "" %>>Out for Delivery</option>
-                <option <%= order.status === "Completed" ? "selected" : "" %>>Completed</option>
-              </select>
-              <button type="submit">Update</button>
-            </form>
-          </td>
+  <div class="admin-orders-card">
+    <table class="admin-orders-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Type</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>M-Pesa Code</th>
+          <th>Address</th>
+          <th>Created</th>
+          <th>Action</th>
         </tr>
-      <% }) %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody id="orders-table-body">
+        <% orders.forEach(order => { %>
+          <% const rowIsPickup = order.fulfillment_type === "pickup"; %>
+          <tr id="order-<%= order.id %>">
+            <td><strong>#<%= order.id %></strong></td>
+            <td>
+              <span class="fulfillment-chip <%= rowIsPickup ? "fulfillment-chip-pickup" : "" %>">
+                <%= rowIsPickup ? "Pickup" : "Delivery" %>
+              </span>
+            </td>
+            <td><%= formatCurrency(order.total) %></td>
+            <td><span class="status admin-status-pill"><%= order.status %></span></td>
+            <td><%= order.mpesa_manual_code || "—" %></td>
+            <td>
+              <% if (rowIsPickup) { %>
+                Collect at counter
+              <% } else { %>
+                <%= order.delivery_address || "—" %>
+                <% if (order.delivery_lat && order.delivery_lng) { %>
+                  <a href="https://www.google.com/maps?q=<%= order.delivery_lat %>,<%= order.delivery_lng %>" target="_blank" rel="noopener">Map</a>
+                <% } %>
+              <% } %>
+            </td>
+            <td>
+              <%= order.created_at.toLocaleString() %>
+              <% if (order.scheduled_for) { %>
+                <div class="admin-scheduled-note">For: <%= formatSlotLabel(order.scheduled_for) %></div>
+              <% } %>
+            </td>
+            <td>
+              <form method="POST" action="/admin/order/<%= order.id %>/status" class="admin-status-form">
+                <select name="status">
+                  <option <%= order.status === "Pending Payment" ? "selected" : "" %>>Pending Payment</option>
+                  <option <%= order.status === "Payment Pending Verification" ? "selected" : "" %>>Payment Pending Verification</option>
+                  <option <%= order.status === "Paid" ? "selected" : "" %>>Paid</option>
+                  <option <%= order.status === "Cash Pending" ? "selected" : "" %>>Cash Pending</option>
+                  <option <%= order.status === "Preparing" ? "selected" : "" %>>Preparing</option>
+                  <% if (rowIsPickup) { %>
+                    <option <%= order.status === "Ready for Pickup" ? "selected" : "" %>>Ready for Pickup</option>
+                  <% } else { %>
+                    <option <%= order.status === "Driver Assigned" ? "selected" : "" %>>Driver Assigned</option>
+                    <option <%= order.status === "Out for Delivery" ? "selected" : "" %>>Out for Delivery</option>
+                  <% } %>
+                  <option <%= order.status === "Completed" ? "selected" : "" %>>Completed</option>
+                </select>
+                <button type="submit">Update</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
 </div>
 </div>
-
-<style>
-  .status {
-    font-weight: bold;
-  }
-  .status[data-status="Pending Payment"] { color: orange; }
-  .status[data-status="Paid"] { color: green; }
-  .status[data-status="Cash Pending"] { color: brown; }
-  .status[data-status="Preparing"] { color: blue; }
-  .status[data-status="Completed"] { color: gray; }
-</style>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -91,29 +108,37 @@
       noOrdersText.remove();
     }
 
+    const isPickup = order.fulfillmentType === "pickup";
+
+    const statusOptions = [
+      "Pending Payment",
+      "Payment Pending Verification",
+      "Paid",
+      "Cash Pending",
+      "Preparing",
+      ...(isPickup ? ["Ready for Pickup"] : ["Driver Assigned", "Out for Delivery"]),
+      "Completed"
+    ]
+      .map((status) => `<option ${order.status === status ? "selected" : ""}>${status}</option>`)
+      .join("");
+
     const row = `
       <tr id="order-${order.orderId}">
-        <td>${order.orderId}</td>
+        <td><strong>#${order.orderId}</strong></td>
+        <td><span class="fulfillment-chip ${isPickup ? "fulfillment-chip-pickup" : ""}">${isPickup ? "Pickup" : "Delivery"}</span></td>
         <td>KSh ${Number(order.total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td class="status" data-status="${order.status}">${order.status}</td>
+        <td><span class="status admin-status-pill" data-status="${order.status}">${order.status}</span></td>
         <td>—</td>
         <td>
-          ${order.deliveryAddress || "—"}
-          ${order.deliveryLat && order.deliveryLng ? `<a href="https://www.google.com/maps?q=${order.deliveryLat},${order.deliveryLng}" target="_blank" rel="noopener">Map</a>` : ""}
+          ${isPickup
+            ? "Collect at counter"
+            : `${order.deliveryAddress || "—"}
+               ${order.deliveryLat && order.deliveryLng ? `<a href="https://www.google.com/maps?q=${order.deliveryLat},${order.deliveryLng}" target="_blank" rel="noopener">Map</a>` : ""}`}
         </td>
-        <td>Just now</td>
+        <td>Just now${order.scheduledFor ? `<div class="admin-scheduled-note">For: ${new Date(order.scheduledFor).toLocaleString()}</div>` : ""}</td>
         <td>
-          <form method="POST" action="/admin/order/${order.orderId}/status">
-            <select name="status">
-              <option ${order.status === "Pending Payment" ? "selected" : ""}>Pending Payment</option>
-              <option ${order.status === "Payment Pending Verification" ? "selected" : ""}>Payment Pending Verification</option>
-              <option ${order.status === "Paid" ? "selected" : ""}>Paid</option>
-              <option ${order.status === "Cash Pending" ? "selected" : ""}>Cash Pending</option>
-              <option ${order.status === "Preparing" ? "selected" : ""}>Preparing</option>
-              <option ${order.status === "Driver Assigned" ? "selected" : ""}>Driver Assigned</option>
-              <option ${order.status === "Out for Delivery" ? "selected" : ""}>Out for Delivery</option>
-              <option ${order.status === "Completed" ? "selected" : ""}>Completed</option>
-            </select>
+          <form method="POST" action="/admin/order/${order.orderId}/status" class="admin-status-form">
+            <select name="status">${statusOptions}</select>
             <button type="submit">Update</button>
           </form>
         </td>
@@ -121,6 +146,7 @@
     `;
 
     tableBody.insertAdjacentHTML("afterbegin", row);
+    window.snackToast?.("New order #" + order.orderId + " just arrived");
   });
 
   socket.on("orderUpdated", (data) => {

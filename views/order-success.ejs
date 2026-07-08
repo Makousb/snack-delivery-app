@@ -1,10 +1,42 @@
 <%- include("partials/header") %>
 
+<%
+  const isPickupOrder = order.fulfillment_type === "pickup";
+  const isScheduledOrder = Boolean(order.scheduled_for);
+  const scheduledLabel = isScheduledOrder ? formatSlotLabel(order.scheduled_for) : "";
+%>
+
 <section class="order-page">
+  <%- include("partials/checkoutSteps", { stage: "confirmed" }) %>
+
   <div class="order-page-hero">
     <span class="feature-eyebrow">Order confirmed</span>
-    <h1>Your order is in motion.</h1>
-    <p>We’ll keep this page updated while the kitchen and delivery flow progress.</p>
+    <h1><%=
+      isScheduledOrder
+        ? "Your order is scheduled."
+        : isPickupOrder
+          ? "Your order is being prepared."
+          : "Your order is in motion."
+    %></h1>
+    <p>
+      <% if (isScheduledOrder) { %>
+        Booked for <strong><%= scheduledLabel %></strong> —
+        <%= isPickupOrder
+          ? "collect it from the vendor around that time."
+          : "the kitchen will start in time for your slot." %>
+      <% } else if (isPickupOrder) { %>
+        We'll keep this page updated — collect your order from the vendor once it's marked ready.
+      <% } else { %>
+        We'll keep this page updated while the kitchen and delivery flow progress.
+      <% } %>
+    </p>
+
+    <% if (isScheduledOrder) { %>
+      <div class="order-status-pill">
+        <span>Scheduled for</span>
+        <strong><%= scheduledLabel %></strong>
+      </div>
+    <% } %>
 
     <div class="order-status-pill">
       <span>Current status</span>
@@ -86,8 +118,33 @@
       <div class="order-summary-meta">
         <span>Order #<%= order.id %></span>
         <span><%= order.vendor_name %></span>
-        <span><%= order.fulfillment_type === "pickup" ? "Pickup — collect from vendor" : "Delivery" %></span>
+        <span class="fulfillment-chip <%= isPickupOrder ? "fulfillment-chip-pickup" : "" %>">
+          <%= isPickupOrder ? "Pickup" : "Delivery" %>
+        </span>
       </div>
+
+      <% if (isPickupOrder) { %>
+        <div class="pickup-info-card">
+          <span class="pickup-info-title"><%- include("partials/icon", { name: "pin" }) %> Pickup details</span>
+          <strong><%= order.vendor_name %></strong>
+          <% if (order.vendor_pickup_instructions) { %>
+            <span><%= order.vendor_pickup_instructions %></span>
+          <% } %>
+          <span>
+            Hours: <%= formatVendorHours({
+              opening_time: order.vendor_opening_time,
+              closing_time: order.vendor_closing_time
+            }) %>
+          </span>
+          <% if (order.vendor_latitude != null && order.vendor_longitude != null) { %>
+            <a
+              href="https://www.google.com/maps?q=<%= order.vendor_latitude %>,<%= order.vendor_longitude %>"
+              target="_blank"
+              rel="noopener"
+            >Open in Google Maps &rarr;</a>
+          <% } %>
+        </div>
+      <% } %>
 
       <div class="order-summary-actions">
         <a href="/vendor/<%= order.vendor_id %>/menu" class="btn vendor-primary-cta">

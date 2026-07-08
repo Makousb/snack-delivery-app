@@ -72,7 +72,8 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 6),
       ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 6),
       ADD COLUMN IF NOT EXISTS opening_time TIME,
-      ADD COLUMN IF NOT EXISTS closing_time TIME
+      ADD COLUMN IF NOT EXISTS closing_time TIME,
+      ADD COLUMN IF NOT EXISTS pickup_instructions TEXT
   `);
 
   await pool.query(`
@@ -100,7 +101,8 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'delivery',
       ADD COLUMN IF NOT EXISTS promo_code TEXT,
-      ADD COLUMN IF NOT EXISTS discount NUMERIC(10, 2) NOT NULL DEFAULT 0
+      ADD COLUMN IF NOT EXISTS discount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS scheduled_for TIMESTAMP
   `);
 
   await pool.query(`

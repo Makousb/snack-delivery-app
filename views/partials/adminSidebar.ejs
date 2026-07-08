@@ -6,33 +6,33 @@
   <nav class="side-menu-section" aria-label="Business sections">
     <span class="side-menu-section-title">Workspace</span>
     <a href="/admin" class="side-menu-link <%= activePage === 'dashboard' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">D</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "gauge" }) %></span>
       <span>Dashboard</span>
     </a>
     <% if (sidebarVendorId) { %>
       <a href="/admin/vendor/<%= sidebarVendorId %>/orders" class="side-menu-link <%= activePage === 'orders' ? 'side-menu-link-active' : '' %>">
-        <span class="side-menu-icon" aria-hidden="true">O</span>
+        <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "receipt" }) %></span>
         <span>Orders</span>
       </a>
     <% } %>
     <a href="/admin/menu/new" class="side-menu-link <%= activePage === 'menu-new' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">+</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "plus" }) %></span>
       <span>Add Menu Item</span>
     </a>
     <a href="/admin/profile" class="side-menu-link <%= activePage === 'profile' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">P</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "storefront" }) %></span>
       <span>Business Profile</span>
     </a>
     <a href="/admin/promos" class="side-menu-link <%= activePage === 'promos' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">%</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "tag" }) %></span>
       <span>Promo Codes</span>
     </a>
     <a href="/admin/reviews" class="side-menu-link <%= activePage === 'reviews' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">&#9733;</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "star" }) %></span>
       <span>Reviews</span>
     </a>
     <a href="/admin/messages" class="side-menu-link <%= activePage === 'messages' ? 'side-menu-link-active' : '' %>">
-      <span class="side-menu-icon" aria-hidden="true">M</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "mail" }) %></span>
       <span>Messages</span>
     </a>
   </nav>
@@ -40,7 +40,7 @@
   <nav class="side-menu-section" aria-label="Account links">
     <span class="side-menu-section-title">Account</span>
     <button type="button" class="side-menu-link" data-theme-toggle>
-      <span class="side-menu-icon" aria-hidden="true">T</span>
+      <span class="side-menu-icon" aria-hidden="true"><%- include("icon", { name: "moon" }) %></span>
       <span>Dark Mode</span>
     </button>
   </nav>

@@ -174,6 +174,24 @@ export async function adminDashboard(req, res) {
     });
     const revenueTrendMax = Math.max(1, ...revenueTrendDays.map((day) => day.total));
 
+    // Upcoming scheduled orders, soonest first. Orders that just hit their
+    // slot stay visible for 30 minutes so a busy vendor doesn't lose track
+    // of one that's due while they're heads-down.
+    const scheduledQueueResult = await pool.query(
+      `SELECT o.id, o.total, o.status, o.fulfillment_type, o.scheduled_for,
+              COALESCE(SUM(oi.quantity), 0)::int AS item_count
+       FROM orders o
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.vendor_id = $1
+         AND o.scheduled_for IS NOT NULL
+         AND o.scheduled_for >= NOW() - INTERVAL '30 minutes'
+         AND o.status NOT IN ('Completed', 'Payment Failed')
+       GROUP BY o.id
+       ORDER BY o.scheduled_for ASC
+       LIMIT 8`,
+      [vendorId]
+    );
+
     // Items the owner should act on: anything not currently sellable
     // (Sold Out / Seasonal), surfaced by name instead of just a count.
     const itemsNeedingAttention = menuItems
@@ -225,6 +243,14 @@ export async function adminDashboard(req, res) {
         max: revenueTrendMax,
         monthTotal: revenueMonth
       },
+      scheduledQueue: scheduledQueueResult.rows.map((row) => ({
+        id: row.id,
+        total: Number(row.total || 0),
+        status: row.status,
+        fulfillmentType: row.fulfillment_type,
+        scheduledFor: row.scheduled_for,
+        itemCount: row.item_count
+      })),
       fulfillment: {
         averageMinutes:
           averageServiceMinutes != null ? Math.round(averageServiceMinutes) : null,
@@ -301,12 +327,14 @@ export async function updateBusinessProfile(req, res) {
       vendorType,
       email,
       openingTime,
-      closingTime
+      closingTime,
+      pickupInstructions
     } = req.body;
 
     const safeName = (businessName || "").trim();
     const safeDescription = (businessDescription || "").trim();
     const safeEmail = (email || "").trim().toLowerCase();
+    const safePickupInstructions = (pickupInstructions || "").trim().slice(0, 500);
 
     // Accept HH:MM only; anything else (incl. blank) clears the window so the
     // vendor reads as always-open.
@@ -368,8 +396,9 @@ export async function updateBusinessProfile(req, res) {
            slug = $5,
            vendor_type = $6,
            opening_time = $7,
-           closing_time = $8
-       WHERE id = $9`,
+           closing_time = $8,
+           pickup_instructions = $9
+       WHERE id = $10`,
       [
         safeName,
         safeDescription || null,
@@ -379,6 +408,7 @@ export async function updateBusinessProfile(req, res) {
         safeVendorType,
         safeOpeningTime,
         safeClosingTime,
+        safePickupInstructions || null,
         vendorId
       ]
     );

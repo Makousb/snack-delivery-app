@@ -54,15 +54,13 @@
       icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="15" fill="#d97706"/><circle cx="18" cy="19" r="2" fill="#7c2d12"/><circle cx="28" cy="18" r="2" fill="#7c2d12"/><circle cx="31" cy="27" r="2" fill="#7c2d12"/><circle cx="21" cy="30" r="2" fill="#7c2d12"/><circle cx="24" cy="24" r="1.6" fill="#7c2d12"/></svg>'
     }
   ];
-  const filterChips = [
-    "Fastest nearby",
-    "Offers",
-    "Top rated",
-    "Under 30 min",
-    "Pickup",
-    "New on Snack"
+  // Filters backed by real vendor data (open status, ratings, review count).
+  const vendorFilters = [
+    { key: "all", label: "All vendors" },
+    { key: "open", label: "Open now" },
+    { key: "top", label: "Top rated" },
+    { key: "new", label: "New on Snack" }
   ];
-  const vendorBadges = ["Low fees", "Top rated", "Great value", "Fast delivery"];
   const vendorItems = safePopularItems.reduce((groups, item) => {
     const key = String(item.vendor_id);
     groups[key] = groups[key] || [];
@@ -134,7 +132,7 @@
 
       <form class="marketplace-search" method="GET" action="/search">
         <label class="sr-only" for="marketplace-search-input">Search vendors</label>
-        <span class="marketplace-search-icon" aria-hidden="true">Search</span>
+        <span class="marketplace-search-icon" aria-hidden="true"><%- include("partials/icon", { name: "search" }) %></span>
         <input
           id="marketplace-search-input"
           type="text"
@@ -147,9 +145,11 @@
       </form>
 
       <div class="marketplace-order-controls" aria-label="Order options">
-        <button class="marketplace-control-active" type="button">Delivery</button>
-        <button type="button">Pickup</button>
-        <span>ASAP</span>
+        <button class="marketplace-control-active" type="button" data-fulfillment-choice="delivery" aria-pressed="true">Delivery</button>
+        <button type="button" data-fulfillment-choice="pickup" aria-pressed="false">Pickup</button>
+        <span class="marketplace-control-divider" aria-hidden="true"></span>
+        <button class="marketplace-control-active" type="button" data-timing-choice="asap" aria-pressed="true">ASAP</button>
+        <button type="button" data-timing-choice="scheduled" aria-pressed="false">Schedule</button>
       </div>
     </div>
 
@@ -164,10 +164,13 @@
   </section>
 
   <section class="marketplace-filter-bar" aria-label="Vendor filters">
-    <% filterChips.forEach((chip, index) => { %>
-      <a href="#featured-vendors" class="<%= index === 0 ? "marketplace-filter-active" : "" %>">
-        <%= chip %>
-      </a>
+    <% vendorFilters.forEach((filter, index) => { %>
+      <button
+        type="button"
+        class="<%= index === 0 ? "marketplace-filter-active" : "" %>"
+        data-vendor-filter="<%= filter.key %>"
+        aria-pressed="<%= index === 0 %>"
+      ><%= filter.label %></button>
     <% }) %>
   </section>
 
@@ -259,15 +262,36 @@
           <div class="marketplace-vendor-grid">
             <% section.vendors.forEach((vendor, index) => { %>
               <%
-                const badge = "Fast delivery";
+                const cardStatus = vendorOpenStatus(vendor);
+                const isTopRated = Number(vendor.rating_average || 0) >= 4.5 && Number(vendor.rating_count || 0) > 0;
+                const isNewVendor = Number(vendor.rating_count || 0) === 0;
+                let badge = "";
+                let badgeClass = "";
+                if (!cardStatus.open) {
+                  badge = "Closed";
+                  badgeClass = "marketplace-store-badge-closed";
+                } else if (isTopRated) {
+                  badge = "Top rated";
+                } else if (isNewVendor) {
+                  badge = "New on Snack";
+                }
                 const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
                 const previewItems = vendorItems[String(vendor.id)] || [];
               %>
 
-              <a href="/vendor/<%= vendor.id %>/menu" class="marketplace-vendor-card">
+              <a
+                href="/vendor/<%= vendor.id %>/menu"
+                class="marketplace-vendor-card"
+                data-vendor-card
+                data-open="<%= cardStatus.open %>"
+                data-top="<%= isTopRated %>"
+                data-new="<%= isNewVendor %>"
+              >
                 <div class="marketplace-vendor-media">
                   <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
-                  <span class="marketplace-store-badge"><%= badge %></span>
+                  <% if (badge) { %>
+                    <span class="marketplace-store-badge <%= badgeClass %>"><%= badge %></span>
+                  <% } %>
                   <%- include("partials/favoriteButton", { vendorId: vendor.id }) %>
                   <span class="marketplace-vendor-logo">
                     <% if (vendor.logo_url) { %>
@@ -358,6 +382,7 @@
 
     triggerCartBounce();
     window.cartDrawer?.refreshIfOpen();
+    window.snackToast?.(`${button.dataset.name} added to your cart`);
 
     button.innerText = "Added";
     button.disabled = true;
@@ -425,6 +450,101 @@
   cancelBtn?.addEventListener("click", () => {
     closeModal();
     pendingAction = null;
+  });
+
+  // Delivery/Pickup preference: persists across pages and preselects the
+  // matching option at checkout.
+  const fulfillmentButtons = document.querySelectorAll("[data-fulfillment-choice]");
+
+  const applyFulfillmentChoice = (choice) => {
+    fulfillmentButtons.forEach((b) => {
+      const isActive = b.dataset.fulfillmentChoice === choice;
+      b.classList.toggle("marketplace-control-active", isActive);
+      b.setAttribute("aria-pressed", String(isActive));
+    });
+  };
+
+  applyFulfillmentChoice(localStorage.getItem("snackFulfillment") === "pickup" ? "pickup" : "delivery");
+
+  fulfillmentButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const choice = button.dataset.fulfillmentChoice;
+      localStorage.setItem("snackFulfillment", choice);
+      applyFulfillmentChoice(choice);
+      window.snackToast?.(choice === "pickup"
+        ? "Pickup selected — checkout will skip the delivery fee"
+        : "Delivery selected");
+    });
+  });
+
+  // ASAP vs scheduled preference, mirrored at checkout with a time-slot picker.
+  const timingButtons = document.querySelectorAll("[data-timing-choice]");
+
+  const applyTimingChoice = (choice) => {
+    timingButtons.forEach((b) => {
+      const isActive = b.dataset.timingChoice === choice;
+      b.classList.toggle("marketplace-control-active", isActive);
+      b.setAttribute("aria-pressed", String(isActive));
+    });
+  };
+
+  applyTimingChoice(localStorage.getItem("snackTiming") === "scheduled" ? "scheduled" : "asap");
+
+  timingButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const choice = button.dataset.timingChoice;
+      localStorage.setItem("snackTiming", choice);
+      applyTimingChoice(choice);
+      window.snackToast?.(choice === "scheduled"
+        ? "Scheduling on — you'll pick a time slot at checkout"
+        : "ASAP selected");
+    });
+  });
+
+  // Vendor filter chips — filter cards by live data (open / top rated / new).
+  const filterButtons = document.querySelectorAll("[data-vendor-filter]");
+  const vendorCards = document.querySelectorAll("[data-vendor-card]");
+  const typeSections = document.querySelectorAll(".marketplace-type-section");
+
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.vendorFilter;
+
+      filterButtons.forEach((b) => {
+        b.classList.toggle("marketplace-filter-active", b === button);
+        b.setAttribute("aria-pressed", String(b === button));
+      });
+
+      vendorCards.forEach((card) => {
+        const show =
+          key === "all" ||
+          (key === "open" && card.dataset.open === "true") ||
+          (key === "top" && card.dataset.top === "true") ||
+          (key === "new" && card.dataset.new === "true");
+        card.classList.toggle("vendor-filtered-out", !show);
+      });
+
+      typeSections.forEach((section) => {
+        const grid = section.querySelector(".marketplace-vendor-grid");
+        if (!grid) return;
+
+        const visible = grid.querySelectorAll("[data-vendor-card]:not(.vendor-filtered-out)").length;
+        let empty = section.querySelector("[data-filter-empty]");
+
+        if (visible === 0) {
+          if (!empty) {
+            empty = document.createElement("p");
+            empty.className = "home-empty-state";
+            empty.setAttribute("data-filter-empty", "");
+            grid.after(empty);
+          }
+          empty.textContent = "No vendors match this filter here yet.";
+          empty.style.display = "";
+        } else if (empty) {
+          empty.style.display = "none";
+        }
+      });
+    });
   });
 </script>
 

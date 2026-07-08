@@ -5,6 +5,11 @@ import { createReview, getReviewByOrderId } from "../db/queries/reviews.js";
 import { distanceKm } from "../utils/geo.js";
 import { computeDeliveryFee } from "../utils/pricing.js";
 import { isVendorOpen } from "../utils/hours.js";
+
+// Scheduled orders must give the kitchen some lead time, and can't be booked
+// absurdly far out.
+const SCHEDULE_MIN_LEAD_MS = 20 * 60 * 1000;
+const SCHEDULE_MAX_AHEAD_MS = 3 * 24 * 60 * 60 * 1000;
 import { validatePromo } from "../db/queries/promos.js";
 import { sendOrderConfirmation } from "../services/email.js";
 
@@ -24,6 +29,7 @@ const VENDOR_SETTABLE_STATUSES = new Set([
   "Preparing",
   "Driver Assigned",
   "Out for Delivery",
+  "Ready for Pickup",
   "Completed"
 ]);
 
@@ -75,10 +81,34 @@ export const createOrder = async (req, res) => {
     );
     const vendor = vendorInfo.rows[0];
 
-    // Don't accept orders while the vendor is closed.
-    if (vendor && !isVendorOpen(vendor)) {
+    // Scheduled orders: validate the requested slot (sensible lead time, not
+    // too far out, and inside the vendor's opening hours). A valid schedule
+    // also lets customers order while the vendor is currently closed.
+    let scheduledFor = null;
+    if (req.body.orderTiming === "scheduled") {
+      const requested = new Date(req.body.scheduledFor || "");
+      const now = Date.now();
+
+      const isValidSlot =
+        !Number.isNaN(requested.getTime()) &&
+        requested.getTime() >= now + SCHEDULE_MIN_LEAD_MS &&
+        requested.getTime() <= now + SCHEDULE_MAX_AHEAD_MS &&
+        (!vendor || isVendorOpen(vendor, requested));
+
+      if (!isValidSlot) {
+        await client.query("ROLLBACK");
+        req.flash("error", "That scheduled time isn't available — please pick another slot.");
+        return res.redirect(`/vendor/${vendorId}/cart`);
+      }
+
+      scheduledFor = requested;
+    }
+
+    // Don't accept ASAP orders while the vendor is closed. (Scheduled orders
+    // are fine — the slot above is already validated against opening hours.)
+    if (!scheduledFor && vendor && !isVendorOpen(vendor)) {
       await client.query("ROLLBACK");
-      req.flash("error", `${vendor.name} is closed right now — please order during their opening hours.`);
+      req.flash("error", `${vendor.name} is closed right now — schedule your order for when they reopen.`);
       return res.redirect(`/vendor/${vendorId}/cart`);
     }
 
@@ -113,8 +143,8 @@ export const createOrder = async (req, res) => {
     const grandTotal = total - discount + deliveryFee + tip;
 
     const orderResult = await client.query(
-      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, fulfillment_type, promo_code, discount, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, fulfillment_type, promo_code, discount, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng, scheduled_for)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING id`,
       [
         vendorId,
@@ -129,7 +159,8 @@ export const createOrder = async (req, res) => {
         phone || null,
         paymentMethod || null,
         fulfillmentType === "pickup" ? null : parsedLat,
-        fulfillmentType === "pickup" ? null : parsedLng
+        fulfillmentType === "pickup" ? null : parsedLng,
+        scheduledFor
       ]
     );
 
@@ -175,9 +206,12 @@ export const createOrder = async (req, res) => {
         orderId,
         total,
         status: initialStatus,
-        deliveryAddress: deliveryAddress || null,
-        deliveryLat: parsedLat,
-        deliveryLng: parsedLng
+        fulfillmentType,
+        scheduledFor: scheduledFor ? scheduledFor.toISOString() : null,
+        itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
+        deliveryAddress: fulfillmentType === "pickup" ? null : deliveryAddress || null,
+        deliveryLat: fulfillmentType === "pickup" ? null : parsedLat,
+        deliveryLng: fulfillmentType === "pickup" ? null : parsedLng
       });
 
       io.emit("orderUpdated", {
@@ -229,7 +263,10 @@ export const orderSuccess = async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.*, v.name AS vendor_name, COALESCE(d.tips, 0) AS tip
+      `SELECT o.*, v.name AS vendor_name, COALESCE(d.tips, 0) AS tip,
+              v.latitude AS vendor_latitude, v.longitude AS vendor_longitude,
+              v.opening_time AS vendor_opening_time, v.closing_time AS vendor_closing_time,
+              v.pickup_instructions AS vendor_pickup_instructions
        FROM orders o
        JOIN vendors v ON v.id = o.vendor_id
        LEFT JOIN deliveries d ON d.order_id = o.id
