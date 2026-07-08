@@ -50,6 +50,9 @@ EJS, and PostgreSQL.
   session-based auth and bcrypt password hashing
 - Responsive, mobile-first UI with dark mode, toast notifications, and a
   shared SVG icon system
+- **Installable PWA**: add Snack to an iPhone or Android home screen for a
+  full-screen, app-like experience with a branded offline fallback page
+  (requires HTTPS in production; works on `localhost` in development)
 
 ## Tech Stack
 

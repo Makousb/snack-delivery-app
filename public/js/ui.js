@@ -104,10 +104,28 @@
     document.addEventListener("scroll", update, { passive: true });
   }
 
+  // Installable app support (Add to Home Screen + offline fallback).
+  // Registered after load so it never competes with page resources.
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+
+    const register = () =>
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // Registration failing (e.g. insecure context) should never break the page.
+      });
+
+    if (document.readyState === "complete") {
+      register();
+    } else {
+      window.addEventListener("load", register);
+    }
+  }
+
   function init() {
     sweepBrokenImages();
     setupReveal();
     setupNavbarState();
+    registerServiceWorker();
   }
 
   if (document.readyState === "loading") {

@@ -1337,6 +1337,27 @@ body.dark .admin-status-form select {
 }
 
 /* -----------------------------
+   iOS standalone (PWA) safe areas
+------------------------------ */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .floating-cart {
+    bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  }
+
+  .snack-toast {
+    bottom: calc(26px + env(safe-area-inset-bottom));
+  }
+
+  .cart-drawer-footer {
+    padding-bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  }
+
+  .app-footer {
+    padding-bottom: calc(1.4rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* -----------------------------
    Reduced motion
 ------------------------------ */
 @media (prefers-reduced-motion: reduce) {
