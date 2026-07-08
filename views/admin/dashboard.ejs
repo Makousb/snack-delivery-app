@@ -1,10 +1,13 @@
-<%- include("../partials/header") %>
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("../partials/adminSidebar", { currentPage: "dashboard" }) %>
 
 <%
   const safeDashboard = dashboard || {};
   const safeOrders = orders || [];
   const safeMenuItems = menuItems || [];
-  const safeRestaurant = restaurant || {};
+  const safeVendor = vendor || {};
   const recentOrders = safeOrders.slice(0, 6);
   const canManage =
     typeof currentUser !== "undefined" &&
@@ -18,17 +21,17 @@
       <span class="feature-eyebrow">Operations overview</span>
       <h1>Delivery command center</h1>
       <p>
-        Monitor inventory, order flow, driver movement, service quality, and revenue from one dashboard built for busy restaurant teams.
+        Monitor inventory, order flow, driver movement, service quality, and revenue from one dashboard built for busy vendor teams.
       </p>
 
       <div class="ops-hero-actions">
         <% if (canManage) { %>
-          <a href="/admin/menu/new" class="btn restaurant-primary-cta">Add Menu Item</a>
-          <a href="/admin/restaurant/<%= restaurantId %>/orders" class="btn restaurant-secondary-cta">Open Orders</a>
-          <a href="/admin/profile" class="btn restaurant-secondary-cta">Edit Business Profile</a>
-          <a href="/admin/messages" class="btn restaurant-secondary-cta">View Messages</a>
+          <a href="/admin/menu/new" class="btn vendor-primary-cta">Add Menu Item</a>
+          <a href="/admin/vendor/<%= vendorId %>/orders" class="btn vendor-secondary-cta">Open Orders</a>
+          <a href="/admin/profile" class="btn vendor-secondary-cta">Edit Business Profile</a>
+          <a href="/admin/messages" class="btn vendor-secondary-cta">View Messages</a>
         <% } else { %>
-          <a href="/auth/login" class="btn restaurant-primary-cta">Login to Manage</a>
+          <a href="/auth/login" class="btn vendor-primary-cta">Login to Manage</a>
           <span class="ops-chip">Preview mode</span>
         <% } %>
       </div>
@@ -37,7 +40,7 @@
     <div class="ops-hero-summary">
       <div class="ops-summary-tile">
         <span class="ops-summary-label">Business</span>
-        <strong><%= safeRestaurant.name || "Restaurant" %></strong>
+        <strong><%= safeVendor.name || "Vendor" %></strong>
       </div>
       <div class="ops-summary-tile">
         <span class="ops-summary-label">Active orders</span>
@@ -73,6 +76,49 @@
       <p>Average order value <%= formatCurrency(safeDashboard.averageOrderValue) %></p>
     </article>
   </div>
+
+  <% const scheduledQueue = safeDashboard.scheduledQueue || []; %>
+  <section class="ops-panel ops-panel-wide ops-schedule-panel">
+    <div class="ops-panel-head">
+      <div>
+        <span class="ops-panel-kicker">Scheduled queue</span>
+        <h2>Upcoming scheduled orders</h2>
+      </div>
+      <span class="ops-chip" data-schedule-count><%= scheduledQueue.length %> upcoming</span>
+    </div>
+
+    <p class="ops-empty" data-schedule-empty <%= scheduledQueue.length === 0 ? "" : "hidden" %>>
+      No scheduled orders coming up. When customers book a time slot at checkout,
+      it appears here soonest-first with a live countdown.
+    </p>
+
+    <div class="ops-schedule-list" data-schedule-list <%= scheduledQueue.length === 0 ? "hidden" : "" %>>
+      <% scheduledQueue.forEach((order) => { %>
+        <div
+          class="ops-schedule-row"
+          data-order-id="<%= order.id %>"
+          data-scheduled-at="<%= new Date(order.scheduledFor).toISOString() %>"
+          data-order-ref="#<%= order.id %>"
+        >
+          <div class="ops-schedule-when">
+            <strong><%= formatSlotLabel(order.scheduledFor) %></strong>
+            <span class="ops-schedule-countdown" data-countdown></span>
+          </div>
+          <div class="ops-schedule-what">
+            <strong>Order #<%= order.id %></strong>
+            <span><%= order.itemCount %> item<%= order.itemCount === 1 ? "" : "s" %> · <%= formatCurrency(order.total) %></span>
+          </div>
+          <div class="ops-schedule-meta">
+            <span class="fulfillment-chip <%= order.fulfillmentType === "pickup" ? "fulfillment-chip-pickup" : "" %>">
+              <%= order.fulfillmentType === "pickup" ? "Pickup" : "Delivery" %>
+            </span>
+            <span class="admin-status-pill" data-status="<%= order.status %>"><%= order.status %></span>
+          </div>
+          <a href="/admin/vendor/<%= vendorId %>/orders" class="ops-schedule-open">Open &rarr;</a>
+        </div>
+      <% }) %>
+    </div>
+  </section>
 
   <div class="ops-main-grid">
     <section class="ops-panel">
@@ -211,6 +257,133 @@
     </section>
   </div>
 
+  <div class="ops-section-heading">
+    <span class="feature-eyebrow">Analytics</span>
+    <h2>Sales and operations insights</h2>
+  </div>
+
+  <div class="ops-analytics-grid">
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Sales</span>
+          <h2>Top sellers this week</h2>
+        </div>
+        <span class="ops-chip">Last 7 days</span>
+      </div>
+
+      <% if (!safeDashboard.topSellers || safeDashboard.topSellers.length === 0) { %>
+        <p class="ops-empty">No items sold in the last 7 days yet.</p>
+      <% } else { %>
+        <ol class="ops-top-sellers">
+          <% safeDashboard.topSellers.forEach((item, index) => { %>
+            <li class="ops-top-seller-row">
+              <span class="ops-top-seller-rank"><%= index + 1 %></span>
+              <div class="ops-top-seller-copy">
+                <strong><%= item.name %></strong>
+                <span><%= item.category %></span>
+              </div>
+              <div class="ops-top-seller-meta">
+                <strong><%= item.units %> sold</strong>
+                <span><%= formatCurrency(item.revenue) %></span>
+              </div>
+            </li>
+          <% }) %>
+        </ol>
+      <% } %>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Revenue</span>
+          <h2>Revenue trend</h2>
+        </div>
+        <span class="ops-chip"><%= formatCurrency(safeDashboard.revenueTrend?.monthTotal) %> / 30 days</span>
+      </div>
+
+      <% const trend = safeDashboard.revenueTrend || { days: [], max: 1 }; %>
+      <div class="ops-trend-chart">
+        <% trend.days.forEach((day) => { %>
+          <div class="ops-trend-col">
+            <div class="ops-trend-bar-track">
+              <span
+                class="ops-trend-bar"
+                style="height: <%= Math.round((day.total / trend.max) * 100) %>%"
+                title="<%= formatCurrency(day.total) %>"
+              ></span>
+            </div>
+            <span class="ops-trend-label"><%= day.label %></span>
+          </div>
+        <% }) %>
+      </div>
+      <div class="ops-trend-footer">
+        <span>Last 7 days</span>
+        <strong><%= formatCurrency(trend.days.reduce((sum, day) => sum + day.total, 0)) %></strong>
+      </div>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Fulfillment</span>
+          <h2>Delivery timing</h2>
+        </div>
+        <span class="ops-chip"><%= safeDashboard.fulfillment?.fulfilledCount || 0 %> completed</span>
+      </div>
+
+      <% const fulfillment = safeDashboard.fulfillment || {}; %>
+      <% if (!fulfillment.fulfilledCount) { %>
+        <p class="ops-empty">No completed deliveries yet. Timing appears once orders are delivered.</p>
+      <% } else { %>
+        <div class="ops-health-grid">
+          <div class="ops-health-card">
+            <span>Average</span>
+            <strong><%= fulfillment.averageMinutes %> min</strong>
+          </div>
+          <div class="ops-health-card">
+            <span>Fastest</span>
+            <strong><%= fulfillment.fastestMinutes %> min</strong>
+          </div>
+          <div class="ops-health-card">
+            <span>Slowest</span>
+            <strong><%= fulfillment.slowestMinutes %> min</strong>
+          </div>
+          <div class="ops-health-card">
+            <span>Fulfilled</span>
+            <strong><%= fulfillment.fulfilledCount %></strong>
+          </div>
+        </div>
+      <% } %>
+    </section>
+
+    <section class="ops-panel">
+      <div class="ops-panel-head">
+        <div>
+          <span class="ops-panel-kicker">Attention</span>
+          <h2>Items needing attention</h2>
+        </div>
+        <span class="ops-chip"><%= (safeDashboard.itemsNeedingAttention || []).length %> flagged</span>
+      </div>
+
+      <% if (!safeDashboard.itemsNeedingAttention || safeDashboard.itemsNeedingAttention.length === 0) { %>
+        <p class="ops-empty">Every item is available. Nothing needs attention right now.</p>
+      <% } else { %>
+        <div class="ops-attention-list">
+          <% safeDashboard.itemsNeedingAttention.forEach((item) => { %>
+            <div class="ops-attention-row">
+              <div>
+                <strong><%= item.name %></strong>
+                <span><%= item.category %></span>
+              </div>
+              <span class="ops-attention-status status-<%= item.status.toLowerCase().replace(' ', '-') %>"><%= item.status %></span>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+
   <section class="ops-panel ops-panel-wide">
       <div class="ops-panel-head">
         <div>
@@ -298,12 +471,15 @@
     </div>
   </section>
 </section>
+</div>
 
 <div id="toast" class="toast hidden">Saved</div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
   const canManage = <%= canManage ? "true" : "false" %>;
+  const dashboardVendorId = "<%= vendorId %>";
   const searchInput = document.getElementById("searchInput");
   const categoryFilter = document.getElementById("categoryFilter");
   const cards = document.querySelectorAll(".admin-card");
@@ -371,6 +547,146 @@
         toast.classList.add("hidden");
       }, 300);
     }, 2000);
+  }
+
+  // Scheduled queue: live countdowns that escalate as a slot approaches
+  // (amber inside an hour, red pulse when due) and nudge with a toast the
+  // moment an order crosses into "due now". Rows are queried live because
+  // new scheduled orders can arrive over the socket while the page is open.
+  const scheduleList = document.querySelector("[data-schedule-list]");
+  const scheduleEmpty = document.querySelector("[data-schedule-empty]");
+  const scheduleCount = document.querySelector("[data-schedule-count]");
+
+  function refreshScheduleCountdowns() {
+    document.querySelectorAll("[data-scheduled-at]").forEach((row) => {
+      const at = new Date(row.dataset.scheduledAt).getTime();
+      const label = row.querySelector("[data-countdown]");
+      if (!label || Number.isNaN(at)) return;
+
+      const diffMin = Math.round((at - Date.now()) / 60000);
+      let text;
+      let state = "";
+
+      if (diffMin <= 0) {
+        text = "Due now";
+        state = "due";
+      } else if (diffMin <= 60) {
+        text = "in " + diffMin + " min";
+        state = "soon";
+      } else {
+        const hours = Math.floor(diffMin / 60);
+        const minutes = diffMin % 60;
+        text = "in " + hours + " h" + (minutes ? " " + minutes + " min" : "");
+      }
+
+      label.textContent = text;
+      const wasDue = row.classList.contains("is-due");
+      row.classList.toggle("is-due", state === "due");
+      row.classList.toggle("is-soon", state === "soon");
+
+      if (state === "due" && !wasDue && row.dataset.dueNotified !== "1") {
+        row.dataset.dueNotified = "1";
+        window.snackToast?.("Scheduled order " + (row.dataset.orderRef || "") + " is due now");
+      }
+    });
+  }
+
+  refreshScheduleCountdowns();
+  setInterval(refreshScheduleCountdowns, 30000);
+
+  function syncScheduleUI() {
+    if (!scheduleList) return;
+    const count = scheduleList.querySelectorAll("[data-scheduled-at]").length;
+    if (scheduleCount) scheduleCount.textContent = count + " upcoming";
+    scheduleList.hidden = count === 0;
+    if (scheduleEmpty) scheduleEmpty.hidden = count > 0;
+  }
+
+  // Mirrors the server-side formatSlotLabel so live rows match rendered ones.
+  function scheduleSlotLabel(date) {
+    const slot = new Date(date);
+    const time = slot.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayDiff = Math.round((startOfDay(slot) - startOfDay(new Date())) / 86400000);
+
+    if (dayDiff === 0) return "Today " + time;
+    if (dayDiff === 1) return "Tomorrow " + time;
+    return slot.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + ", " + time;
+  }
+
+  function money(value) {
+    return "KSh " + Number(value || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function insertScheduleRow(order) {
+    if (!scheduleList || scheduleList.querySelector('[data-order-id="' + order.orderId + '"]')) return;
+
+    const isPickup = order.fulfillmentType === "pickup";
+    const itemCount = Number(order.itemCount || 0);
+    const row = document.createElement("div");
+    row.className = "ops-schedule-row";
+    row.dataset.orderId = order.orderId;
+    row.dataset.scheduledAt = order.scheduledFor;
+    row.dataset.orderRef = "#" + order.orderId;
+    row.innerHTML =
+      '<div class="ops-schedule-when"><strong></strong><span class="ops-schedule-countdown" data-countdown></span></div>' +
+      '<div class="ops-schedule-what"><strong></strong><span></span></div>' +
+      '<div class="ops-schedule-meta">' +
+        '<span class="fulfillment-chip ' + (isPickup ? "fulfillment-chip-pickup" : "") + '">' + (isPickup ? "Pickup" : "Delivery") + "</span>" +
+        '<span class="admin-status-pill"></span>' +
+      "</div>" +
+      '<a href="/admin/vendor/' + dashboardVendorId + '/orders" class="ops-schedule-open">Open →</a>';
+
+    row.querySelector(".ops-schedule-when strong").textContent = scheduleSlotLabel(order.scheduledFor);
+    row.querySelector(".ops-schedule-what strong").textContent = "Order #" + order.orderId;
+    row.querySelector(".ops-schedule-what span").textContent =
+      itemCount + " item" + (itemCount === 1 ? "" : "s") + " · " + money(order.total);
+    const statusPill = row.querySelector(".admin-status-pill");
+    statusPill.textContent = order.status;
+    statusPill.setAttribute("data-status", order.status);
+
+    // Keep the queue chronological: insert before the first later slot.
+    const laterRow = [...scheduleList.querySelectorAll("[data-scheduled-at]")].find(
+      (existing) => new Date(existing.dataset.scheduledAt) > new Date(order.scheduledFor)
+    );
+    scheduleList.insertBefore(row, laterRow || null);
+
+    syncScheduleUI();
+    refreshScheduleCountdowns();
+    window.snackToast?.("New scheduled order #" + order.orderId + " — " + scheduleSlotLabel(order.scheduledFor));
+  }
+
+  // Live updates: new scheduled orders slot into the queue as they arrive,
+  // status changes update in place, completed orders leave the queue.
+  if (window.io) {
+    const socket = io();
+    socket.emit("joinVendor", dashboardVendorId);
+
+    socket.on("newOrder", (order) => {
+      if (order.scheduledFor) {
+        insertScheduleRow(order);
+      }
+    });
+
+    socket.on("orderUpdated", (data) => {
+      const row = scheduleList?.querySelector('[data-order-id="' + data.orderId + '"]');
+      if (!row) return;
+
+      if (data.status === "Completed") {
+        row.remove();
+        syncScheduleUI();
+        return;
+      }
+
+      const pill = row.querySelector(".admin-status-pill");
+      if (pill) {
+        pill.textContent = data.status;
+        pill.setAttribute("data-status", data.status);
+      }
+    });
   }
 
   if (canManage) {

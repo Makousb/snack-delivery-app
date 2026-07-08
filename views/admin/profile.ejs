@@ -1,10 +1,14 @@
-<%- include("../partials/header") %>
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("../partials/adminSidebar", { currentPage: "profile" }) %>
 
 <%
-  const safeRestaurant = restaurant || {};
-  const businessName = safeRestaurant.name || "Business";
-  const logoUrl = safeRestaurant.logo_url || "";
-  const bannerUrl = safeRestaurant.banner_url || "";
+  const safeVendor = vendor || {};
+  const safeVendorTypes = vendorTypes || [];
+  const businessName = safeVendor.name || "Business";
+  const logoUrl = safeVendor.logo_url || "";
+  const bannerUrl = safeVendor.banner_url || "";
 %>
 
 <section class="business-profile-shell">
@@ -12,10 +16,10 @@
     <div>
       <span class="feature-eyebrow">Business profile</span>
       <h1><%= businessName %></h1>
-      <p><%= safeRestaurant.description || "Update the public details customers see before they order." %></p>
+      <p><%= safeVendor.description || "Update the public details customers see before they order." %></p>
       <div class="ops-hero-actions">
-        <a href="/admin" class="btn restaurant-secondary-cta">Back to Business Hub</a>
-        <a href="/restaurant/<%= safeRestaurant.id %>/menu" class="btn restaurant-primary-cta">View Public Menu</a>
+        <a href="/admin" class="btn vendor-secondary-cta">Back to Business Hub</a>
+        <a href="/vendor/<%= safeVendor.id %>/menu" class="btn vendor-primary-cta">View Public Menu</a>
       </div>
     </div>
 
@@ -50,6 +54,15 @@
     enctype="multipart/form-data"
     class="business-profile-form auth-form-card"
   >
+    <div>
+      <label for="vendorType">Business Type</label>
+      <select id="vendorType" name="vendorType">
+        <% safeVendorTypes.forEach((type) => { %>
+          <option value="<%= type.value %>" <%= safeVendor.vendor_type === type.value ? "selected" : "" %>><%= type.label %></option>
+        <% }) %>
+      </select>
+    </div>
+
     <div class="auth-grid">
       <div>
         <label for="businessName">Business name</label>
@@ -80,8 +93,44 @@
         id="businessDescription"
         name="businessDescription"
         rows="5"
-      ><%= safeRestaurant.description || "" %></textarea>
+      ><%= safeVendor.description || "" %></textarea>
     </div>
+
+    <div>
+      <label for="pickupInstructions">Pickup instructions</label>
+      <textarea
+        id="pickupInstructions"
+        name="pickupInstructions"
+        rows="3"
+        maxlength="500"
+        placeholder="e.g. Use the side entrance on Moi Avenue and quote your order number at the counter."
+      ><%= safeVendor.pickup_instructions || "" %></textarea>
+      <p class="checkout-address-note">
+        Shown to customers who choose pickup — at checkout and on their order confirmation.
+      </p>
+    </div>
+
+    <div class="auth-grid">
+      <div>
+        <label for="openingTime">Opening time</label>
+        <input
+          type="time"
+          id="openingTime"
+          name="openingTime"
+          value="<%= safeVendor.opening_time ? String(safeVendor.opening_time).slice(0, 5) : "" %>"
+        />
+      </div>
+      <div>
+        <label for="closingTime">Closing time</label>
+        <input
+          type="time"
+          id="closingTime"
+          name="closingTime"
+          value="<%= safeVendor.closing_time ? String(safeVendor.closing_time).slice(0, 5) : "" %>"
+        />
+      </div>
+    </div>
+    <p class="checkout-address-note">Leave both blank to stay open 24/7. Customers can't order while you're closed.</p>
 
     <div class="business-profile-assets">
       <div class="business-profile-upload">
@@ -138,11 +187,12 @@
     </div>
 
     <div class="business-profile-actions">
-      <button type="submit" class="btn restaurant-primary-cta">Save Profile</button>
-      <a href="/admin" class="btn restaurant-secondary-cta">Cancel</a>
+      <button type="submit" class="btn vendor-primary-cta">Save Profile</button>
+      <a href="/admin" class="btn vendor-secondary-cta">Cancel</a>
     </div>
   </form>
 </section>
+</div>
 
 <script>
   document.querySelectorAll("[data-file-input]").forEach((input) => {

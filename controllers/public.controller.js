@@ -1,5 +1,20 @@
 import { pool } from "../db/index.js";
 import { createMessage } from "../db/queries/messages.js";
+import { getUsualOrder } from "../db/queries/usualOrder.js";
+import {
+  getVendorRating,
+  getVendorReviews,
+  withVendorRatings
+} from "../db/queries/reviews.js";
+import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
+
+function vendorTypeLabel(vendorType) {
+  return VENDOR_TYPES.find((type) => type.value === vendorType)?.label || vendorType;
+}
+
+function withVendorTypeLabel(vendor) {
+  return { ...vendor, vendor_type_label: vendorTypeLabel(vendor.vendor_type) };
+}
 
 export const renderLanding = (req, res) => {
   res.render("landing", {
@@ -7,12 +22,23 @@ export const renderLanding = (req, res) => {
   });
 };
 
+export const renderDriverLanding = (req, res) => {
+  res.render("landing-driver", {
+    title: "Drive with Snack"
+  });
+};
+
+export const renderVendorLanding = (req, res) => {
+  res.render("landing-vendor", {
+    title: "Sell on Snack"
+  });
+};
+
 export const renderHome = async (req, res, next) => {
   try {
     const searchQuery = (req.query.search || "").trim();
-    const restaurantNotFound = req.query.notFound === "1";
-    const [restaurantsResult, popularItemsResult] = await Promise.all([
-      pool.query("SELECT * FROM restaurants ORDER BY name ASC"),
+    const [vendorsResult, popularItemsResult] = await Promise.all([
+      pool.query("SELECT * FROM vendors WHERE vendor_type != 'street_vendor' ORDER BY name ASC"),
       pool.query(`
         SELECT
           mi.id,
@@ -21,21 +47,38 @@ export const renderHome = async (req, res, next) => {
           mi.price,
           mi.category,
           mi.image_url,
-          mi.restaurant_id,
-          r.name AS restaurant_name
+          mi.vendor_id,
+          v.name AS vendor_name,
+          v.vendor_type
         FROM menu_items mi
-        JOIN restaurants r ON r.id = mi.restaurant_id
-        ORDER BY r.name ASC, mi.display_order ASC, mi.id ASC
-        LIMIT 10
+        JOIN vendors v ON v.id = mi.vendor_id
+        WHERE v.vendor_type != 'street_vendor'
+        ORDER BY v.name ASC, mi.display_order ASC, mi.id ASC
       `)
     ]);
 
+    const vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+    const popularItems = popularItemsResult.rows;
+
+    const vendorSections = VENDOR_TYPES
+      .filter((type) => type.value !== "street_vendor")
+      .map((type) => ({
+        value: type.value,
+        vendors: vendors.filter((vendor) => vendor.vendor_type === type.value),
+        popularItems: popularItems.filter((item) => item.vendor_type === type.value).slice(0, 8)
+      }));
+
+    const usualOrder = req.session.user
+      ? await getUsualOrder(req.session.user.id)
+      : null;
+
     res.render("home", {
-      title: "Browse Restaurants",
-      restaurants: restaurantsResult.rows,
-      popularItems: popularItemsResult.rows,
-      searchQuery,
-      restaurantNotFound
+      title: "Browse Vendors",
+      vendors,
+      popularItems,
+      vendorSections,
+      usualOrder,
+      searchQuery
     });
   } catch (err) {
     console.error(err);
@@ -43,39 +86,193 @@ export const renderHome = async (req, res, next) => {
   }
 };
 
-export const searchRestaurant = async (req, res, next) => {
+export const renderStreetVendors = async (req, res, next) => {
   try {
-    const query = (req.query.search || "").trim();
+    const [vendorsResult, itemsResult] = await Promise.all([
+      pool.query("SELECT * FROM vendors WHERE vendor_type = 'street_vendor' ORDER BY name ASC"),
+      pool.query(`
+        SELECT mi.id, mi.name, mi.description, mi.price, mi.category, mi.image_url, mi.vendor_id, v.name AS vendor_name
+        FROM menu_items mi
+        JOIN vendors v ON v.id = mi.vendor_id
+        WHERE v.vendor_type = 'street_vendor'
+        ORDER BY mi.name ASC, mi.price ASC
+      `)
+    ]);
+
+    const vendors = vendorsResult.rows.map((vendor) => ({
+      ...withVendorTypeLabel(vendor),
+      latitude: vendor.latitude !== null ? Number(vendor.latitude) : null,
+      longitude: vendor.longitude !== null ? Number(vendor.longitude) : null
+    }));
+
+    const items = itemsResult.rows.map((item) => ({ ...item, price: Number(item.price) }));
+
+    const itemsByVendor = items.reduce((groups, item) => {
+      const key = String(item.vendor_id);
+      groups[key] = groups[key] || [];
+      groups[key].push(item);
+      return groups;
+    }, {});
+
+    const itemsByName = items.reduce((groups, item) => {
+      const key = item.name.trim().toLowerCase();
+      groups[key] = groups[key] || [];
+      groups[key].push(item);
+      return groups;
+    }, {});
+
+    const priceComparisons = Object.values(itemsByName)
+      .filter((group) => new Set(group.map((item) => item.vendor_id)).size > 1)
+      .map((group) => {
+        const entries = [...group].sort((a, b) => a.price - b.price);
+        return { name: entries[0].name, entries };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.render("street-vendors", {
+      title: "Street Vendors",
+      vendors,
+      itemsByVendor,
+      priceComparisons
+    });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+export const renderAllVendors = async (req, res, next) => {
+  try {
+    const vendorsResult = await pool.query("SELECT * FROM vendors ORDER BY name ASC");
+    const vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+
+    const vendorSections = VENDOR_TYPES.map((type) => ({
+      value: type.value,
+      vendors: vendors.filter((vendor) => vendor.vendor_type === type.value)
+    }));
+
+    res.render("vendors", {
+      title: "All Vendors",
+      vendorSections
+    });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+// Global search across menu items (name/description/category) AND vendor names,
+// so a customer can search for a dish ("pizza") and see matching items from
+// every vendor, not just vendors whose name matches. Best (exact, then
+// prefix, then contains) matches are ordered first.
+export const searchResults = async (req, res, next) => {
+  try {
+    const query = (req.query.search || req.query.q || "").trim();
 
     if (!query) {
       return res.redirect("/home");
     }
 
-    const result = await pool.query(
-      `
-        SELECT id, name
-        FROM restaurants
-        WHERE LOWER(name) LIKE LOWER($1)
-        ORDER BY
-          CASE
-            WHEN LOWER(name) = LOWER($2) THEN 0
-            WHEN LOWER(name) LIKE LOWER($3) THEN 1
-            ELSE 2
-          END,
-          LENGTH(name) ASC,
-          name ASC
-        LIMIT 1
-      `,
-      [`%${query}%`, query, `${query}%`]
-    );
+    // Optional filters/sort. Whitelisted so they can be dropped straight into
+    // the SQL without injection risk.
+    const type = VENDOR_TYPE_VALUES.includes(req.query.type) ? req.query.type : "";
+    const category = (req.query.category || "").trim();
+    const sort = ["price_asc", "price_desc", "rating"].includes(req.query.sort)
+      ? req.query.sort
+      : "relevance";
 
-    const match = result.rows[0];
+    const contains = `%${query}%`;
+    const prefix = `${query}%`;
 
-    if (!match) {
-      return res.redirect(`/home?search=${encodeURIComponent(query)}&notFound=1`);
+    // --- Items query (name/description/category match, plus optional filters) ---
+    // $2/$3 (exact/prefix ranking) are only referenced by the relevance sort,
+    // so bind them only then — pg rejects extra, unused parameters.
+    const itemParams = [contains];
+    let itemWhere =
+      `mi.status = 'Available'
+       AND (LOWER(mi.name) LIKE LOWER($1)
+            OR LOWER(mi.description) LIKE LOWER($1)
+            OR LOWER(mi.category) LIKE LOWER($1))`;
+
+    let itemOrder;
+    if (sort === "price_asc") {
+      itemOrder = "mi.price ASC, mi.name ASC";
+    } else if (sort === "price_desc") {
+      itemOrder = "mi.price DESC, mi.name ASC";
+    } else {
+      itemParams.push(query, prefix); // $2, $3
+      itemOrder =
+        `CASE
+           WHEN LOWER(mi.name) = LOWER($2) THEN 0
+           WHEN LOWER(mi.name) LIKE LOWER($3) THEN 1
+           ELSE 2
+         END, mi.name ASC`;
     }
 
-    return res.redirect(`/restaurant/${match.id}/menu`);
+    if (type) {
+      itemParams.push(type);
+      itemWhere += ` AND v.vendor_type = $${itemParams.length}`;
+    }
+    if (category) {
+      itemParams.push(category);
+      itemWhere += ` AND mi.category = $${itemParams.length}`;
+    }
+
+    // --- Vendors query (name match, optional type filter) ---
+    const vendorParams = [contains, query, prefix];
+    let vendorWhere = "LOWER(name) LIKE LOWER($1)";
+    if (type) {
+      vendorParams.push(type);
+      vendorWhere += ` AND vendor_type = $${vendorParams.length}`;
+    }
+
+    const [itemsResult, vendorsResult] = await Promise.all([
+      pool.query(
+        `SELECT mi.id, mi.name, mi.description, mi.price, mi.image_url, mi.category,
+                v.id AS vendor_id, v.name AS vendor_name, v.vendor_type
+         FROM menu_items mi
+         JOIN vendors v ON v.id = mi.vendor_id
+         WHERE ${itemWhere}
+         ORDER BY ${itemOrder}
+         LIMIT 60`,
+        itemParams
+      ),
+      pool.query(
+        `SELECT *
+         FROM vendors
+         WHERE ${vendorWhere}
+         ORDER BY
+           CASE
+             WHEN LOWER(name) = LOWER($2) THEN 0
+             WHEN LOWER(name) LIKE LOWER($3) THEN 1
+             ELSE 2
+           END,
+           name ASC
+         LIMIT 12`,
+        vendorParams
+      )
+    ]);
+
+    const items = itemsResult.rows.map((item) => ({
+      ...item,
+      price: Number(item.price),
+      vendor_type_label: vendorTypeLabel(item.vendor_type)
+    }));
+
+    let vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+    if (sort === "rating") {
+      vendors = vendors
+        .slice()
+        .sort((a, b) => (b.rating_average || 0) - (a.rating_average || 0));
+    }
+
+    res.render("search", {
+      title: `Search: ${query}`,
+      query,
+      items,
+      vendors,
+      filters: { type, category, sort }
+    });
   } catch (err) {
     console.error(err);
     next(err);
@@ -84,7 +281,7 @@ export const searchRestaurant = async (req, res, next) => {
 
 export const renderMenu = async (req, res, next) => {
   try {
-    const { id } = req.params; // restaurant ID
+    const { id } = req.params; // vendor ID
 
     const page = parseInt(req.query.page) || 1;
     const limit = 6;
@@ -93,7 +290,7 @@ export const renderMenu = async (req, res, next) => {
     const searchQuery = req.query.search || "";
     const selectedCategory = req.query.category || "";
 
-    let baseQuery = "FROM menu_items WHERE restaurant_id = $1";
+    let baseQuery = "FROM menu_items WHERE vendor_id = $1";
     let values = [id];
 
     if (searchQuery) {
@@ -106,7 +303,7 @@ export const renderMenu = async (req, res, next) => {
       baseQuery += ` AND category = $${values.length}`;
     }
 
-    // Fetch menu items for this restaurant
+    // Fetch items for this vendor
     const itemsResult = await pool.query(
       `SELECT * ${baseQuery} ORDER BY display_order ASC LIMIT ${limit} OFFSET ${offset}`,
       values
@@ -117,22 +314,26 @@ export const renderMenu = async (req, res, next) => {
     const totalItems = parseInt(countResult.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Fetch restaurant info
-    const restaurantResult = await pool.query("SELECT * FROM restaurants WHERE id = $1", [id]);
-    const restaurant = restaurantResult.rows[0];
+    // Fetch vendor info
+    const vendorResult = await pool.query("SELECT * FROM vendors WHERE id = $1", [id]);
+    const vendor = vendorResult.rows[0];
 
-    if (!restaurant) {
-      return res.status(404).render("404", { title: "Restaurant Not Found" });
+    if (!vendor) {
+      return res.status(404).render("404", { title: "Vendor Not Found" });
     }
 
+    const rating = await getVendorRating(id);
+    vendor.rating_average = rating.average;
+    vendor.rating_count = rating.count;
+
     res.render("menu", {
-      title: restaurant.name,
+      title: vendor.name,
       items: itemsResult.rows,
       currentPage: page,
       totalPages,
       searchQuery,
       selectedCategory,
-      restaurant
+      vendor
     });
   } catch (err) {
     console.error(err);
@@ -140,28 +341,36 @@ export const renderMenu = async (req, res, next) => {
   }
 };
 
-export const showRestaurant = async (req, res, next) => {
+export const showVendor = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const restaurantResult = await pool.query("SELECT * FROM restaurants WHERE id = $1", [id]);
-    const restaurant = restaurantResult.rows[0];
+    const vendorResult = await pool.query("SELECT * FROM vendors WHERE id = $1", [id]);
+    const vendor = vendorResult.rows[0];
 
-    if (!restaurant) {
-      return res.status(404).render("404", { title: "Restaurant Not Found" });
+    if (!vendor) {
+      return res.status(404).render("404", { title: "Vendor Not Found" });
     }
 
     const menuResult = await pool.query(
-      `SELECT * FROM menu_items WHERE restaurant_id = $1 ORDER BY display_order ASC LIMIT 3`,
+      `SELECT * FROM menu_items WHERE vendor_id = $1 ORDER BY display_order ASC LIMIT 3`,
       [id]
     );
 
     const featuredItems = menuResult.rows;
 
-    res.render("restaurant", {
-      title: restaurant.name,
-      restaurant,
-      featuredItems
+    const rating = await getVendorRating(id);
+    const reviews = await getVendorReviews(id, 8);
+
+    res.render("vendor", {
+      title: vendor.name,
+      vendor: {
+        ...withVendorTypeLabel(vendor),
+        rating_average: rating.average,
+        rating_count: rating.count
+      },
+      featuredItems,
+      reviews
     });
   } catch (err) {
     console.error(err);

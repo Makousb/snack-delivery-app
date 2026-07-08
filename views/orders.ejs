@@ -3,34 +3,83 @@
 <section class="orders-page">
   <div class="orders-page-head">
     <span class="feature-eyebrow">Order history</span>
-    <h1>Your recent delivery activity.</h1>
-    <p>Track completed and in-progress orders in one clean place.</p>
+    <h1>Your recent orders.</h1>
+    <p>Track completed and in-progress delivery and pickup orders in one clean place.</p>
   </div>
 
   <% if (!orders.length) { %>
     <section class="cart-empty-state">
       <h2>No orders yet.</h2>
       <p>Once you place an order, it will show up here with status updates and totals.</p>
-      <a href="/" class="btn restaurant-primary-cta">Explore Restaurants</a>
+      <a href="/" class="btn vendor-primary-cta">Explore Vendors</a>
     </section>
   <% } else { %>
     <div class="orders-grid">
       <% orders.forEach(order => { %>
-        <a href="/orders/<%= order.id %>/success" class="order-history-card">
+        <article class="order-history-card">
           <div class="order-history-head">
-            <span class="menu-category"><%= order.restaurant_name || "Restaurant" %></span>
+            <span class="menu-category"><%= order.vendor_name || "Vendor" %></span>
             <strong>#<%= order.id %></strong>
           </div>
 
           <h2><%= order.status %></h2>
+          <div class="order-history-chips">
+            <span class="fulfillment-chip <%= order.fulfillment_type === "pickup" ? "fulfillment-chip-pickup" : "" %>">
+              <%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %>
+            </span>
+            <% if (order.scheduled_for) { %>
+              <span class="fulfillment-chip fulfillment-chip-scheduled">
+                <%= formatSlotLabel(order.scheduled_for) %>
+              </span>
+            <% } %>
+          </div>
+
+          <% if (order.items && order.items.length) { %>
+            <ul class="order-history-items">
+              <% order.items.slice(0, 4).forEach((item) => { %>
+                <li><%= item.quantity %>&times; <%= item.name %></li>
+              <% }) %>
+              <% if (order.items.length > 4) { %>
+                <li class="order-history-more">+<%= order.items.length - 4 %> more</li>
+              <% } %>
+            </ul>
+          <% } %>
 
           <div class="order-history-meta">
             <span><%= formatCurrency(order.total) %></span>
             <span><%= order.created_at.toLocaleString() %></span>
           </div>
 
-          <span class="order-history-link">Open order &rarr;</span>
-        </a>
+          <div class="order-history-actions">
+            <a href="/orders/<%= order.id %>/success" class="order-history-link">Open order &rarr;</a>
+            <form method="POST" action="/orders/<%= order.id %>/reorder">
+              <button type="submit" class="btn vendor-secondary-cta order-history-reorder">Order again</button>
+            </form>
+          </div>
+
+          <% if (order.review) { %>
+            <div class="order-review order-review-done">
+              <div class="vendor-review-stars" aria-label="You rated <%= order.review.rating %> out of 5">
+                <% for (let star = 1; star <= 5; star++) { %><span class="<%= star <= order.review.rating ? 'is-filled' : '' %>">★</span><% } %>
+              </div>
+              <% if (order.review.comment) { %>
+                <p class="order-review-comment">&ldquo;<%= order.review.comment %>&rdquo;</p>
+              <% } %>
+            </div>
+          <% } else if (order.can_review) { %>
+            <form class="order-review-form" method="POST" action="/orders/<%= order.id %>/review">
+              <span class="order-review-label">Rate this order</span>
+              <div class="star-rating">
+                <% for (let star = 5; star >= 1; star--) { %>
+                  <input type="radio" id="rate-<%= order.id %>-<%= star %>" name="rating" value="<%= star %>" required>
+                  <label for="rate-<%= order.id %>-<%= star %>" title="<%= star %> star<%= star === 1 ? '' : 's' %>">★</label>
+                <% } %>
+              </div>
+              <textarea name="comment" rows="2" maxlength="1000" placeholder="Add a comment (optional)"></textarea>
+              <button type="submit" class="btn vendor-primary-cta order-review-submit">Submit review</button>
+            </form>
+          <% } %>
+        </article>
       <% }) %>
     </div>
   <% } %>

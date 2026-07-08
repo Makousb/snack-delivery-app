@@ -6,6 +6,10 @@
 
   <title><%= typeof title !== "undefined" ? title : "Snack Delivery" %></title>
 
+  <meta name="description" content="Snack — food, groceries, and more delivered from restaurants, stores, and street vendors near you." />
+  <meta name="theme-color" content="#16a34a" />
+  <link rel="icon" href="/images/snack-logo.svg" type="image/svg+xml" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -13,6 +17,7 @@
     rel="stylesheet"
   />
   <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/polish.css" />
 </head>
 
 <body class="landing-body">
@@ -54,7 +59,7 @@
         <span class="landing-kicker landing-kicker-light">Snack Delivery</span>
         <h1>Sign in. Order well. Eat sooner.</h1>
         <p>
-          Create a Snack account to discover local restaurants, save your
+          Create a Snack account to discover local vendors, save your
           delivery details, and track every order from one clean place.
         </p>
 
@@ -68,7 +73,7 @@
         </div>
 
         <a href="/home" class="landing-browse-link landing-browse-link-light">
-          Browse restaurants first
+          Browse vendors first
         </a>
       </div>
 
@@ -93,7 +98,7 @@
         <span class="landing-kicker">Built for hungry customers</span>
         <h2>A calmer way to get from craving to checkout.</h2>
         <p>
-          Snack keeps the first step simple: sign in, choose a restaurant, add
+          Snack keeps the first step simple: sign in, choose a vendor, add
           the food you want, and keep your order history in reach.
         </p>
       </div>
@@ -127,46 +132,18 @@
       <ul>
         <li>Save delivery details for faster checkout.</li>
         <li>Track your order history after signing in.</li>
-        <li>Return to the restaurants and meals you already know.</li>
+        <li>Return to the vendors and meals you already know.</li>
       </ul>
     </section>
 
     <section class="landing-partnerships landing-partnerships-editorial" aria-labelledby="landing-partnership-title">
       <div class="landing-section-head">
-        <span class="landing-kicker">Partner with Snack</span>
-        <h2 id="landing-partnership-title">Restaurants and drivers can join from here too.</h2>
+        <span class="landing-kicker">Not a customer?</span>
+        <h2 id="landing-partnership-title">Snack also has a home for businesses and drivers.</h2>
         <p>
-          Snack supports the customers ordering food, the kitchens preparing it,
-          and the drivers moving it across town.
+          <a href="/partner">Register your business</a> &middot;
+          <a href="/drive">Apply to drive</a>
         </p>
-      </div>
-
-      <div class="landing-partner-grid landing-partner-grid-editorial">
-        <article class="landing-partner-panel">
-          <img src="/homepage_images/Restaurant_items.avif" alt="Restaurant dishes" loading="lazy" />
-          <div>
-            <span>Restaurants and food businesses</span>
-            <h3>Register your business and start taking orders.</h3>
-            <p>
-              Create a branded restaurant page, upload your menu, and manage
-              orders from a focused business dashboard.
-            </p>
-            <a href="/auth/signup?accountType=owner">Register Business</a>
-          </div>
-        </article>
-
-        <article class="landing-partner-panel landing-partner-panel-alt">
-          <img src="/images/Food_deliivery.jpg" alt="Prepared food for delivery" loading="lazy" />
-          <div>
-            <span>Delivery drivers</span>
-            <h3>Deliver with Snack and keep each route organized.</h3>
-            <p>
-              Sign up as a driver to accept delivery jobs, update journey
-              stages, and track active work from your driver hub.
-            </p>
-            <a href="/auth/signup?accountType=driver">Apply to Drive</a>
-          </div>
-        </article>
       </div>
     </section>
   </main>

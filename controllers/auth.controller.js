@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt";
 import { pool } from "../db/index.js";
 import { getUserByEmail } from "../db/queries/users.js";
-import { buildUniqueRestaurantSlug } from "../utils/slugify.js";
+import { buildUniqueVendorSlug } from "../utils/slugify.js";
+import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
 
 function getRedirectPathForRole(role) {
   if (role === "driver") return "/driver";
@@ -13,8 +14,47 @@ function getFilePath(file) {
   return file ? `/images/${file.filename}` : null;
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
+// Basic shared validation for the credential endpoints. Returns an error
+// string to flash, or null when the input is acceptable.
+function validateCredentials(email, password) {
+  if (!EMAIL_PATTERN.test(email)) {
+    return "Enter a valid email address.";
+  }
+
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  }
+
+  return null;
+}
+
+// Logging a user in or signing them up issues a fresh session id, which
+// prevents session-fixation (an attacker can't pre-seed a victim's cookie and
+// inherit the authenticated session). The flash queue and any guest cart live
+// in the session, so we carry them across the regenerated session.
+function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    const { flash, cart } = req.session;
+
+    req.session.regenerate((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      if (flash) req.session.flash = flash;
+      if (cart) req.session.cart = cart;
+
+      resolve();
+    });
+  });
+}
+
 export function showSignup(req, res) {
-  res.render("auth/signup", { title: "Create Account" });
+  res.render("auth/signup", { title: "Create Account", vendorTypes: VENDOR_TYPES });
 }
 
 export async function signup(req, res) {
@@ -24,14 +64,24 @@ export async function signup(req, res) {
     const {
       accountType,
       fullName,
-      email,
+      email: rawEmail,
       password,
-      restaurantName,
-      restaurantDescription,
+      businessName,
+      businessDescription,
+      vendorType,
       phone,
       vehicleType,
       licenseNumber
     } = req.body;
+
+    const email = (rawEmail || "").trim().toLowerCase();
+
+    const validationError = validateCredentials(email, password);
+
+    if (validationError) {
+      req.flash("error", validationError);
+      return res.redirect("/auth/signup");
+    }
 
     const normalizedRole =
       accountType === "driver"
@@ -52,46 +102,51 @@ export async function signup(req, res) {
     await client.query("BEGIN");
 
     if (normalizedRole === "owner") {
-      const safeRestaurantName = (restaurantName || "").trim();
+      const safeBusinessName = (businessName || "").trim();
+      const safeVendorType = VENDOR_TYPE_VALUES.includes(vendorType)
+        ? vendorType
+        : VENDOR_TYPE_VALUES[0];
 
-      if (!safeRestaurantName) {
-        throw new Error("Restaurant name is required for business accounts.");
+      if (!safeBusinessName) {
+        throw new Error("Business name is required for business accounts.");
       }
 
-      const slug = await buildUniqueRestaurantSlug(client, safeRestaurantName);
+      const slug = await buildUniqueVendorSlug(client, safeBusinessName);
       const logoUrl = getFilePath(req.files?.businessLogo?.[0]);
       const bannerUrl = getFilePath(req.files?.businessBanner?.[0]);
 
-      const restaurantResult = await client.query(
-        `INSERT INTO restaurants (name, description, logo_url, banner_url, slug)
-         VALUES ($1, $2, $3, $4, $5)
+      const vendorResult = await client.query(
+        `INSERT INTO vendors (name, vendor_type, description, logo_url, banner_url, slug)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id`,
         [
-          safeRestaurantName,
-          (restaurantDescription || "").trim() || null,
+          safeBusinessName,
+          safeVendorType,
+          (businessDescription || "").trim() || null,
           logoUrl,
           bannerUrl,
           slug
         ]
       );
 
-      const restaurantId = restaurantResult.rows[0].id;
+      const vendorId = vendorResult.rows[0].id;
       const userResult = await client.query(
-        `INSERT INTO users (email, password_hash, role, restaurant_id, full_name)
+        `INSERT INTO users (email, password_hash, role, vendor_id, full_name)
          VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, email, role, restaurant_id, full_name`,
-        [email, passwordHash, "owner", restaurantId, safeFullName || null]
+         RETURNING id, email, role, vendor_id, full_name`,
+        [email, passwordHash, "owner", vendorId, safeFullName || null]
       );
 
       const user = userResult.rows[0];
 
       await client.query(
-        "UPDATE restaurants SET owner_id = $1 WHERE id = $2",
-        [user.id, restaurantId]
+        "UPDATE vendors SET owner_id = $1 WHERE id = $2",
+        [user.id, vendorId]
       );
 
       await client.query("COMMIT");
 
+      await regenerateSession(req);
       req.session.user = user;
       req.flash("success", "Business account created.");
       return res.redirect("/admin");
@@ -101,7 +156,7 @@ export async function signup(req, res) {
       const userResult = await client.query(
         `INSERT INTO users (email, password_hash, role, full_name)
          VALUES ($1, $2, $3, $4)
-         RETURNING id, email, role, restaurant_id, full_name`,
+         RETURNING id, email, role, vendor_id, full_name`,
         [email, passwordHash, "customer", safeFullName || null]
       );
 
@@ -109,6 +164,7 @@ export async function signup(req, res) {
 
       await client.query("COMMIT");
 
+      await regenerateSession(req);
       req.session.user = user;
       req.flash("success", "Customer account created.");
       return res.redirect("/home");
@@ -117,7 +173,7 @@ export async function signup(req, res) {
     const userResult = await client.query(
       `INSERT INTO users (email, password_hash, role, full_name)
        VALUES ($1, $2, $3, $4)
-       RETURNING id, email, role, restaurant_id, full_name`,
+       RETURNING id, email, role, vendor_id, full_name`,
       [email, passwordHash, "driver", safeFullName || null]
     );
 
@@ -137,6 +193,7 @@ export async function signup(req, res) {
 
     await client.query("COMMIT");
 
+    await regenerateSession(req);
     req.session.user = user;
     req.flash("success", "Driver account created.");
     return res.redirect("/driver");
@@ -156,30 +213,38 @@ export function showLogin(req, res) {
 
 export async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const email = (req.body.email || "").trim().toLowerCase();
+    const { password } = req.body;
 
     const user = await getUserByEmail(email);
 
-    if (!user) {
-      req.flash("error", "User not found.");
+    // A single generic message for both "no such user" and "wrong password"
+    // so the form can't be used to enumerate which emails have accounts.
+    const invalidCredentials = () => {
+      req.flash("error", "Invalid email or password.");
       return res.redirect("/auth/login");
+    };
+
+    if (!user) {
+      return invalidCredentials();
     }
 
     const match = await bcrypt.compare(
-      password,
+      password || "",
       user.password_hash
     );
 
     if (!match) {
-      req.flash("error", "Invalid password.");
-      return res.redirect("/auth/login");
+      return invalidCredentials();
     }
+
+    await regenerateSession(req);
 
     req.session.user = {
       id: user.id,
       email: user.email,
       role: user.role,
-      restaurant_id: user.restaurant_id,
+      vendor_id: user.vendor_id,
       full_name: user.full_name || null
     };
 

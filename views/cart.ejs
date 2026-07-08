@@ -1,6 +1,8 @@
 <%- include("partials/header") %>
 
 <section class="cart-page">
+  <%- include("partials/checkoutSteps", { stage: "cart" }) %>
+
   <div class="cart-page-head">
     <div>
       <span class="feature-eyebrow">Cart and checkout</span>
@@ -14,8 +16,8 @@
     </div>
 
     <a
-      href="/restaurant/<%= restaurantId || 1 %>/menu"
-      class="btn restaurant-secondary-cta"
+      href="/vendor/<%= vendorId || 1 %>/menu"
+      class="btn vendor-secondary-cta"
     >
       Continue Shopping
     </a>
@@ -24,9 +26,9 @@
   <% if (!cartItems || cartItems.length === 0) { %>
     <section class="cart-empty-state">
       <h2>Your cart is empty.</h2>
-      <p>Jump back into a restaurant menu and start building an order.</p>
+      <p>Jump back into a vendor's menu and start building an order.</p>
       <a
-        href="/restaurant/<%= restaurantId || 1 %>/menu"
+        href="/vendor/<%= vendorId || 1 %>/menu"
         class="btn cart-return-link"
       >
         Back to Menu
@@ -39,7 +41,7 @@
           <article class="cart-item-card">
             <div class="cart-item-main">
               <div class="cart-item-copy">
-                <span class="menu-category">Restaurant <%= item.restaurantId %></span>
+                <span class="menu-category">Vendor <%= vendorId %></span>
                 <h3><%= item.name %></h3>
                 <p><%= formatCurrency(item.price) %> each</p>
               </div>
@@ -51,7 +53,7 @@
 
             <div class="cart-item-controls">
               <form method="POST" action="/cart/update" class="qty-form cart-qty-form">
-                <input type="hidden" name="restaurantId" value="<%= item.restaurantId %>">
+                <input type="hidden" name="vendorId" value="<%= vendorId %>">
                 <input type="hidden" name="itemId" value="<%= item.id %>">
 
                 <input
@@ -68,7 +70,7 @@
               </form>
 
               <form method="POST" action="/cart/update" class="cart-remove-form">
-                <input type="hidden" name="restaurantId" value="<%= item.restaurantId %>">
+                <input type="hidden" name="vendorId" value="<%= vendorId %>">
                 <input type="hidden" name="itemId" value="<%= item.id %>">
                 <input type="hidden" name="qty" value="0">
 
@@ -81,14 +83,14 @@
         <% }) %>
       </div>
 
-      <aside class="cart-summary-card">
+      <aside class="cart-summary-card" data-cart-summary data-vendor-id="<%= vendorId || "" %>" data-subtotal="<%= total %>" data-fallback-fee="<%= deliveryFee %>">
         <span class="feature-eyebrow">Checkout</span>
         <h2>Ready to place the order?</h2>
 
         <div class="cart-summary-stats">
           <div class="cart-summary-stat">
-            <strong>22-30 min</strong>
-            <span>delivery window</span>
+            <strong data-eta-window>25-40 min</strong>
+            <span data-eta-caption>delivery window</span>
           </div>
           <div class="cart-summary-stat">
             <strong>Saved</strong>
@@ -102,19 +104,111 @@
             <strong><%= formatCurrency(total) %></strong>
           </div>
           <div class="cart-summary-row">
-            <span>Delivery</span>
-            <strong>Included</strong>
+            <span>Delivery <span class="cart-delivery-note" data-delivery-note>(estimated)</span></span>
+            <strong data-delivery-fee><%= formatCurrency(deliveryFee) %></strong>
+          </div>
+          <div class="cart-summary-row" data-tip-row hidden>
+            <span>Driver tip</span>
+            <strong data-tip-display><%= formatCurrency(0) %></strong>
+          </div>
+          <div class="cart-summary-row cart-summary-discount" data-discount-row hidden>
+            <span>Discount <span class="cart-delivery-note" data-discount-code></span></span>
+            <strong data-discount-display>-<%= formatCurrency(0) %></strong>
           </div>
         </div>
 
         <div class="cart-summary-total">
           <span>Total</span>
-          <strong><%= formatCurrency(total) %></strong>
+          <strong data-grand-total><%= formatCurrency(grandTotal) %></strong>
         </div>
 
-        <form method="POST" action="/restaurant/<%= restaurantId || 1 %>/order" class="checkout-form modern-checkout-form">
+        <form method="POST" action="/vendor/<%= vendorId || 1 %>/order" class="checkout-form modern-checkout-form">
+          <%
+            const safeOrderSlots = typeof orderSlots !== "undefined" ? orderSlots : [];
+            const safeVendorStatus = typeof vendorStatus !== "undefined" ? vendorStatus : null;
+            const safeCartVendor = typeof cartVendor !== "undefined" ? cartVendor : null;
+            const vendorClosedNow = safeVendorStatus ? !safeVendorStatus.open : false;
+          %>
+
           <div class="checkout-field">
+            <span class="checkout-fulfillment-label"><strong>How would you like it?</strong></span>
+            <div class="fulfillment-options">
+              <label class="fulfillment-option">
+                <input type="radio" name="fulfillmentType" value="delivery" checked data-fulfillment-input> Delivery
+              </label>
+              <label class="fulfillment-option">
+                <input type="radio" name="fulfillmentType" value="pickup" data-fulfillment-input> Pickup (collect from vendor)
+              </label>
+            </div>
+            <% if (safeCartVendor?.pickup_instructions) { %>
+              <p class="checkout-address-note pickup-instructions-note" data-pickup-note hidden>
+                <strong>Pickup instructions from <%= safeCartVendor.name %>:</strong>
+                <%= safeCartVendor.pickup_instructions %>
+              </p>
+            <% } %>
+          </div>
+
+          <div class="checkout-field">
+            <span class="checkout-fulfillment-label"><strong>When do you want it?</strong></span>
+            <% if (vendorClosedNow) { %>
+              <p class="checkout-address-note vendor-closed-note">
+                <%= safeCartVendor?.name || "This vendor" %> is closed right now — pick a
+                scheduled time below and your order will be ready when they open.
+              </p>
+            <% } %>
+            <div class="fulfillment-options">
+              <label class="fulfillment-option <%= vendorClosedNow ? "fulfillment-option-disabled" : "" %>">
+                <input
+                  type="radio"
+                  name="orderTiming"
+                  value="asap"
+                  <%= vendorClosedNow ? "disabled" : "checked" %>
+                  data-timing-input
+                > ASAP
+              </label>
+              <label class="fulfillment-option">
+                <input
+                  type="radio"
+                  name="orderTiming"
+                  value="scheduled"
+                  <%= vendorClosedNow ? "checked" : "" %>
+                  <%= safeOrderSlots.length === 0 ? "disabled" : "" %>
+                  data-timing-input
+                > Schedule for later
+              </label>
+            </div>
+
+            <div data-schedule-only <%= vendorClosedNow ? "" : "hidden" %>>
+              <label class="sr-only" for="scheduledFor">Choose a time</label>
+              <select id="scheduledFor" name="scheduledFor" class="checkout-input" data-schedule-select>
+                <% safeOrderSlots.forEach((slot) => { %>
+                  <option value="<%= slot.value %>"><%= slot.label %></option>
+                <% }) %>
+              </select>
+              <p class="checkout-address-note">
+                Times match <%= safeCartVendor?.name || "the vendor" %>'s opening hours.
+              </p>
+            </div>
+          </div>
+
+          <div class="checkout-field" data-delivery-only>
             <label for="delivery-address"><strong>Delivery Address:</strong></label>
+
+            <% if (typeof savedAddresses !== "undefined" && savedAddresses.length) { %>
+              <div class="saved-address-picker">
+                <% savedAddresses.forEach((addr) => { %>
+                  <button
+                    type="button"
+                    class="saved-address-chip <%= addr.is_default ? "is-default" : "" %>"
+                    data-saved-address
+                    data-address="<%= addr.address %>"
+                    data-lat="<%= addr.latitude != null ? addr.latitude : "" %>"
+                    data-lng="<%= addr.longitude != null ? addr.longitude : "" %>"
+                  ><%= addr.label || "Saved" %></button>
+                <% }) %>
+              </div>
+            <% } %>
+
             <textarea
               id="delivery-address"
               name="deliveryAddress"
@@ -126,7 +220,7 @@
               Snack remembers this address on this browser so repeat orders stay quick.
             </p>
 
-            <button type="button" class="btn restaurant-secondary-cta" data-capture-location>
+            <button type="button" class="btn vendor-secondary-cta" data-capture-location>
               Use my current location
             </button>
             <p class="checkout-address-note" data-location-status></p>
@@ -134,20 +228,28 @@
             <input type="hidden" name="deliveryLng" />
           </div>
 
-          <div class="checkout-field">
-            <label for="phone"><strong>Phone Number (for M-Pesa):</strong></label>
-            <input
-              type="text"
-              id="phone"
-              name="phone"
-              placeholder="254712345678"
-              pattern="254[0-9]{9}"
-              class="checkout-input"
-            />
-          </div>
+          <% if (typeof mpesaEnabled !== "undefined" && mpesaEnabled) { %>
+            <div class="checkout-field">
+              <label for="phone"><strong>Phone Number (for M-Pesa):</strong></label>
+              <input
+                type="text"
+                id="phone"
+                name="phone"
+                placeholder="254712345678"
+                pattern="254[0-9]{9}"
+                class="checkout-input"
+              />
+            </div>
+          <% } %>
 
-          <div class="checkout-field">
+          <div class="checkout-field" data-delivery-only>
             <label for="tipAmount"><strong>Driver Tip (KSh, optional):</strong></label>
+            <div class="tip-presets">
+              <button type="button" class="tip-preset" data-tip-percent="5">5%</button>
+              <button type="button" class="tip-preset" data-tip-percent="10">10%</button>
+              <button type="button" class="tip-preset" data-tip-percent="15">15%</button>
+              <button type="button" class="tip-preset" data-tip-clear>None</button>
+            </div>
             <input
               type="number"
               id="tipAmount"
@@ -156,24 +258,45 @@
               step="10"
               placeholder="0"
               class="checkout-input"
+              data-tip-input
             />
           </div>
 
+          <div class="checkout-field">
+            <label for="promoCode"><strong>Promo code:</strong></label>
+            <div class="promo-apply">
+              <input
+                type="text"
+                id="promoCode"
+                name="promoCode"
+                class="checkout-input"
+                placeholder="Enter code"
+                autocomplete="off"
+                data-promo-input
+              />
+              <button type="button" class="btn vendor-secondary-cta" data-promo-apply>Apply</button>
+            </div>
+            <p class="checkout-address-note" data-promo-status></p>
+          </div>
+
           <div class="checkout-actions">
-            <button
-              type="submit"
-              name="paymentMethod"
-              value="mpesa"
-              class="btn checkout-primary-btn"
-            >
-              Pay with M-Pesa
-            </button>
+            <% if (typeof mpesaEnabled !== "undefined" && mpesaEnabled) { %>
+              <button
+                type="submit"
+                name="paymentMethod"
+                value="mpesa"
+                class="btn checkout-primary-btn"
+              >
+                Pay with M-Pesa
+              </button>
+            <% } %>
 
             <button
               type="submit"
               name="paymentMethod"
               value="cash"
-              class="btn checkout-secondary-btn"
+              class="btn <%= (typeof mpesaEnabled !== "undefined" && mpesaEnabled) ? "checkout-secondary-btn" : "checkout-primary-btn" %>"
+              data-cash-btn
             >
               Pay on Delivery
             </button>
@@ -183,5 +306,244 @@
     </div>
   <% } %>
 </section>
+
+<script>
+  (function () {
+    const summary = document.querySelector("[data-cart-summary]");
+    if (!summary) return;
+
+    const vendorId = summary.dataset.vendorId;
+    const subtotal = Number(summary.dataset.subtotal) || 0;
+    const feeEl = summary.querySelector("[data-delivery-fee]");
+    const totalEl = summary.querySelector("[data-grand-total]");
+    const etaEl = summary.querySelector("[data-eta-window]");
+    const noteEl = summary.querySelector("[data-delivery-note]");
+
+    const fallbackFee = Number(summary.dataset.fallbackFee) || 0;
+    const deliveryOnly = document.querySelectorAll("[data-delivery-only]");
+
+    let quote = { fee: fallbackFee, etaMin: 25, etaMax: 40, hasCoords: false, distanceKm: null };
+    let pickup = false;
+
+    const tipInput = document.querySelector("[data-tip-input]");
+    const tipRow = summary.querySelector("[data-tip-row]");
+    const tipDisplay = summary.querySelector("[data-tip-display]");
+    let tip = 0;
+
+    const discountRow = summary.querySelector("[data-discount-row]");
+    const discountDisplay = summary.querySelector("[data-discount-display]");
+    const discountCodeEl = summary.querySelector("[data-discount-code]");
+    const promoInput = document.querySelector("[data-promo-input]");
+    const promoStatus = document.querySelector("[data-promo-status]");
+    let discount = 0;
+    let promoCode = "";
+
+    const money = (n) =>
+      "KSh " + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const etaCaptionEl = summary.querySelector("[data-eta-caption]");
+    const cashBtn = document.querySelector("[data-cash-btn]");
+    const pickupNote = document.querySelector("[data-pickup-note]");
+    const scheduleOnly = document.querySelector("[data-schedule-only]");
+    const scheduleSelect = document.querySelector("[data-schedule-select]");
+    let scheduled = document.querySelector("[data-timing-input][value='scheduled']")?.checked || false;
+
+    const selectedSlotLabel = () =>
+      scheduleSelect?.selectedOptions?.[0]?.textContent.trim() || "Scheduled";
+
+    const render = () => {
+      const fee = pickup ? 0 : quote.fee;
+      const tipValue = pickup ? 0 : tip;
+      if (feeEl) feeEl.textContent = money(fee);
+      if (tipDisplay) tipDisplay.textContent = money(tipValue);
+      if (tipRow) tipRow.hidden = tipValue <= 0;
+      if (discountRow) discountRow.hidden = discount <= 0;
+      if (discountDisplay) discountDisplay.textContent = "-" + money(discount);
+      if (discountCodeEl) discountCodeEl.textContent = promoCode ? "(" + promoCode + ")" : "";
+      if (totalEl) totalEl.textContent = money(Math.max(0, subtotal + fee + tipValue - discount));
+      if (etaEl) {
+        etaEl.textContent = scheduled
+          ? selectedSlotLabel()
+          : pickup
+            ? "Ready ~15 min"
+            : quote.etaMin + "-" + quote.etaMax + " min";
+      }
+      if (etaCaptionEl) {
+        etaCaptionEl.textContent = scheduled
+          ? "scheduled for"
+          : pickup
+            ? "pickup window"
+            : "delivery window";
+      }
+      if (cashBtn) cashBtn.textContent = pickup ? "Pay on Pickup" : "Pay on Delivery";
+      if (pickupNote) pickupNote.hidden = !pickup;
+      if (noteEl) {
+        noteEl.textContent = pickup
+          ? "(pickup)"
+          : quote.hasCoords
+            ? "(" + quote.distanceKm + " km away)"
+            : "(estimated)";
+      }
+    };
+
+    // Fired by address-memory.js whenever delivery coordinates change (GPS or
+    // Places autocomplete). Re-price the trip from the vendor.
+    document.querySelector(".checkout-form")?.addEventListener("snack:delivery-coords", async (event) => {
+      if (!vendorId) return;
+      const { lat, lng } = event.detail || {};
+
+      try {
+        const params = new URLSearchParams();
+        if (lat != null && lng != null) {
+          params.set("lat", lat);
+          params.set("lng", lng);
+        }
+        const res = await fetch("/vendor/" + encodeURIComponent(vendorId) + "/delivery-estimate?" + params.toString());
+        if (!res.ok) return;
+        quote = await res.json();
+        render();
+      } catch (_) {
+        // Leave the current estimate in place if the quote request fails.
+      }
+    });
+
+    // Delivery vs pickup toggle: pickup zeroes the fee and hides the address.
+    // Kept in sync with the home-page preference (localStorage).
+    const applyPickupState = () => {
+      pickup = document.querySelector("[data-fulfillment-input]:checked")?.value === "pickup";
+      deliveryOnly.forEach((el) => { el.hidden = pickup; });
+      render();
+    };
+
+    document.querySelectorAll("[data-fulfillment-input]").forEach((input) => {
+      input.addEventListener("change", () => {
+        localStorage.setItem("snackFulfillment", input.value === "pickup" ? "pickup" : "delivery");
+        applyPickupState();
+      });
+    });
+
+    // Preselect the option chosen on the home page.
+    if (localStorage.getItem("snackFulfillment") === "pickup") {
+      const pickupInput = document.querySelector('[data-fulfillment-input][value="pickup"]');
+      if (pickupInput) {
+        pickupInput.checked = true;
+        applyPickupState();
+      }
+    }
+
+    // ASAP vs scheduled: scheduling reveals the slot picker. Synced with the
+    // home-page timing preference. When the vendor is closed, ASAP is disabled
+    // server-side and "scheduled" is already preselected.
+    const applyTimingState = () => {
+      scheduled = document.querySelector("[data-timing-input][value='scheduled']")?.checked || false;
+      if (scheduleOnly) scheduleOnly.hidden = !scheduled;
+      render();
+    };
+
+    document.querySelectorAll("[data-timing-input]").forEach((input) => {
+      input.addEventListener("change", () => {
+        localStorage.setItem("snackTiming", input.value === "scheduled" ? "scheduled" : "asap");
+        applyTimingState();
+      });
+    });
+
+    scheduleSelect?.addEventListener("change", render);
+
+    const asapInput = document.querySelector("[data-timing-input][value='asap']");
+    const scheduledInput = document.querySelector("[data-timing-input][value='scheduled']");
+    if (
+      localStorage.getItem("snackTiming") === "scheduled" &&
+      scheduledInput &&
+      !scheduledInput.disabled &&
+      !scheduledInput.checked
+    ) {
+      scheduledInput.checked = true;
+    }
+    // If the vendor closed and ASAP is disabled, make sure scheduled stays on.
+    if (asapInput?.disabled && scheduledInput && !scheduledInput.disabled) {
+      scheduledInput.checked = true;
+    }
+    applyTimingState();
+
+    // Tip presets (a percentage of the subtotal) plus free-text entry.
+    document.querySelectorAll("[data-tip-percent]").forEach((button) => {
+      button.addEventListener("click", () => {
+        tip = Math.round((subtotal * Number(button.dataset.tipPercent)) / 100);
+        if (tipInput) tipInput.value = tip;
+        render();
+      });
+    });
+    document.querySelector("[data-tip-clear]")?.addEventListener("click", () => {
+      tip = 0;
+      if (tipInput) tipInput.value = "";
+      render();
+    });
+    tipInput?.addEventListener("input", () => {
+      tip = Math.max(0, Number(tipInput.value) || 0);
+      render();
+    });
+
+    // Promo code: validate against the server-side subtotal, then reflect the
+    // discount in the summary. The code field itself submits with the order.
+    document.querySelector("[data-promo-apply]")?.addEventListener("click", async () => {
+      if (!vendorId) return;
+      const code = (promoInput?.value || "").trim();
+      if (!code) return;
+
+      try {
+        const res = await fetch("/vendor/" + encodeURIComponent(vendorId) + "/promo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+
+        if (data.valid) {
+          discount = data.discount;
+          promoCode = data.code;
+          if (promoStatus) {
+            promoStatus.textContent = "Code applied — you saved " + money(data.discount) + ".";
+            promoStatus.style.color = "var(--green-700)";
+          }
+        } else {
+          discount = 0;
+          promoCode = "";
+          if (promoStatus) {
+            promoStatus.textContent = data.error || "That code isn't valid.";
+            promoStatus.style.color = "#b42318";
+          }
+        }
+        render();
+      } catch (_) {
+        // Leave any existing discount in place on failure.
+      }
+    });
+
+    // Saved-address chips: fill the address + coordinates and re-price delivery.
+    const checkoutForm = document.querySelector(".checkout-form");
+    document.querySelectorAll("[data-saved-address]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const textarea = document.querySelector("[data-checkout-address]");
+        const latInput = checkoutForm?.querySelector('[name="deliveryLat"]');
+        const lngInput = checkoutForm?.querySelector('[name="deliveryLng"]');
+        const lat = chip.dataset.lat || "";
+        const lng = chip.dataset.lng || "";
+
+        if (textarea) textarea.value = chip.dataset.address || "";
+        if (latInput) latInput.value = lat;
+        if (lngInput) lngInput.value = lng;
+
+        checkoutForm?.dispatchEvent(new CustomEvent("snack:delivery-coords", {
+          detail: { lat: lat !== "" ? Number(lat) : null, lng: lng !== "" ? Number(lng) : null }
+        }));
+
+        document.querySelectorAll("[data-saved-address]").forEach((c) => c.classList.remove("is-selected"));
+        chip.classList.add("is-selected");
+      });
+    });
+
+    render();
+  })();
+</script>
 
 <%- include("partials/footer") %>

@@ -1,0 +1,159 @@
+<%- include("partials/header", { title: "Street Vendors", bodyClass: "home-sidebar-layout" }) %>
+
+<%
+  const safeVendors = vendors || [];
+  const safeItemsByVendor = itemsByVendor || {};
+  const safeComparisons = priceComparisons || [];
+  const fallbackImage = "/homepage_images/meat.avif";
+%>
+
+<div class="marketplace-home-layout">
+  <%- include("partials/sidebar", { currentPage: "street-vendors" }) %>
+
+<section class="marketplace-page street-vendors-page">
+  <div class="street-vendors-head">
+    <span class="feature-eyebrow">Street vendors</span>
+    <h1>Street food near you</h1>
+    <p>Carts and kiosks serving Kenyan street food favorites, separate from restaurants and stores.</p>
+    <p class="street-vendors-location-status" data-location-status>Finding vendors closest to you&hellip;</p>
+  </div>
+
+  <% if (safeComparisons.length > 0) { %>
+    <section class="street-vendors-compare" aria-label="Price comparison">
+      <h2>Compare prices between vendors</h2>
+      <div class="street-compare-grid">
+        <% safeComparisons.forEach((comparison) => { %>
+          <article class="street-compare-card">
+            <h3><%= comparison.name %></h3>
+            <ul>
+              <% comparison.entries.forEach((entry, index) => { %>
+                <li class="<%= index === 0 ? "street-compare-cheapest" : "" %>">
+                  <span><%= entry.vendor_name %></span>
+                  <strong><%= formatCurrency(entry.price) %></strong>
+                  <% if (index === 0) { %><small>Cheapest</small><% } %>
+                </li>
+              <% }) %>
+            </ul>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (safeVendors.length === 0) { %>
+    <p class="home-empty-state">No street vendors yet.</p>
+  <% } else { %>
+    <div class="marketplace-vendor-grid street-vendor-grid" id="street-vendor-grid">
+      <% safeVendors.forEach((vendor) => { %>
+        <%
+          const previewItems = safeItemsByVendor[String(vendor.id)] || [];
+          const bannerImage = vendor.banner_url || fallbackImage;
+        %>
+        <a
+          href="/vendor/<%= vendor.id %>/menu"
+          class="marketplace-vendor-card street-vendor-card"
+          data-lat="<%= vendor.latitude ?? "" %>"
+          data-lng="<%= vendor.longitude ?? "" %>"
+        >
+          <div class="marketplace-vendor-media">
+            <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
+            <span class="marketplace-vendor-logo">
+              <% if (vendor.logo_url) { %>
+                <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
+              <% } else { %>
+                <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+              <% } %>
+            </span>
+            <span class="street-vendor-distance" data-distance></span>
+          </div>
+
+          <div class="marketplace-vendor-content">
+            <h3><%= vendor.name %></h3>
+            <p class="marketplace-vendor-description">
+              <%= vendor.description || "Local street food, made fresh." %>
+            </p>
+
+            <% if (previewItems.length > 0) { %>
+              <div class="marketplace-menu-preview">
+                <% previewItems.slice(0, 4).forEach((item) => { %>
+                  <span><%= item.name %></span>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+</section>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const EARTH_RADIUS_KM = 6371;
+
+    function toRadians(degrees) {
+      return (degrees * Math.PI) / 180;
+    }
+
+    function distanceKm(lat1, lng1, lat2, lng2) {
+      const dLat = toRadians(lat2 - lat1);
+      const dLng = toRadians(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) ** 2;
+
+      return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    const grid = document.getElementById("street-vendor-grid");
+    const statusEl = document.querySelector("[data-location-status]");
+
+    if (!grid) return;
+
+    const cards = Array.from(grid.querySelectorAll(".street-vendor-card"));
+
+    if (!navigator.geolocation) {
+      if (statusEl) statusEl.textContent = "Location isn't available in this browser — showing all vendors.";
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+
+        cards.forEach((card) => {
+          const lat = parseFloat(card.dataset.lat);
+          const lng = parseFloat(card.dataset.lng);
+          const distanceEl = card.querySelector("[data-distance]");
+
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            const km = distanceKm(userLat, userLng, lat, lng);
+            card.dataset.distanceKm = String(km);
+            if (distanceEl) distanceEl.textContent = `${km.toFixed(1)} km away`;
+          }
+        });
+
+        const sortedCards = [...cards].sort((a, b) => {
+          const distA = parseFloat(a.dataset.distanceKm);
+          const distB = parseFloat(b.dataset.distanceKm);
+
+          if (!Number.isFinite(distA)) return 1;
+          if (!Number.isFinite(distB)) return -1;
+
+          return distA - distB;
+        });
+
+        sortedCards.forEach((card) => grid.appendChild(card));
+
+        if (statusEl) statusEl.textContent = "Showing vendors closest to you first.";
+      },
+      () => {
+        if (statusEl) statusEl.textContent = "Location access denied — showing all vendors.";
+      }
+    );
+  });
+</script>
+
+<%- include("partials/footer") %>

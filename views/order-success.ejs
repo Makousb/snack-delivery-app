@@ -1,10 +1,42 @@
 <%- include("partials/header") %>
 
+<%
+  const isPickupOrder = order.fulfillment_type === "pickup";
+  const isScheduledOrder = Boolean(order.scheduled_for);
+  const scheduledLabel = isScheduledOrder ? formatSlotLabel(order.scheduled_for) : "";
+%>
+
 <section class="order-page">
+  <%- include("partials/checkoutSteps", { stage: "confirmed" }) %>
+
   <div class="order-page-hero">
     <span class="feature-eyebrow">Order confirmed</span>
-    <h1>Your order is in motion.</h1>
-    <p>We’ll keep this page updated while the kitchen and delivery flow progress.</p>
+    <h1><%=
+      isScheduledOrder
+        ? "Your order is scheduled."
+        : isPickupOrder
+          ? "Your order is being prepared."
+          : "Your order is in motion."
+    %></h1>
+    <p>
+      <% if (isScheduledOrder) { %>
+        Booked for <strong><%= scheduledLabel %></strong> —
+        <%= isPickupOrder
+          ? "collect it from the vendor around that time."
+          : "the kitchen will start in time for your slot." %>
+      <% } else if (isPickupOrder) { %>
+        We'll keep this page updated — collect your order from the vendor once it's marked ready.
+      <% } else { %>
+        We'll keep this page updated while the kitchen and delivery flow progress.
+      <% } %>
+    </p>
+
+    <% if (isScheduledOrder) { %>
+      <div class="order-status-pill">
+        <span>Scheduled for</span>
+        <strong><%= scheduledLabel %></strong>
+      </div>
+    <% } %>
 
     <div class="order-status-pill">
       <span>Current status</span>
@@ -35,7 +67,7 @@
     <section class="order-card order-items-card">
       <div class="order-card-head">
         <h2>Order details</h2>
-        <span class="menu-category"><%= order.restaurant_name %></span>
+        <span class="menu-category"><%= order.vendor_name %></span>
       </div>
 
       <div class="order-item-list">
@@ -54,21 +86,71 @@
     <aside class="order-card order-summary-card">
       <span class="feature-eyebrow">Summary</span>
       <h2>Everything looks good.</h2>
+
+      <div class="cart-summary-breakdown">
+        <div class="cart-summary-row">
+          <span>Subtotal</span>
+          <strong><%= formatCurrency(order.total) %></strong>
+        </div>
+        <% if (Number(order.discount) > 0) { %>
+          <div class="cart-summary-row cart-summary-discount">
+            <span>Discount<% if (order.promo_code) { %> (<%= order.promo_code %>)<% } %></span>
+            <strong>-<%= formatCurrency(order.discount) %></strong>
+          </div>
+        <% } %>
+        <div class="cart-summary-row">
+          <span><%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %></span>
+          <strong><%= formatCurrency(order.delivery_fee || 0) %></strong>
+        </div>
+        <% if (Number(order.tip) > 0) { %>
+          <div class="cart-summary-row">
+            <span>Driver tip</span>
+            <strong><%= formatCurrency(order.tip) %></strong>
+          </div>
+        <% } %>
+      </div>
+
       <div class="cart-summary-total">
         <span>Total</span>
-        <strong><%= formatCurrency(order.total) %></strong>
+        <strong><%= formatCurrency(Number(order.total) - Number(order.discount || 0) + Number(order.delivery_fee || 0) + Number(order.tip || 0)) %></strong>
       </div>
 
       <div class="order-summary-meta">
         <span>Order #<%= order.id %></span>
-        <span><%= order.restaurant_name %></span>
+        <span><%= order.vendor_name %></span>
+        <span class="fulfillment-chip <%= isPickupOrder ? "fulfillment-chip-pickup" : "" %>">
+          <%= isPickupOrder ? "Pickup" : "Delivery" %>
+        </span>
       </div>
 
+      <% if (isPickupOrder) { %>
+        <div class="pickup-info-card">
+          <span class="pickup-info-title"><%- include("partials/icon", { name: "pin" }) %> Pickup details</span>
+          <strong><%= order.vendor_name %></strong>
+          <% if (order.vendor_pickup_instructions) { %>
+            <span><%= order.vendor_pickup_instructions %></span>
+          <% } %>
+          <span>
+            Hours: <%= formatVendorHours({
+              opening_time: order.vendor_opening_time,
+              closing_time: order.vendor_closing_time
+            }) %>
+          </span>
+          <% if (order.vendor_latitude != null && order.vendor_longitude != null) { %>
+            <a
+              href="https://www.google.com/maps?q=<%= order.vendor_latitude %>,<%= order.vendor_longitude %>"
+              target="_blank"
+              rel="noopener"
+            >Open in Google Maps &rarr;</a>
+          <% } %>
+        </div>
+      <% } %>
+
       <div class="order-summary-actions">
-        <a href="/restaurant/<%= order.restaurant_id %>/menu" class="btn restaurant-primary-cta">
+        <a href="/vendor/<%= order.vendor_id %>/menu" class="btn vendor-primary-cta">
           Back to Menu
         </a>
-        <a href="/orders" class="btn restaurant-secondary-cta">
+        <a href="/orders" class="btn vendor-secondary-cta">
           View Orders
         </a>
       </div>

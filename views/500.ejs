@@ -1,10 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= title %></title>
+  <link rel="icon" href="/images/snack-logo.svg" type="image/svg+xml" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Sora:wght@700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/polish.css" />
 </head>
 <body>
-  <h1>500 – Server Error</h1>
-  <p>Something went wrong. Please try again later.</p>
+  <main class="error-page">
+    <img src="/images/snack-logo.svg" alt="Snack logo" width="64" height="64" />
+    <span class="error-code">500</span>
+    <h1>Something burned in the kitchen.</h1>
+    <p>We hit an unexpected error. Please try again in a moment.</p>
+    <div class="error-actions">
+      <a href="/home" class="btn vendor-primary-cta">Back to Discovery</a>
+    </div>
+  </main>
 </body>
 </html>

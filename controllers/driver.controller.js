@@ -37,10 +37,10 @@ export async function renderDriverDashboard(req, res, next) {
            o.delivery_lat,
            o.delivery_lng,
            o.customer_phone,
-           r.name AS restaurant_name
+           v.name AS vendor_name
          FROM deliveries d
          JOIN orders o ON o.id = d.order_id
-         JOIN restaurants r ON r.id = o.restaurant_id
+         JOIN vendors v ON v.id = o.vendor_id
          WHERE d.status = 'Available'
          ORDER BY d.created_at DESC`
       ),
@@ -59,10 +59,10 @@ export async function renderDriverDashboard(req, res, next) {
            o.delivery_lat,
            o.delivery_lng,
            o.customer_phone,
-           r.name AS restaurant_name
+           v.name AS vendor_name
          FROM deliveries d
          JOIN orders o ON o.id = d.order_id
-         JOIN restaurants r ON r.id = o.restaurant_id
+         JOIN vendors v ON v.id = o.vendor_id
          WHERE d.driver_id = $1
            AND d.status <> 'Delivered'
          ORDER BY d.accepted_at DESC NULLS LAST, d.created_at DESC`,
@@ -77,10 +77,10 @@ export async function renderDriverDashboard(req, res, next) {
            d.completed_at,
            o.id AS order_id,
            o.total,
-           r.name AS restaurant_name
+           v.name AS vendor_name
          FROM deliveries d
          JOIN orders o ON o.id = d.order_id
-         JOIN restaurants r ON r.id = o.restaurant_id
+         JOIN vendors v ON v.id = o.vendor_id
          WHERE d.driver_id = $1
            AND d.status = 'Delivered'
          ORDER BY d.completed_at DESC NULLS LAST
@@ -132,7 +132,7 @@ export async function acceptDelivery(req, res, next) {
       `UPDATE deliveries
        SET driver_id = $1,
            status = 'Accepted',
-           current_stage = 'Heading to restaurant',
+           current_stage = 'Heading to pickup',
            accepted_at = NOW()
        WHERE id = $2
          AND status = 'Available'
@@ -147,7 +147,7 @@ export async function acceptDelivery(req, res, next) {
 
     await Promise.all([
       pool.query(
-        "UPDATE drivers SET status = 'On delivery', current_location = 'Heading to restaurant' WHERE id = $1",
+        "UPDATE drivers SET status = 'On delivery', current_location = 'Heading to pickup' WHERE id = $1",
         [driver.id]
       ),
       pool.query(
@@ -179,10 +179,10 @@ export async function updateDeliveryStage(req, res, next) {
     const stageMap = {
       picked_up: {
         deliveryStatus: "Picked Up",
-        currentStage: "Picked up from restaurant",
+        currentStage: "Picked up from vendor",
         orderStatus: "Out for Delivery",
         driverStatus: "On delivery",
-        driverLocation: "Leaving restaurant"
+        driverLocation: "Leaving pickup point"
       },
       out_for_delivery: {
         deliveryStatus: "Out for Delivery",

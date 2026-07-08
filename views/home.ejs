@@ -1,9 +1,15 @@
 <%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
 
 <%
-  const safeRestaurants = restaurants || [];
+  const safeVendors = vendors || [];
   const safePopularItems = popularItems || [];
-  const fallbackRestaurantImages = [
+  const safeVendorSections = vendorSections || [];
+  const sectionMeta = {
+    restaurant: { label: "Restaurants", subhead: "Order from local favorites" },
+    store: { label: "Grocery & convenience", subhead: "Stock up from nearby stores" },
+    street_vendor: { label: "Street vendor", subhead: "Grab a quick bite from the street" }
+  };
+  const fallbackVendorImages = [
     "/homepage_images/Restaurant_items.avif",
     "/homepage_images/papa-johns-banner.webp",
     "/homepage_images/PizzaInnBanner.jpg",
@@ -11,311 +17,342 @@
     "/homepage_images/greek.avif"
   ];
   const marketplaceCategories = [
-    { name: "Asian", detail: "Noodles, rice, and more", tone: "red", image: "/homepage_images/Noodles_Icon.png" },
-    { name: "Pizza", detail: "Slices and sides", tone: "orange", image: "/homepage_images/Pizza_Icon.jpg" },
-    { name: "Chicken", detail: "Crispy favorites", tone: "gold", image: "/homepage_images/Chicken_Icon.jpg" },
-    { name: "Burgers", detail: "Stacked and saucy", tone: "green", image: "/homepage_images/Burger_Icon.jpg" },
-    { name: "Healthy", detail: "Bowls and salads", tone: "teal", image: "/homepage_images/Salad_Icon.jpg" },
-    { name: "Dessert", detail: "Sweet finishes", tone: "pink", image: "/homepage_images/Cake_Icon.jpg" }
+    {
+      name: "Fresh Produce",
+      detail: "Fruits, veggies, and herbs",
+      tone: "red",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="27" r="13" fill="#ef4444"/><path d="M24 16c0-4 3-6 6-6-1 3-3 5-6 6z" fill="#16a34a"/></svg>'
+    },
+    {
+      name: "Bakery",
+      detail: "Bread, pastries, and rolls",
+      tone: "orange",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M8 30c0-10 7-18 16-18s16 8 16 18c0 3-2 5-5 5H13c-3 0-5-2-5-5z" fill="#d97706"/><path d="M17 18l3 10M24 16l2 12M31 18l-3 10" stroke="#92400e" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>'
+    },
+    {
+      name: "Dairy & Eggs",
+      detail: "Milk, cheese, and eggs",
+      tone: "gold",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M14 10l10-6 10 6v28a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2z" fill="#3b82f6"/><path d="M14 10h20l3 8H11z" fill="#1d4ed8"/><rect x="11" y="24" width="26" height="6" fill="#ffffff" opacity="0.85"/></svg>'
+    },
+    {
+      name: "Beverages",
+      detail: "Water, juice, and soda",
+      tone: "green",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="22" y="6" width="3.4" height="14" rx="1.6" fill="#0369a1" transform="rotate(12 23.7 13)"/><path d="M13 16h22l-2.5 22a3 3 0 0 1-3 2.7H18.5a3 3 0 0 1-3-2.7z" fill="#0ea5e9"/><path d="M13 16h22" stroke="#0369a1" stroke-width="2"/></svg>'
+    },
+    {
+      name: "Household",
+      detail: "Cleaning and home basics",
+      tone: "teal",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="23" y="5" width="9" height="5" rx="1.5" fill="#6b21a8" transform="rotate(-20 27.5 7.5)"/><rect x="20" y="10" width="8" height="9" rx="1.5" fill="#7e22ce"/><rect x="16" y="18" width="16" height="22" rx="3" fill="#a855f7"/></svg>'
+    },
+    {
+      name: "Snacks",
+      detail: "Chips, sweets, and treats",
+      tone: "pink",
+      icon: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="15" fill="#d97706"/><circle cx="18" cy="19" r="2" fill="#7c2d12"/><circle cx="28" cy="18" r="2" fill="#7c2d12"/><circle cx="31" cy="27" r="2" fill="#7c2d12"/><circle cx="21" cy="30" r="2" fill="#7c2d12"/><circle cx="24" cy="24" r="1.6" fill="#7c2d12"/></svg>'
+    }
   ];
-  const filterChips = [
-    "Fastest nearby",
-    "Offers",
-    "Top rated",
-    "Under 30 min",
-    "Pickup",
-    "New on Snack"
+  // Filters backed by real vendor data (open status, ratings, review count).
+  const vendorFilters = [
+    { key: "all", label: "All vendors" },
+    { key: "open", label: "Open now" },
+    { key: "top", label: "Top rated" },
+    { key: "new", label: "New on Snack" }
   ];
-  const restaurantBadges = ["Free delivery", "Top rated", "Great value", "Fast delivery"];
-  const restaurantCuisines = ["Pizza", "Chicken", "Burgers", "Comfort food", "Fresh bowls"];
-  const restaurantItems = safePopularItems.reduce((groups, item) => {
-    const key = String(item.restaurant_id);
+  const vendorItems = safePopularItems.reduce((groups, item) => {
+    const key = String(item.vendor_id);
     groups[key] = groups[key] || [];
     groups[key].push(item);
     return groups;
   }, {});
-  const heroRestaurant = safeRestaurants[0] || {};
+  const heroVendor = safeVendors[0] || {};
   const heroImage =
-    heroRestaurant.banner_url ||
+    heroVendor.banner_url ||
     safePopularItems[0]?.image_url ||
     "/homepage_images/Restaurant_items.avif";
-  const spotlightItems = safePopularItems.slice(0, 8);
+  const isShopper = !currentUser || !["owner", "admin", "driver"].includes(currentUser.role);
 %>
 
 <div class="marketplace-home-layout">
-  <aside class="marketplace-side-menu" aria-label="Snack menu">
-    <nav class="side-menu-section" aria-label="Home sections">
-      <span class="side-menu-section-title">Menu</span>
-      <a href="#marketplace-top" class="side-menu-link side-menu-link-active">
-        <span class="side-menu-icon" aria-hidden="true">H</span>
-        <span>Home</span>
-      </a>
-      <a href="#marketplace-categories" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">C</span>
-        <span>Categories</span>
-      </a>
-      <a href="#marketplace-highlights" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">%</span>
-        <span>Offers</span>
-      </a>
-      <a href="#popular-now" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">*</span>
-        <span>Popular</span>
-      </a>
-      <a href="#featured-restaurants" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">R</span>
-        <span>Restaurants</span>
-      </a>
-    </nav>
-
-    <nav class="side-menu-section" aria-label="Account links">
-      <span class="side-menu-section-title">Account</span>
-      <a href="/orders" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">O</span>
-        <span>Orders</span>
-      </a>
-      <a href="/cart" class="side-menu-link">
-        <span class="side-menu-icon" aria-hidden="true">B</span>
-        <span>Cart</span>
-      </a>
-      <% if (typeof currentUser !== "undefined" && currentUser?.role === "driver") { %>
-        <a href="/driver" class="side-menu-link">
-          <span class="side-menu-icon" aria-hidden="true">D</span>
-          <span>Driver Hub</span>
-        </a>
-      <% } else if (typeof currentUser !== "undefined" && ["owner", "admin"].includes(currentUser?.role)) { %>
-        <a href="/admin" class="side-menu-link">
-          <span class="side-menu-icon" aria-hidden="true">B</span>
-          <span>Business Hub</span>
-        </a>
-      <% } %>
-      <button type="button" class="side-menu-link" data-theme-toggle>
-        <span class="side-menu-icon" aria-hidden="true">T</span>
-        <span>Dark Mode</span>
-      </button>
-    </nav>
-
-    <div class="side-menu-account">
-      <% if (typeof currentUser !== "undefined" && currentUser) { %>
-        <span class="side-menu-avatar" aria-hidden="true"><%= currentUser.email.charAt(0).toUpperCase() %></span>
-        <div>
-          <strong><%= currentUser.email %></strong>
-          <a href="/auth/logout">Logout</a>
-        </div>
-      <% } else { %>
-        <a href="/auth/login" class="side-menu-auth">Sign In</a>
-        <a href="/auth/signup" class="side-menu-auth side-menu-auth-primary">Register</a>
-      <% } %>
-    </div>
-  </aside>
+  <%- include("partials/sidebar", { currentPage: "home" }) %>
 
 <section class="marketplace-page" id="marketplace-top">
+  <% if (typeof usualOrder !== "undefined" && usualOrder) { %>
+    <section class="usual-order-prompt" id="usual-order-prompt" aria-label="Your usual order">
+      <div class="usual-order-copy">
+        <span class="usual-order-eyebrow">Welcome back</span>
+        <h2>Want your usual?</h2>
+        <p>
+          Your usual from <strong><%= usualOrder.vendor.name %></strong> —
+          <%= usualOrder.items.length %> item<%= usualOrder.items.length === 1 ? "" : "s" %>
+          · <%= formatCurrency(usualOrder.total) %>
+        </p>
+        <ul class="usual-order-items">
+          <% usualOrder.items.slice(0, 4).forEach((item) => { %>
+            <li><%= item.qty %>&times; <%= item.name %></li>
+          <% }) %>
+          <% if (usualOrder.items.length > 4) { %>
+            <li class="usual-order-more">+<%= usualOrder.items.length - 4 %> more</li>
+          <% } %>
+        </ul>
+      </div>
+      <div class="usual-order-actions">
+        <form method="POST" action="/usual-order/add">
+          <button type="submit" class="btn vendor-primary-cta">Yes, add my usual</button>
+        </form>
+        <button type="button" class="btn vendor-secondary-cta" data-dismiss-usual>No thanks</button>
+      </div>
+    </section>
+
+    <script>
+      (function () {
+        var prompt = document.getElementById("usual-order-prompt");
+        if (!prompt) return;
+
+        if (sessionStorage.getItem("usualOrderDismissed") === "1") {
+          prompt.style.display = "none";
+          return;
+        }
+
+        var dismissBtn = prompt.querySelector("[data-dismiss-usual]");
+        dismissBtn?.addEventListener("click", function () {
+          sessionStorage.setItem("usualOrderDismissed", "1");
+          prompt.style.display = "none";
+        });
+      })();
+    </script>
+  <% } %>
+
   <section class="marketplace-hero" aria-label="Food delivery marketplace">
     <div class="marketplace-hero-copy">
       <span class="marketplace-kicker">Snack marketplace</span>
-      <h1>Food delivery from restaurants near you.</h1>
+      <h1>Food, groceries, and more from vendors near you.</h1>
 
-      <form class="marketplace-search" method="GET" action="/restaurants/search">
-        <label class="sr-only" for="marketplace-search-input">Search restaurants</label>
-        <span class="marketplace-search-icon" aria-hidden="true">Search</span>
+      <form class="marketplace-search" method="GET" action="/search">
+        <label class="sr-only" for="marketplace-search-input">Search vendors</label>
+        <span class="marketplace-search-icon" aria-hidden="true"><%- include("partials/icon", { name: "search" }) %></span>
         <input
           id="marketplace-search-input"
           type="text"
           name="search"
           value="<%= searchQuery || "" %>"
-          placeholder="Search restaurants or dishes"
-          aria-label="Search restaurants or dishes"
+          placeholder="Search vendors or items"
+          aria-label="Search vendors or items"
         />
         <button type="submit">Find Food</button>
       </form>
 
-      <% if (restaurantNotFound) { %>
-        <p class="flash flash-error home-search-feedback">
-          No restaurant matched "<%= searchQuery %>". Try another name.
-        </p>
-      <% } %>
-
       <div class="marketplace-order-controls" aria-label="Order options">
-        <button class="marketplace-control-active" type="button">Delivery</button>
-        <button type="button">Pickup</button>
-        <span>ASAP</span>
+        <button class="marketplace-control-active" type="button" data-fulfillment-choice="delivery" aria-pressed="true">Delivery</button>
+        <button type="button" data-fulfillment-choice="pickup" aria-pressed="false">Pickup</button>
+        <span class="marketplace-control-divider" aria-hidden="true"></span>
+        <button class="marketplace-control-active" type="button" data-timing-choice="asap" aria-pressed="true">ASAP</button>
+        <button type="button" data-timing-choice="scheduled" aria-pressed="false">Schedule</button>
       </div>
     </div>
 
-    <a href="<%= heroRestaurant.id ? `/restaurant/${heroRestaurant.id}/menu` : "#featured-restaurants" %>" class="marketplace-hero-card">
-      <img src="<%= heroImage %>" alt="<%= heroRestaurant.name || "Featured restaurant food" %>" />
+    <a href="<%= heroVendor.id ? `/vendor/${heroVendor.id}/menu` : "#featured-vendors" %>" class="marketplace-hero-card">
+      <img src="<%= heroImage %>" alt="<%= heroVendor.name || "Featured vendor food" %>" />
       <div>
         <span>Featured near you</span>
-        <strong><%= heroRestaurant.name || "Local restaurant picks" %></strong>
+        <strong><%= heroVendor.name || "Local vendor picks" %></strong>
         <small>Explore menus, prices, and fast checkout.</small>
       </div>
     </a>
   </section>
 
-  <section class="marketplace-category-rail" id="marketplace-categories" aria-label="Popular categories">
-    <% marketplaceCategories.forEach((category) => { %>
-      <a href="#featured-restaurants" class="marketplace-category-card">
-        <span class="marketplace-category-art marketplace-category-<%= category.tone %> <%= category.image ? "marketplace-category-image" : "" %>">
-          <% if (category.image) { %>
-            <img src="<%= category.image %>" alt="" loading="lazy" />
-          <% } %>
-        </span>
-        <strong><%= category.name %></strong>
-        <small><%= category.detail %></small>
-      </a>
-    <% }) %>
-  </section>
-
-  <section class="marketplace-filter-bar" aria-label="Restaurant filters">
-    <% filterChips.forEach((chip, index) => { %>
-      <a href="#featured-restaurants" class="<%= index === 0 ? "marketplace-filter-active" : "" %>">
-        <%= chip %>
-      </a>
+  <section class="marketplace-filter-bar" aria-label="Vendor filters">
+    <% vendorFilters.forEach((filter, index) => { %>
+      <button
+        type="button"
+        class="<%= index === 0 ? "marketplace-filter-active" : "" %>"
+        data-vendor-filter="<%= filter.key %>"
+        aria-pressed="<%= index === 0 %>"
+      ><%= filter.label %></button>
     <% }) %>
   </section>
 
   <section class="marketplace-deals" id="marketplace-highlights" aria-label="Marketplace highlights">
     <article>
       <span>Featured offer</span>
-      <strong>Free delivery on every order</strong>
-      <a href="#featured-restaurants">Browse offers</a>
+      <strong>Low delivery fees from KSh <%= deliveryBaseFee %></strong>
+      <a href="#featured-vendors">Browse offers</a>
     </article>
     <article>
       <span>Order faster</span>
-      <strong>Popular dishes are ready to add from the home page</strong>
+      <strong>Popular items are ready to add from the home page</strong>
       <a href="#popular-now">See popular picks</a>
     </article>
     <article>
       <span>Local favorites</span>
-      <strong><%= safeRestaurants.length %> restaurants available now</strong>
-      <a href="#featured-restaurants">View restaurants</a>
+      <strong><%= safeVendors.length %> vendors available now</strong>
+      <a href="#featured-vendors">View vendors</a>
     </article>
   </section>
 
-  <section class="marketplace-section" id="popular-now">
-    <div class="marketplace-section-head">
-      <div>
-        <span>Popular now</span>
-        <h2>Most ordered near you</h2>
-      </div>
-      <a href="/cart">View cart</a>
-    </div>
+  <section id="featured-vendors">
+    <% safeVendorSections.forEach((section, sectionIndex) => { %>
+      <% const meta = sectionMeta[section.value] || { label: section.value, subhead: "" }; %>
 
-    <% if (spotlightItems.length > 0) { %>
-      <div class="marketplace-item-row">
-        <% spotlightItems.forEach((item, index) => { %>
-          <article class="marketplace-item-card">
-            <a href="/restaurant/<%= item.restaurant_id %>/menu" class="marketplace-item-image">
-              <% if (item.image_url) { %>
-                <img src="<%= item.image_url %>" alt="<%= item.name %>" loading="lazy" />
-              <% } else { %>
-                <span>Popular pick</span>
-              <% } %>
+      <% if (section.value === "store") { %>
+        <section class="marketplace-category-rail" id="marketplace-categories" aria-label="Grocery categories">
+          <% marketplaceCategories.forEach((category) => { %>
+            <a href="#featured-vendors" class="marketplace-category-card">
+              <span class="marketplace-category-art marketplace-category-<%= category.tone %> <%= category.icon ? "marketplace-category-image" : "" %>">
+                <%- category.icon || "" %>
+              </span>
+              <strong><%= category.name %></strong>
+              <small><%= category.detail %></small>
             </a>
+          <% }) %>
+        </section>
+      <% } %>
 
-            <div class="marketplace-item-body">
-              <span><%= item.restaurant_name %></span>
-              <h3><%= item.name %></h3>
-              <p><%= item.category || "Customer favorite" %> · <%= 18 + (index % 4) * 4 %>-<%= 26 + (index % 4) * 4 %> min</p>
-              <div>
-                <strong><%= formatCurrency(item.price) %></strong>
-                <button
-                  type="button"
-                  data-popular-add
-                  data-id="<%= item.id %>"
-                  data-name="<%= item.name %>"
-                  data-price="<%= item.price %>"
-                  data-restaurant="<%= item.restaurant_id %>"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-          </article>
-        <% }) %>
-      </div>
-    <% } else { %>
-      <p class="home-empty-state">Popular items will appear here after menu items are added.</p>
-    <% } %>
-  </section>
-
-  <section class="marketplace-section" id="featured-restaurants">
-    <div class="marketplace-section-head">
-      <div>
-        <span>Restaurants near you</span>
-        <h2>Order from local favorites</h2>
-      </div>
-      <a href="/cart">Open cart</a>
-    </div>
-
-    <% if (safeRestaurants.length === 0) { %>
-      <p class="home-empty-state">No restaurants found.</p>
-    <% } %>
-
-    <div class="marketplace-restaurant-grid">
-      <% safeRestaurants.forEach((restaurant, index) => { %>
-        <%
-          const etaStart = 18 + (index % 5) * 3;
-          const etaEnd = etaStart + 10;
-          const rating = (4.8 - (index % 4) * 0.1).toFixed(1);
-          const cuisine = restaurantCuisines[index % restaurantCuisines.length];
-          const badge = restaurantBadges[index % restaurantBadges.length];
-          const bannerImage = restaurant.banner_url || fallbackRestaurantImages[index % fallbackRestaurantImages.length];
-          const previewItems = restaurantItems[String(restaurant.id)] || [];
-        %>
-
-        <a href="/restaurant/<%= restaurant.id %>/menu" class="marketplace-restaurant-card">
-          <div class="marketplace-restaurant-media">
-            <img src="<%= bannerImage %>" alt="<%= restaurant.name %> food" loading="lazy" />
-            <span class="marketplace-store-badge"><%= badge %></span>
+      <section class="marketplace-section marketplace-type-section">
+        <div class="marketplace-section-head">
+          <div>
+            <span><%= meta.label %></span>
+            <h2><%= meta.subhead %></h2>
           </div>
+          <% if (isShopper) { %><a href="/cart">Open cart</a><% } %>
+        </div>
 
-          <div class="marketplace-restaurant-content">
-            <div class="marketplace-restaurant-title">
-              <div>
-                <h3><%= restaurant.name %></h3>
-                <p><%= cuisine %> · <%= etaStart %>-<%= etaEnd %> min · Free delivery</p>
-              </div>
-              <strong><%= rating %></strong>
-            </div>
+        <% if (section.popularItems.length > 0) { %>
+          <div class="marketplace-item-row"<%- sectionIndex === 0 ? ' id="popular-now"' : "" %>>
+            <% section.popularItems.forEach((item, index) => { %>
+              <article class="marketplace-item-card">
+                <a href="/vendor/<%= item.vendor_id %>/menu" class="marketplace-item-image">
+                  <% if (item.image_url) { %>
+                    <img src="<%= item.image_url %>" alt="<%= item.name %>" loading="lazy" />
+                  <% } else { %>
+                    <span>Popular pick</span>
+                  <% } %>
+                </a>
 
-            <p class="marketplace-restaurant-description">
-              <%= restaurant.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
-            </p>
-
-            <% if (previewItems.length > 0) { %>
-              <div class="marketplace-menu-preview">
-                <% previewItems.slice(0, 2).forEach((item) => { %>
-                  <span><%= item.name %></span>
-                <% }) %>
-              </div>
-            <% } %>
+                <div class="marketplace-item-body">
+                  <span><%= item.vendor_name %></span>
+                  <h3><%= item.name %></h3>
+                  <p><%= item.category || "Customer favorite" %></p>
+                  <div>
+                    <strong><%= formatCurrency(item.price) %></strong>
+                    <% if (isShopper) { %>
+                      <button
+                        type="button"
+                        data-popular-add
+                        data-id="<%= item.id %>"
+                        data-name="<%= item.name %>"
+                        data-price="<%= item.price %>"
+                        data-vendor="<%= item.vendor_id %>"
+                      >
+                        Add
+                      </button>
+                    <% } %>
+                  </div>
+                </div>
+              </article>
+            <% }) %>
           </div>
-        </a>
-      <% }) %>
-    </div>
+        <% } %>
+
+        <% if (section.vendors.length === 0) { %>
+          <p class="home-empty-state">No <%= meta.label.toLowerCase() %> yet.</p>
+        <% } else { %>
+          <div class="marketplace-vendor-grid">
+            <% section.vendors.forEach((vendor, index) => { %>
+              <%
+                const cardStatus = vendorOpenStatus(vendor);
+                const isTopRated = Number(vendor.rating_average || 0) >= 4.5 && Number(vendor.rating_count || 0) > 0;
+                const isNewVendor = Number(vendor.rating_count || 0) === 0;
+                let badge = "";
+                let badgeClass = "";
+                if (!cardStatus.open) {
+                  badge = "Closed";
+                  badgeClass = "marketplace-store-badge-closed";
+                } else if (isTopRated) {
+                  badge = "Top rated";
+                } else if (isNewVendor) {
+                  badge = "New on Snack";
+                }
+                const bannerImage = vendor.banner_url || fallbackVendorImages[index % fallbackVendorImages.length];
+                const previewItems = vendorItems[String(vendor.id)] || [];
+              %>
+
+              <a
+                href="/vendor/<%= vendor.id %>/menu"
+                class="marketplace-vendor-card"
+                data-vendor-card
+                data-open="<%= cardStatus.open %>"
+                data-top="<%= isTopRated %>"
+                data-new="<%= isNewVendor %>"
+              >
+                <div class="marketplace-vendor-media">
+                  <img src="<%= bannerImage %>" alt="<%= vendor.name %> food" loading="lazy" />
+                  <% if (badge) { %>
+                    <span class="marketplace-store-badge <%= badgeClass %>"><%= badge %></span>
+                  <% } %>
+                  <%- include("partials/favoriteButton", { vendorId: vendor.id }) %>
+                  <span class="marketplace-vendor-logo">
+                    <% if (vendor.logo_url) { %>
+                      <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
+                    <% } else { %>
+                      <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+                    <% } %>
+                  </span>
+                </div>
+
+                <div class="marketplace-vendor-content">
+                  <div class="marketplace-vendor-title">
+                    <div>
+                      <h3><%= vendor.name %></h3>
+                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · Delivery from KSh <%= deliveryBaseFee %></p>
+                    </div>
+                    <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+                  </div>
+
+                  <p class="marketplace-vendor-description">
+                    <%= vendor.description || "Freshly prepared meals with smooth ordering and quick checkout." %>
+                  </p>
+
+                  <% if (previewItems.length > 0) { %>
+                    <div class="marketplace-menu-preview">
+                      <% previewItems.slice(0, 2).forEach((item) => { %>
+                        <span><%= item.name %></span>
+                      <% }) %>
+                    </div>
+                  <% } %>
+                </div>
+              </a>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+    <% }) %>
   </section>
 </section>
 </div>
 
-<a href="/cart" class="floating-cart" aria-label="Open cart">
-  Cart
-</a>
+<% if (isShopper) { %>
+  <a href="/cart" class="floating-cart" aria-label="Open cart">
+    &#128722;
+  </a>
 
-<div id="switch-modal" class="modal">
-  <div class="modal-content">
-    <h3>Switch Restaurant?</h3>
-    <p>You already have items from another restaurant.</p>
-    <p class="warning">Switching will clear your current cart.</p>
+  <div id="switch-modal" class="modal">
+    <div class="modal-content">
+      <h3>Switch Vendor?</h3>
+      <p>You already have items from another vendor.</p>
+      <p class="warning">Switching will clear your current cart.</p>
 
-    <div class="modal-actions">
-      <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
-      <button id="confirm-switch" class="btn confirm" type="button">
-        Yes, Switch
-      </button>
+      <div class="modal-actions">
+        <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
+        <button id="confirm-switch" class="btn confirm" type="button">
+          Yes, Switch
+        </button>
+      </div>
     </div>
   </div>
-</div>
+<% } %>
 
 <script>
   const popularButtons = document.querySelectorAll("[data-popular-add]");
@@ -344,6 +381,8 @@
     }
 
     triggerCartBounce();
+    window.cartDrawer?.refreshIfOpen();
+    window.snackToast?.(`${button.dataset.name} added to your cart`);
 
     button.innerText = "Added";
     button.disabled = true;
@@ -359,7 +398,7 @@
       const id = button.dataset.id;
       const name = button.dataset.name;
       const price = button.dataset.price;
-      const restaurantId = button.dataset.restaurant;
+      const vendorId = button.dataset.vendor;
 
       const sendRequest = async (forceSwitch = false) => {
         return fetch("/cart/add-ajax", {
@@ -370,7 +409,7 @@
             name,
             price,
             qty: 1,
-            restaurantId,
+            vendorId,
             forceSwitch,
           }),
         });
@@ -411,6 +450,101 @@
   cancelBtn?.addEventListener("click", () => {
     closeModal();
     pendingAction = null;
+  });
+
+  // Delivery/Pickup preference: persists across pages and preselects the
+  // matching option at checkout.
+  const fulfillmentButtons = document.querySelectorAll("[data-fulfillment-choice]");
+
+  const applyFulfillmentChoice = (choice) => {
+    fulfillmentButtons.forEach((b) => {
+      const isActive = b.dataset.fulfillmentChoice === choice;
+      b.classList.toggle("marketplace-control-active", isActive);
+      b.setAttribute("aria-pressed", String(isActive));
+    });
+  };
+
+  applyFulfillmentChoice(localStorage.getItem("snackFulfillment") === "pickup" ? "pickup" : "delivery");
+
+  fulfillmentButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const choice = button.dataset.fulfillmentChoice;
+      localStorage.setItem("snackFulfillment", choice);
+      applyFulfillmentChoice(choice);
+      window.snackToast?.(choice === "pickup"
+        ? "Pickup selected — checkout will skip the delivery fee"
+        : "Delivery selected");
+    });
+  });
+
+  // ASAP vs scheduled preference, mirrored at checkout with a time-slot picker.
+  const timingButtons = document.querySelectorAll("[data-timing-choice]");
+
+  const applyTimingChoice = (choice) => {
+    timingButtons.forEach((b) => {
+      const isActive = b.dataset.timingChoice === choice;
+      b.classList.toggle("marketplace-control-active", isActive);
+      b.setAttribute("aria-pressed", String(isActive));
+    });
+  };
+
+  applyTimingChoice(localStorage.getItem("snackTiming") === "scheduled" ? "scheduled" : "asap");
+
+  timingButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const choice = button.dataset.timingChoice;
+      localStorage.setItem("snackTiming", choice);
+      applyTimingChoice(choice);
+      window.snackToast?.(choice === "scheduled"
+        ? "Scheduling on — you'll pick a time slot at checkout"
+        : "ASAP selected");
+    });
+  });
+
+  // Vendor filter chips — filter cards by live data (open / top rated / new).
+  const filterButtons = document.querySelectorAll("[data-vendor-filter]");
+  const vendorCards = document.querySelectorAll("[data-vendor-card]");
+  const typeSections = document.querySelectorAll(".marketplace-type-section");
+
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.vendorFilter;
+
+      filterButtons.forEach((b) => {
+        b.classList.toggle("marketplace-filter-active", b === button);
+        b.setAttribute("aria-pressed", String(b === button));
+      });
+
+      vendorCards.forEach((card) => {
+        const show =
+          key === "all" ||
+          (key === "open" && card.dataset.open === "true") ||
+          (key === "top" && card.dataset.top === "true") ||
+          (key === "new" && card.dataset.new === "true");
+        card.classList.toggle("vendor-filtered-out", !show);
+      });
+
+      typeSections.forEach((section) => {
+        const grid = section.querySelector(".marketplace-vendor-grid");
+        if (!grid) return;
+
+        const visible = grid.querySelectorAll("[data-vendor-card]:not(.vendor-filtered-out)").length;
+        let empty = section.querySelector("[data-filter-empty]");
+
+        if (visible === 0) {
+          if (!empty) {
+            empty = document.createElement("p");
+            empty.className = "home-empty-state";
+            empty.setAttribute("data-filter-empty", "");
+            grid.after(empty);
+          }
+          empty.textContent = "No vendors match this filter here yet.";
+          empty.style.display = "";
+        } else if (empty) {
+          empty.style.display = "none";
+        }
+      });
+    });
   });
 </script>
 

@@ -1,12 +1,21 @@
 <%- include("partials/header") %>
 
+<% const isShopper = !currentUser || !["owner", "admin", "driver"].includes(currentUser.role); %>
+<% const menuVendorStatus = vendorOpenStatus(vendor); %>
+
 <section class="menu-page">
   <div class="menu-page-hero">
     <div class="menu-page-copy">
       <span class="feature-eyebrow">Delivery menu</span>
-      <h1><%= restaurant.name %></h1>
+      <h1><%= vendor.name %></h1>
+      <div class="menu-page-rating">
+        <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+        <span class="vendor-status-pill vendor-status-<%= menuVendorStatus.open ? "open" : "closed" %>">
+          <%= menuVendorStatus.label %> · <%= formatVendorHours(vendor) %>
+        </span>
+      </div>
       <p>
-        <%= restaurant.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
+        <%= vendor.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
       </p>
 
       <div class="menu-page-highlights">
@@ -16,39 +25,57 @@
       </div>
 
       <div class="menu-page-actions">
-        <a href="/" class="btn restaurant-secondary-cta">Back to Discovery</a>
-        <a href="/cart" class="btn restaurant-primary-cta">Open Cart</a>
+        <a href="/" class="btn vendor-secondary-cta">Back to Discovery</a>
+        <a href="/cart" class="btn vendor-primary-cta">Open Cart</a>
       </div>
     </div>
 
-    <div class="menu-page-panel">
-      <div class="restaurant-logo restaurant-hero-logo">
-        <% if (restaurant.logo_url) { %>
-          <img src="<%= restaurant.logo_url %>" alt="<%= restaurant.name %> logo" loading="lazy">
+    <div class="menu-page-panel <%= vendor.banner_url ? 'menu-page-panel-has-banner' : '' %>">
+      <% if (vendor.banner_url) { %>
+        <div class="vendor-hero-panel-banner">
+          <img
+            src="<%= vendor.banner_url %>"
+            alt="<%= vendor.name %> banner"
+            class="vendor-banner-image"
+            loading="lazy"
+          />
+        </div>
+      <% } %>
+
+      <div class="vendor-logo vendor-hero-logo">
+        <% if (vendor.logo_url) { %>
+          <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy">
         <% } else { %>
-          <span class="home-logo-fallback"><%= restaurant.name.charAt(0).toUpperCase() %></span>
+          <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
         <% } %>
       </div>
 
       <div class="menu-page-panel-grid">
-        <div class="restaurant-metric">
+        <div class="vendor-metric">
           <strong><%= items.length %></strong>
-          <span>items on this page</span>
+          <span>item<%= items.length === 1 ? "" : "s" %> on this page</span>
         </div>
-        <div class="restaurant-metric">
+        <div class="vendor-metric">
           <strong><%= totalPages %></strong>
-          <span>pages to browse</span>
+          <span>page<%= totalPages === 1 ? "" : "s" %> to browse</span>
         </div>
-        <div class="restaurant-metric">
-          <strong>23 min</strong>
-          <span>average delivery</span>
+        <div class="vendor-metric">
+          <strong>KSh <%= deliveryBaseFee %>+</strong>
+          <span>delivery</span>
         </div>
       </div>
     </div>
   </div>
 
+  <% if (!menuVendorStatus.open) { %>
+    <div class="vendor-closed-banner">
+      <strong><%= vendor.name %> is currently closed.</strong>
+      <span>Opening hours: <%= formatVendorHours(vendor) %>. You can browse the menu, but ordering resumes when they reopen.</span>
+    </div>
+  <% } %>
+
   <section class="menu-filter-card">
-    <form id="filterForm" method="GET" action="/restaurant/<%= restaurant.id %>/menu" class="menu-filter-form">
+    <form id="filterForm" method="GET" action="/vendor/<%= vendor.id %>/menu" class="menu-filter-form">
       <div class="menu-filter-input">
         <label class="sr-only" for="menu-search">Search menu</label>
         <input
@@ -71,11 +98,11 @@
         </select>
       </div>
 
-      <button type="submit" class="btn restaurant-primary-cta">Refine Menu</button>
+      <button type="submit" class="btn vendor-primary-cta">Refine Menu</button>
     </form>
 
     <div class="menu-results-meta">
-      <span><%= items.length %> results</span>
+      <span><%= items.length %> result<%= items.length === 1 ? "" : "s" %></span>
       <span>Delivery-ready menu</span>
     </div>
   </section>
@@ -89,7 +116,8 @@
 
   <div class="menu-grid menu-grid-modern">
     <% items.forEach((item, index) => { %>
-      <article class="menu-card modern-menu-card">
+      <% const isItemAvailable = item.status === "Available"; %>
+      <article class="menu-card modern-menu-card <%= isItemAvailable ? '' : 'menu-card-unavailable' %>">
         <% if (item.image_url) { %>
           <% if (item.image_url.includes("-800.jpg")) { %>
             <% const baseName = item.image_url.replace("-800.jpg", ""); %>
@@ -128,67 +156,79 @@
             <span class="menu-price"><%= formatCurrency(item.price) %></span>
           </div>
 
-          <h3><%= item.name %></h3>
+          <h3>
+            <%= item.name %>
+            <% if (!isItemAvailable) { %>
+              <span class="menu-item-status-badge"><%= item.status %></span>
+            <% } %>
+          </h3>
           <p class="menu-description"><%= item.description || "Built for fast delivery decisions." %></p>
 
-          <div class="menu-item-meta">
-            <span class="menu-item-badge"><%= index % 3 === 0 ? "Bestseller" : "Quick pick" %></span>
-            <span class="menu-item-meta-text"><%= 12 + (index * 2) %> min prep</span>
-          </div>
+          <% if (isShopper) { %>
+            <% if (isItemAvailable && menuVendorStatus.open) { %>
+              <div class="add-to-cart-form modern-add-to-cart-form">
+                <input
+                  type="number"
+                  value="1"
+                  min="1"
+                  class="qty-input"
+                  id="qty-<%= item.id %>"
+                />
 
-          <div class="add-to-cart-form modern-add-to-cart-form">
-            <input
-              type="number"
-              value="1"
-              min="1"
-              class="qty-input"
-              id="qty-<%= item.id %>"
-            />
-
-            <button
-              class="btn add-to-cart-btn"
-              data-id="<%= item.id %>"
-              data-name="<%= item.name %>"
-              data-price="<%= item.price %>"
-              data-restaurant="<%= restaurant.id %>"
-            >
-              Add to Cart
-            </button>
-          </div>
+                <button
+                  class="btn add-to-cart-btn"
+                  data-id="<%= item.id %>"
+                  data-name="<%= item.name %>"
+                  data-price="<%= item.price %>"
+                  data-vendor="<%= vendor.id %>"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            <% } else { %>
+              <button class="btn add-to-cart-btn" type="button" disabled>
+                <%= !menuVendorStatus.open ? "Closed" : item.status %>
+              </button>
+            <% } %>
+          <% } %>
         </div>
       </article>
     <% }) %>
   </div>
 
-  <div class="pagination modern-pagination">
-    <% if (currentPage > 1) { %>
-      <a href="/restaurant/<%= restaurant.id %>/menu?page=<%= currentPage - 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
-        &larr; Previous
-      </a>
-    <% } %>
+  <% if (totalPages > 1) { %>
+    <div class="pagination modern-pagination">
+      <% if (currentPage > 1) { %>
+        <a href="/vendor/<%= vendor.id %>/menu?page=<%= currentPage - 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
+          &larr; Previous
+        </a>
+      <% } %>
 
-    <span>Page <%= currentPage %> of <%= totalPages %></span>
+      <span>Page <%= currentPage %> of <%= totalPages %></span>
 
-    <% if (currentPage < totalPages) { %>
-      <a href="/restaurant/<%= restaurant.id %>/menu?page=<%= currentPage + 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
-        Next &rarr;
-      </a>
-    <% } %>
-  </div>
+      <% if (currentPage < totalPages) { %>
+        <a href="/vendor/<%= vendor.id %>/menu?page=<%= currentPage + 1 %>&search=<%= searchQuery || "" %>&category=<%= selectedCategory || "" %>">
+          Next &rarr;
+        </a>
+      <% } %>
+    </div>
+  <% } %>
 </section>
 
-<div id="switch-modal" class="modal">
-  <div class="modal-content">
-    <h3>Switch Restaurant?</h3>
-    <p>You already have items from another restaurant.</p>
-    <p class="warning">Switching will clear your current cart.</p>
+<% if (isShopper) { %>
+  <div id="switch-modal" class="modal">
+    <div class="modal-content">
+      <h3>Switch Vendor?</h3>
+      <p>You already have items from another vendor.</p>
+      <p class="warning">Switching will clear your current cart.</p>
 
-    <div class="modal-actions">
-      <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
-      <button id="confirm-switch" class="btn confirm" type="button">Yes, Switch</button>
+      <div class="modal-actions">
+        <button id="cancel-switch" class="btn cancel" type="button">Cancel</button>
+        <button id="confirm-switch" class="btn confirm" type="button">Yes, Switch</button>
+      </div>
     </div>
   </div>
-</div>
+<% } %>
 
 <script>
   const buttons = document.querySelectorAll(".add-to-cart-btn");
@@ -201,8 +241,8 @@
 
   let pendingAction = null;
 
-  const openModal = () => modal.classList.add("show");
-  const closeModal = () => modal.classList.remove("show");
+  const openModal = () => modal?.classList.add("show");
+  const closeModal = () => modal?.classList.remove("show");
 
   function triggerCartBounce() {
     if (!cartIcon) return;
@@ -216,7 +256,7 @@
       const id = btn.dataset.id;
       const name = btn.dataset.name;
       const price = btn.dataset.price;
-      const restaurantId = btn.dataset.restaurant;
+      const vendorId = btn.dataset.vendor;
 
       const qtyInput = document.getElementById(`qty-${id}`);
       const qty = parseInt(qtyInput.value, 10) || 1;
@@ -230,7 +270,7 @@
             name,
             price,
             qty,
-            restaurantId,
+            vendorId,
             forceSwitch
           })
         });
@@ -239,6 +279,12 @@
       try {
         let res = await sendRequest(false);
         let data = await res.json();
+
+        if (!res.ok || data.error) {
+          btn.innerText = data.error || "Unavailable";
+          btn.disabled = true;
+          return;
+        }
 
         if (data.switchRequired) {
           pendingAction = async () => {
@@ -277,6 +323,8 @@
     }
 
     triggerCartBounce();
+    window.cartDrawer?.refreshIfOpen();
+    window.snackToast?.("Added to your cart");
 
     btn.innerText = "Added";
     btn.style.background = "#16a34a";

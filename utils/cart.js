@@ -1,13 +1,13 @@
-export function ensureRestaurantCart(req, restaurantId) {
+export function ensureVendorCart(req, vendorId) {
   if (!req.session.cart) {
     req.session.cart = {};
   }
 
-  if (!req.session.cart[restaurantId]) {
-    req.session.cart[restaurantId] = [];
+  if (!req.session.cart[vendorId]) {
+    req.session.cart[vendorId] = [];
   }
 
-  return req.session.cart[restaurantId];
+  return req.session.cart[vendorId];
 }
 
 export function getPositiveQuantity(value, fallback = 1) {
@@ -20,30 +20,30 @@ export function calculateCartTotal(items = []) {
 }
 
 export function flattenCart(cart = {}) {
-  return Object.entries(cart).flatMap(([restaurantId, items]) =>
+  return Object.entries(cart).flatMap(([vendorId, items]) =>
     items.map((item) => ({
       ...item,
-      restaurantId
+      vendorId
     }))
   );
 }
 
 export function getCartSummary(cart = {}) {
-  const countsByRestaurant = {};
+  const countsByVendor = {};
   let totalCount = 0;
 
-  for (const [restaurantId, items] of Object.entries(cart)) {
-    const restaurantCount = items.reduce(
+  for (const [vendorId, items] of Object.entries(cart)) {
+    const vendorCount = items.reduce(
       (sum, item) => sum + Number(item.qty || 0),
       0
     );
 
-    countsByRestaurant[restaurantId] = restaurantCount;
-    totalCount += restaurantCount;
+    countsByVendor[vendorId] = vendorCount;
+    totalCount += vendorCount;
   }
 
   return {
-    countsByRestaurant,
+    countsByVendor,
     totalCount
   };
 }

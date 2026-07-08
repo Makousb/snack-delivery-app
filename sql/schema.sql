@@ -1,18 +1,25 @@
 -- Snack Delivery App schema
 -- Run against an empty database: psql -d business_data -f sql/schema.sql
 --
--- restaurants and users reference each other (a restaurant has an owner,
--- an owner user has a restaurant_id), so the owner_id foreign key on
--- restaurants is added after both tables exist.
+-- vendors and users reference each other (a vendor has an owner, an owner
+-- user has a vendor_id), so the owner_id foreign key on vendors is added
+-- after both tables exist.
 
-CREATE TABLE IF NOT EXISTS restaurants (
+CREATE TABLE IF NOT EXISTS vendors (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   owner_id INTEGER,
+  vendor_type TEXT NOT NULL DEFAULT 'restaurant'
+    CHECK (vendor_type IN ('restaurant', 'store', 'street_vendor')),
   description TEXT,
   logo_url TEXT,
   banner_url TEXT,
   slug TEXT,
+  latitude NUMERIC(10, 6),
+  longitude NUMERIC(10, 6),
+  opening_time TIME,
+  closing_time TIME,
+  pickup_instructions TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -21,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'customer',
-  restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE SET NULL,
+  vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL,
   full_name TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -29,21 +36,21 @@ CREATE TABLE IF NOT EXISTS users (
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'restaurants_owner_id_fkey'
+    SELECT 1 FROM pg_constraint WHERE conname = 'vendors_owner_id_fkey'
   ) THEN
-    ALTER TABLE restaurants
-      ADD CONSTRAINT restaurants_owner_id_fkey
+    ALTER TABLE vendors
+      ADD CONSTRAINT vendors_owner_id_fkey
       FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL;
   END IF;
 END $$;
 
-CREATE UNIQUE INDEX IF NOT EXISTS restaurants_slug_key
-  ON restaurants(slug)
+CREATE UNIQUE INDEX IF NOT EXISTS vendors_slug_key
+  ON vendors(slug)
   WHERE slug IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS menu_items (
   id SERIAL PRIMARY KEY,
-  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
   price NUMERIC(10, 2) NOT NULL,
@@ -56,7 +63,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
 
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
-  restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   total NUMERIC(10, 2) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'Pending',
@@ -67,6 +74,9 @@ CREATE TABLE IF NOT EXISTS orders (
   mpesa_manual_code TEXT,
   delivery_lat NUMERIC(10, 6),
   delivery_lng NUMERIC(10, 6),
+  delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'delivery',
+  scheduled_for TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -114,3 +124,17 @@ CREATE TABLE IF NOT EXISTS messages (
   is_read BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- One customer review per order (UNIQUE order_id), so every rating is backed
+-- by a real completed order.
+CREATE TABLE IF NOT EXISTS reviews (
+  id SERIAL PRIMARY KEY,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  order_id INTEGER UNIQUE NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS reviews_vendor_id_idx ON reviews(vendor_id);

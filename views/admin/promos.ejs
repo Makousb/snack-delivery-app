@@ -1,0 +1,77 @@
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<div class="marketplace-home-layout">
+  <%- include("../partials/adminSidebar", { currentPage: "promos" }) %>
+
+  <section class="business-profile-shell">
+    <div class="business-profile-hero">
+      <div>
+        <span class="feature-eyebrow">Promo codes</span>
+        <h1><%= promos.length %> code<%= promos.length === 1 ? "" : "s" %></h1>
+        <p>Create discount codes customers apply at checkout on your storefront.</p>
+      </div>
+    </div>
+
+    <div class="address-book-layout">
+      <div class="address-list">
+        <% if (!promos.length) { %>
+          <p class="home-empty-state">No promo codes yet — create one on the right.</p>
+        <% } else { %>
+          <% promos.forEach((promo) => { %>
+            <article class="address-card <%= promo.active ? "" : "promo-inactive" %>">
+              <div>
+                <strong>
+                  <%= promo.code %>
+                  <span class="address-default-badge"><%= promo.active ? "Active" : "Paused" %></span>
+                </strong>
+                <p>
+                  <%= promo.discount_type === "percent" ? promo.discount_value + "% off" : "KSh " + promo.discount_value + " off" %>
+                  <% if (Number(promo.min_order) > 0) { %> · min KSh <%= promo.min_order %><% } %>
+                  <% if (promo.expires_at) { %> · expires <%= new Date(promo.expires_at).toLocaleDateString() %><% } %>
+                </p>
+              </div>
+              <div class="address-actions">
+                <form method="POST" action="/admin/promos/<%= promo.id %>/toggle">
+                  <button type="submit" class="btn vendor-secondary-cta"><%= promo.active ? "Pause" : "Activate" %></button>
+                </form>
+                <form method="POST" action="/admin/promos/<%= promo.id %>/delete">
+                  <button type="submit" class="btn cart-remove-btn">Delete</button>
+                </form>
+              </div>
+            </article>
+          <% }) %>
+        <% } %>
+      </div>
+
+      <form method="POST" action="/admin/promos" class="address-add-form auth-form-card">
+        <h2>New code</h2>
+        <div>
+          <label for="promo-code">Code</label>
+          <input type="text" id="promo-code" name="code" maxlength="40" placeholder="SAVE10" required />
+        </div>
+        <div>
+          <label for="promo-type">Discount type</label>
+          <select id="promo-type" name="discountType">
+            <option value="percent">Percentage (%)</option>
+            <option value="fixed">Fixed amount (KSh)</option>
+          </select>
+        </div>
+        <div>
+          <label for="promo-value">Value</label>
+          <input type="number" id="promo-value" name="discountValue" min="1" step="1" required />
+        </div>
+        <div>
+          <label for="promo-min">Minimum order (KSh)</label>
+          <input type="number" id="promo-min" name="minOrder" min="0" step="1" value="0" />
+        </div>
+        <div>
+          <label for="promo-exp">Expires (optional)</label>
+          <input type="date" id="promo-exp" name="expiresAt" />
+        </div>
+        <button type="submit" class="btn vendor-primary-cta">Create code</button>
+      </form>
+    </div>
+  </section>
+</div>
+
+<%- include("../partials/footer") %>

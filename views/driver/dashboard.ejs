@@ -1,6 +1,9 @@
-<%- include("../partials/header") %>
+<%- include("../partials/header", { bodyClass: "home-sidebar-layout" }) %>
 
-<section class="driver-dashboard">
+<div class="marketplace-home-layout">
+  <%- include("../partials/driverSidebar") %>
+
+<section class="driver-dashboard" id="driver-top">
   <div class="driver-hero">
     <div class="driver-hero-copy">
       <span class="feature-eyebrow">Driver workspace</span>
@@ -27,7 +30,7 @@
   </div>
 
   <div class="driver-grid">
-    <section class="driver-panel">
+    <section class="driver-panel" id="driver-profile">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Profile</span>
@@ -60,7 +63,7 @@
       </div>
     </section>
 
-    <section class="driver-panel">
+    <section class="driver-panel" id="driver-tips">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Tips</span>
@@ -84,7 +87,7 @@
       </div>
     </section>
 
-    <section class="driver-panel driver-panel-wide">
+    <section class="driver-panel driver-panel-wide" id="driver-available">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Available orders</span>
@@ -101,11 +104,11 @@
               <div class="driver-order-head">
                 <div>
                   <strong>#<%= delivery.order_id %></strong>
-                  <span><%= delivery.restaurant_name %></span>
+                  <span><%= delivery.vendor_name %></span>
                 </div>
                 <strong><%= formatCurrency(delivery.total) %></strong>
               </div>
-              <p><strong>Pickup:</strong> <%= delivery.pickup_location || delivery.restaurant_name %></p>
+              <p><strong>Pickup:</strong> <%= delivery.pickup_location || delivery.vendor_name %></p>
               <p>
                 <strong>Dropoff:</strong> <%= delivery.dropoff_location || delivery.delivery_address || "Awaiting address" %>
                 <% if (delivery.delivery_lat && delivery.delivery_lng) { %>
@@ -114,7 +117,7 @@
               </p>
               <p><strong>Tip:</strong> <%= formatCurrency(delivery.tips) %></p>
               <form action="/driver/deliveries/<%= delivery.id %>/accept" method="POST">
-                <button type="submit" class="btn restaurant-primary-cta">Accept delivery</button>
+                <button type="submit" class="btn vendor-primary-cta">Accept delivery</button>
               </form>
             </article>
           <% }) %>
@@ -122,7 +125,7 @@
       <% } %>
     </section>
 
-    <section class="driver-panel driver-panel-wide">
+    <section class="driver-panel driver-panel-wide" id="driver-active">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">Journey board</span>
@@ -139,13 +142,13 @@
               <div class="driver-order-head">
                 <div>
                   <strong>#<%= delivery.order_id %></strong>
-                  <span><%= delivery.restaurant_name %></span>
+                  <span><%= delivery.vendor_name %></span>
                 </div>
                 <span class="ops-chip"><%= delivery.current_stage %></span>
               </div>
 
               <div class="driver-journey-steps">
-                <span class="driver-step <%= delivery.status === 'Accepted' ? 'driver-step-active' : '' %>">Heading to restaurant</span>
+                <span class="driver-step <%= delivery.status === 'Accepted' ? 'driver-step-active' : '' %>">Heading to pickup</span>
                 <span class="driver-step <%= delivery.status === 'Picked Up' ? 'driver-step-active' : '' %>">Picked up</span>
                 <span class="driver-step <%= delivery.status === 'Out for Delivery' ? 'driver-step-active' : '' %>">On the road</span>
                 <span class="driver-step <%= delivery.status === 'Delivered' ? 'driver-step-active' : '' %>">Delivered</span>
@@ -162,15 +165,15 @@
               <div class="driver-stage-actions">
                 <form action="/driver/deliveries/<%= delivery.id %>/stage" method="POST">
                   <input type="hidden" name="stage" value="picked_up" />
-                  <button type="submit" class="btn restaurant-secondary-cta">Picked Up</button>
+                  <button type="submit" class="btn vendor-secondary-cta">Picked Up</button>
                 </form>
                 <form action="/driver/deliveries/<%= delivery.id %>/stage" method="POST">
                   <input type="hidden" name="stage" value="out_for_delivery" />
-                  <button type="submit" class="btn restaurant-secondary-cta">Out for Delivery</button>
+                  <button type="submit" class="btn vendor-secondary-cta">Out for Delivery</button>
                 </form>
                 <form action="/driver/deliveries/<%= delivery.id %>/stage" method="POST">
                   <input type="hidden" name="stage" value="delivered" />
-                  <button type="submit" class="btn restaurant-primary-cta">Delivered</button>
+                  <button type="submit" class="btn vendor-primary-cta">Delivered</button>
                 </form>
               </div>
             </article>
@@ -179,7 +182,7 @@
       <% } %>
     </section>
 
-    <section class="driver-panel driver-panel-wide">
+    <section class="driver-panel driver-panel-wide" id="driver-history">
       <div class="driver-panel-head">
         <div>
           <span class="ops-panel-kicker">History</span>
@@ -195,7 +198,7 @@
             <div class="ops-order-row">
               <div>
                 <strong>#<%= delivery.order_id %></strong>
-                <span><%= delivery.restaurant_name %></span>
+                <span><%= delivery.vendor_name %></span>
               </div>
               <div>
                 <span class="ops-order-status">Tip <%= formatCurrency(delivery.tips) %></span>
@@ -208,6 +211,7 @@
     </section>
   </div>
 </section>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>

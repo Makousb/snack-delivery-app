@@ -10,23 +10,26 @@ import {
   createMenuItem
 } from "../db/queries/menu.js";
 import { getAllMessages, markMessageRead } from "../db/queries/messages.js";
-import { buildUniqueRestaurantSlug } from "../utils/slugify.js";
+import { getReviewsForVendor, addOwnerReply } from "../db/queries/reviews.js";
+import { getVendorPromos, createPromo, togglePromo, deletePromo } from "../db/queries/promos.js";
+import { buildUniqueVendorSlug } from "../utils/slugify.js";
+import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
 
 function getFilePath(file) {
   return file ? `/images/${file.filename}` : null;
 }
 
-// Fallback for sessions without a restaurant_id (e.g. the loosely-defined
-// "admin" role, which isn't tied to a specific restaurant at signup).
-async function ensureRestaurant() {
+// Fallback for sessions without a vendor_id (e.g. the loosely-defined
+// "admin" role, which isn't tied to a specific vendor at signup).
+async function ensureVendor() {
   const result = await pool.query(
-    "SELECT id FROM restaurants WHERE id = 1"
+    "SELECT id FROM vendors WHERE id = 1"
   );
 
   if (result.rows.length === 0) {
     const insert = await pool.query(
-      "INSERT INTO restaurants (name) VALUES ($1) RETURNING id",
-      ["Default Restaurant"]
+      "INSERT INTO vendors (name) VALUES ($1) RETURNING id",
+      ["Default Vendor"]
     );
 
     return insert.rows[0].id;
@@ -38,20 +41,20 @@ async function ensureRestaurant() {
 export async function adminDashboard(req, res) {
   try {
     const currentUser = req.user || req.session?.user;
-    const restaurantId =
-      currentUser?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      currentUser?.vendor_id || await ensureVendor();
 
-    const menuItems = await getAllMenuItems(restaurantId);
-    const restaurantResult = await pool.query(
-      "SELECT * FROM restaurants WHERE id = $1",
-      [restaurantId]
+    const menuItems = await getAllMenuItems(vendorId);
+    const vendorResult = await pool.query(
+      "SELECT * FROM vendors WHERE id = $1",
+      [vendorId]
     );
     const ordersResult = await pool.query(
       `SELECT id, total, status, created_at
        FROM orders
-       WHERE restaurant_id = $1
+       WHERE vendor_id = $1
        ORDER BY created_at DESC`,
-      [restaurantId]
+      [vendorId]
     );
     const orders = ordersResult.rows;
 
@@ -100,25 +103,104 @@ export async function adminDashboard(req, res) {
        JOIN orders o ON o.id = del.order_id
        JOIN drivers d ON d.id = del.driver_id
        JOIN users u ON u.id = d.user_id
-       WHERE o.restaurant_id = $1
+       WHERE o.vendor_id = $1
          AND del.status <> 'Delivered'
        GROUP BY u.full_name, u.email, d.status, d.current_location
        ORDER BY active_jobs DESC
        LIMIT 5`,
-      [restaurantId]
+      [vendorId]
     );
 
     const serviceTimeResult = await pool.query(
-      `SELECT AVG(EXTRACT(EPOCH FROM (d.completed_at - d.accepted_at)) / 60) AS avg_minutes
+      `SELECT
+         AVG(EXTRACT(EPOCH FROM (d.completed_at - d.accepted_at)) / 60) AS avg_minutes,
+         MIN(EXTRACT(EPOCH FROM (d.completed_at - d.accepted_at)) / 60) AS fastest_minutes,
+         MAX(EXTRACT(EPOCH FROM (d.completed_at - d.accepted_at)) / 60) AS slowest_minutes,
+         COUNT(*)::int AS fulfilled_count
        FROM deliveries d
        JOIN orders o ON o.id = d.order_id
-       WHERE o.restaurant_id = $1
+       WHERE o.vendor_id = $1
          AND d.completed_at IS NOT NULL
          AND d.accepted_at IS NOT NULL`,
-      [restaurantId]
+      [vendorId]
     );
 
-    const averageServiceMinutes = serviceTimeResult.rows[0]?.avg_minutes;
+    const serviceTimeRow = serviceTimeResult.rows[0] || {};
+    const averageServiceMinutes = serviceTimeRow.avg_minutes;
+
+    // Best-selling items over the last 7 days, ranked by units sold. Joins
+    // back to menu_items so only items still on the menu appear (order_items
+    // keep their own price snapshot, so revenue is historically accurate).
+    const topSellersResult = await pool.query(
+      `SELECT
+         mi.name,
+         mi.category,
+         SUM(oi.quantity)::int AS units,
+         SUM(oi.quantity * oi.price) AS revenue
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       JOIN menu_items mi ON mi.id = oi.menu_item_id
+       WHERE o.vendor_id = $1
+         AND o.created_at >= NOW() - INTERVAL '7 days'
+       GROUP BY mi.id, mi.name, mi.category
+       ORDER BY units DESC, revenue DESC
+       LIMIT 5`,
+      [vendorId]
+    );
+
+    // Revenue trend: one bucket per day for the last 7 days, plus a rolling
+    // 30-day total. Computed from the already-loaded orders so it always
+    // agrees with the revenue tiles above (which count every order).
+    const trendNow = new Date();
+    const revenueTrendDays = [];
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(trendNow);
+      day.setDate(trendNow.getDate() - i);
+      revenueTrendDays.push({
+        key: day.toDateString(),
+        label: day.toLocaleDateString(undefined, { weekday: "short" }),
+        total: 0
+      });
+    }
+    const revenueTrendByKey = new Map(revenueTrendDays.map((day) => [day.key, day]));
+    let revenueMonth = 0;
+    orders.forEach((order) => {
+      const created = new Date(order.created_at);
+      const amount = Number(order.total || 0);
+      const diffDays = (trendNow - created) / (1000 * 60 * 60 * 24);
+      if (diffDays <= 30) revenueMonth += amount;
+      const bucket = revenueTrendByKey.get(created.toDateString());
+      if (bucket) bucket.total += amount;
+    });
+    const revenueTrendMax = Math.max(1, ...revenueTrendDays.map((day) => day.total));
+
+    // Upcoming scheduled orders, soonest first. Orders that just hit their
+    // slot stay visible for 30 minutes so a busy vendor doesn't lose track
+    // of one that's due while they're heads-down.
+    const scheduledQueueResult = await pool.query(
+      `SELECT o.id, o.total, o.status, o.fulfillment_type, o.scheduled_for,
+              COALESCE(SUM(oi.quantity), 0)::int AS item_count
+       FROM orders o
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.vendor_id = $1
+         AND o.scheduled_for IS NOT NULL
+         AND o.scheduled_for >= NOW() - INTERVAL '30 minutes'
+         AND o.status NOT IN ('Completed', 'Payment Failed')
+       GROUP BY o.id
+       ORDER BY o.scheduled_for ASC
+       LIMIT 8`,
+      [vendorId]
+    );
+
+    // Items the owner should act on: anything not currently sellable
+    // (Sold Out / Seasonal), surfaced by name instead of just a count.
+    const itemsNeedingAttention = menuItems
+      .filter((item) => item.status && item.status !== "Available")
+      .map((item) => ({
+        name: item.name,
+        category: item.category || "Uncategorized",
+        status: item.status
+      }));
 
     const dashboard = {
       inventoryHealth: totalItems ? Math.round((availableItems / totalItems) * 100) : 0,
@@ -149,7 +231,40 @@ export async function adminDashboard(req, res) {
       totalItems,
       availableItems,
       soldOutItems,
-      seasonalItems
+      seasonalItems,
+      topSellers: topSellersResult.rows.map((row) => ({
+        name: row.name,
+        category: row.category || "Uncategorized",
+        units: Number(row.units),
+        revenue: Number(row.revenue)
+      })),
+      revenueTrend: {
+        days: revenueTrendDays.map((day) => ({ label: day.label, total: day.total })),
+        max: revenueTrendMax,
+        monthTotal: revenueMonth
+      },
+      scheduledQueue: scheduledQueueResult.rows.map((row) => ({
+        id: row.id,
+        total: Number(row.total || 0),
+        status: row.status,
+        fulfillmentType: row.fulfillment_type,
+        scheduledFor: row.scheduled_for,
+        itemCount: row.item_count
+      })),
+      fulfillment: {
+        averageMinutes:
+          averageServiceMinutes != null ? Math.round(averageServiceMinutes) : null,
+        fastestMinutes:
+          serviceTimeRow.fastest_minutes != null
+            ? Math.round(serviceTimeRow.fastest_minutes)
+            : null,
+        slowestMinutes:
+          serviceTimeRow.slowest_minutes != null
+            ? Math.round(serviceTimeRow.slowest_minutes)
+            : null,
+        fulfilledCount: serviceTimeRow.fulfilled_count || 0
+      },
+      itemsNeedingAttention
     };
 
     res.render("admin/dashboard", {
@@ -157,8 +272,8 @@ export async function adminDashboard(req, res) {
       menuItems,
       orders,
       dashboard,
-      restaurant: restaurantResult.rows[0] || null,
-      restaurantId
+      vendor: vendorResult.rows[0] || null,
+      vendorId
     });
 
   } catch (error) {
@@ -169,24 +284,25 @@ export async function adminDashboard(req, res) {
 
 export async function businessProfileForm(req, res) {
   try {
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
 
-    const restaurantResult = await pool.query(
-      "SELECT * FROM restaurants WHERE id = $1",
-      [restaurantId]
+    const vendorResult = await pool.query(
+      "SELECT * FROM vendors WHERE id = $1",
+      [vendorId]
     );
 
-    const restaurant = restaurantResult.rows[0];
+    const vendor = vendorResult.rows[0];
 
-    if (!restaurant) {
+    if (!vendor) {
       req.flash("error", "Business profile not found");
       return res.redirect("/admin");
     }
 
     res.render("admin/profile", {
       title: "Edit Business Profile",
-      restaurant,
+      vendor,
+      vendorTypes: VENDOR_TYPES,
       accountEmail: req.user?.email || ""
     });
 
@@ -202,18 +318,29 @@ export async function updateBusinessProfile(req, res) {
   const client = await pool.connect();
 
   try {
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
     const userId = req.user?.id;
     const {
       businessName,
       businessDescription,
-      email
+      vendorType,
+      email,
+      openingTime,
+      closingTime,
+      pickupInstructions
     } = req.body;
 
     const safeName = (businessName || "").trim();
     const safeDescription = (businessDescription || "").trim();
     const safeEmail = (email || "").trim().toLowerCase();
+    const safePickupInstructions = (pickupInstructions || "").trim().slice(0, 500);
+
+    // Accept HH:MM only; anything else (incl. blank) clears the window so the
+    // vendor reads as always-open.
+    const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const safeOpeningTime = timePattern.test((openingTime || "").trim()) ? openingTime.trim() : null;
+    const safeClosingTime = timePattern.test((closingTime || "").trim()) ? closingTime.trim() : null;
 
     if (!userId) {
       req.flash("error", "Please log in first");
@@ -227,14 +354,14 @@ export async function updateBusinessProfile(req, res) {
 
     await client.query("BEGIN");
 
-    const restaurantResult = await client.query(
-      "SELECT * FROM restaurants WHERE id = $1 FOR UPDATE",
-      [restaurantId]
+    const vendorResult = await client.query(
+      "SELECT * FROM vendors WHERE id = $1 FOR UPDATE",
+      [vendorId]
     );
 
-    const restaurant = restaurantResult.rows[0];
+    const vendor = vendorResult.rows[0];
 
-    if (!restaurant) {
+    if (!vendor) {
       await client.query("ROLLBACK");
       req.flash("error", "Business profile not found");
       return res.redirect("/admin");
@@ -252,26 +379,37 @@ export async function updateBusinessProfile(req, res) {
     }
 
     const logoUrl =
-      getFilePath(req.files?.businessLogo?.[0]) || restaurant.logo_url;
+      getFilePath(req.files?.businessLogo?.[0]) || vendor.logo_url;
     const bannerUrl =
-      getFilePath(req.files?.businessBanner?.[0]) || restaurant.banner_url;
-    const slug = await buildUniqueRestaurantSlug(client, safeName, restaurantId);
+      getFilePath(req.files?.businessBanner?.[0]) || vendor.banner_url;
+    const slug = await buildUniqueVendorSlug(client, safeName, vendorId);
+    const safeVendorType = VENDOR_TYPE_VALUES.includes(vendorType)
+      ? vendorType
+      : vendor.vendor_type;
 
     await client.query(
-      `UPDATE restaurants
+      `UPDATE vendors
        SET name = $1,
            description = $2,
            logo_url = $3,
            banner_url = $4,
-           slug = $5
-       WHERE id = $6`,
+           slug = $5,
+           vendor_type = $6,
+           opening_time = $7,
+           closing_time = $8,
+           pickup_instructions = $9
+       WHERE id = $10`,
       [
         safeName,
         safeDescription || null,
         logoUrl,
         bannerUrl,
         slug,
-        restaurantId
+        safeVendorType,
+        safeOpeningTime,
+        safeClosingTime,
+        safePickupInstructions || null,
+        vendorId
       ]
     );
 
@@ -279,7 +417,7 @@ export async function updateBusinessProfile(req, res) {
       `UPDATE users
        SET email = $1
        WHERE id = $2
-       RETURNING id, email, role, restaurant_id, full_name`,
+       RETURNING id, email, role, vendor_id, full_name`,
       [safeEmail, userId]
     );
 
@@ -312,10 +450,10 @@ export function newMenuForm(req, res) {
 export async function editMenuForm(req, res) {
   try {
     const { id } = req.params;
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
 
-    const menuItem = await getMenuItemById(id, restaurantId);
+    const menuItem = await getMenuItemById(id, vendorId);
 
     if (!menuItem) {
       req.flash("error", "Menu item not found");
@@ -339,8 +477,8 @@ export async function addMenuItem(req, res) {
   try {
     const { name, description, price, category, status } = req.body;
 
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
 
     const image_url = req.file
       ? `/images/${req.file.filename}`
@@ -353,7 +491,7 @@ export async function addMenuItem(req, res) {
       category,
       image_url,
       status: status || "Available",
-      restaurant_id: restaurantId
+      vendor_id: vendorId
     });
 
     req.flash("success", "Menu item added successfully");
@@ -369,12 +507,12 @@ export async function updateMenu(req, res) {
   try {
     const { name, description, price, category, status } = req.body;
 
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
 
     const existingItem = await getMenuItemById(
       req.params.id,
-      restaurantId
+      vendorId
     );
 
     if (!existingItem) {
@@ -407,7 +545,7 @@ export async function updateMenu(req, res) {
       category,
       status,
       image_url,
-      restaurant_id: restaurantId
+      vendor_id: vendorId
     });
 
     req.flash("success", "Menu item updated");
@@ -421,12 +559,12 @@ export async function updateMenu(req, res) {
 
 export async function deleteMenu(req, res) {
   try {
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
 
     const item = await getMenuItemById(
       req.params.id,
-      restaurantId
+      vendorId
     );
 
     if (!item) {
@@ -446,7 +584,7 @@ export async function deleteMenu(req, res) {
       }
     }
 
-    await deleteMenuItem(req.params.id, restaurantId);
+    await deleteMenuItem(req.params.id, vendorId);
 
     req.flash("success", "Menu item deleted");
     res.redirect("/admin");
@@ -461,15 +599,15 @@ export async function updateMenuOrder(req, res) {
   try {
     const { order } = req.body;
 
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
 
     for (let i = 0; i < order.length; i++) {
       await pool.query(
         `UPDATE menu_items
          SET display_order = $1
-         WHERE id = $2 AND restaurant_id = $3`,
-        [i, order[i], restaurantId]
+         WHERE id = $2 AND vendor_id = $3`,
+        [i, order[i], vendorId]
       );
     }
 
@@ -485,10 +623,10 @@ export async function toggleMenuStatus(req, res) {
   try {
     const { id } = req.params;
 
-    const restaurantId =
-      req.user?.restaurant_id || await ensureRestaurant();
+    const vendorId =
+      req.user?.vendor_id || await ensureVendor();
 
-    const item = await getMenuItemById(id, restaurantId);
+    const item = await getMenuItemById(id, vendorId);
 
     if (!item) {
       return res.status(404).json({ success: false });
@@ -511,7 +649,7 @@ export async function toggleMenuStatus(req, res) {
       category: item.category,
       image_url: item.image_url,
       status: newStatus,
-      restaurant_id: restaurantId
+      vendor_id: vendorId
     });
 
     res.json({
@@ -522,6 +660,112 @@ export async function toggleMenuStatus(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false });
+  }
+}
+
+export async function listPromos(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const promos = await getVendorPromos(vendorId);
+    res.render("admin/promos", { title: "Promo Codes", promos });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function createPromoHandler(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const code = (req.body.code || "").trim().toUpperCase().replace(/\s+/g, "");
+    const discountType = req.body.discountType === "fixed" ? "fixed" : "percent";
+    const discountValue = Number(req.body.discountValue);
+    const minOrder = Math.max(0, Number(req.body.minOrder || 0));
+    const expiresAt = (req.body.expiresAt || "").trim() || null;
+
+    if (!code || !Number.isFinite(discountValue) || discountValue <= 0) {
+      req.flash("error", "Enter a code and a positive discount value.");
+      return res.redirect("/admin/promos");
+    }
+    if (discountType === "percent" && discountValue > 100) {
+      req.flash("error", "A percentage discount can't exceed 100%.");
+      return res.redirect("/admin/promos");
+    }
+
+    await createPromo(vendorId, { code, discountType, discountValue, minOrder, expiresAt });
+    req.flash("success", "Promo code created.");
+    res.redirect("/admin/promos");
+  } catch (error) {
+    if (error.code === "23505") {
+      req.flash("error", "You already have a code with that name.");
+      return res.redirect("/admin/promos");
+    }
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function togglePromoHandler(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    await togglePromo(Number.parseInt(req.params.id, 10), vendorId);
+    res.redirect("/admin/promos");
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function deletePromoHandler(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    await deletePromo(Number.parseInt(req.params.id, 10), vendorId);
+    req.flash("success", "Promo code deleted.");
+    res.redirect("/admin/promos");
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function listReviews(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const reviews = await getReviewsForVendor(vendorId);
+    const averageRating = reviews.length
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+      : null;
+    const repliedCount = reviews.filter((review) => review.owner_reply).length;
+
+    res.render("admin/reviews", {
+      title: "Customer Reviews",
+      reviews,
+      averageRating,
+      repliedCount
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
+  }
+}
+
+export async function replyToReview(req, res) {
+  try {
+    const vendorId = req.user?.vendor_id || await ensureVendor();
+    const reviewId = Number.parseInt(req.params.reviewId, 10);
+    const reply = (req.body.reply || "").trim().slice(0, 1000);
+
+    if (!Number.isInteger(reviewId) || !reply) {
+      req.flash("error", "Your reply can't be empty.");
+      return res.redirect("/admin/reviews");
+    }
+
+    const updated = await addOwnerReply(reviewId, vendorId, reply);
+    req.flash(updated ? "success" : "error", updated ? "Reply posted." : "Review not found.");
+    res.redirect("/admin/reviews");
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("500", { title: "Server Error" });
   }
 }
 

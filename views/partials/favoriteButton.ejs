@@ -1,0 +1,17 @@
+<%
+  // Heart toggle, rendered for logged-in shoppers only. Expects `vendorId`.
+  const canFavorite = currentUser && !["owner", "admin", "driver"].includes(currentUser.role);
+  const favIds = typeof favoriteVendorIds !== "undefined" ? favoriteVendorIds : new Set();
+  const isFav = favIds.has(Number(vendorId));
+%>
+<% if (canFavorite) { %>
+  <button
+    type="button"
+    class="favorite-toggle <%= isFav ? "is-favorited" : "" %>"
+    data-favorite-toggle
+    data-vendor-id="<%= vendorId %>"
+    aria-pressed="<%= isFav %>"
+    aria-label="<%= isFav ? "Remove from favourites" : "Save to favourites" %>"
+    title="<%= isFav ? "Saved to favourites" : "Save to favourites" %>"
+  ><%- include("icon", { name: "heart" }) %></button>
+<% } %>

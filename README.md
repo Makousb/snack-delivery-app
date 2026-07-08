@@ -1,17 +1,23 @@
 # Snack Delivery App
 
-A multi-restaurant food delivery marketplace with separate experiences for
-customers, restaurant owners, and drivers — built with Express, EJS, and
-PostgreSQL.
+A Grab-style multi-vendor delivery marketplace — restaurants, neighborhood
+stores, and local street vendors all in one place — with separate
+experiences for customers, vendor owners, and drivers. Built with Express,
+EJS, and PostgreSQL.
 
 ## Features
 
-- Browse restaurants, search, and order from per-restaurant menus
+- Browse vendors (restaurants, stores, and street vendors), filter by type,
+  search, and order from per-vendor menus
 - Cart and checkout with cash-on-delivery or M-Pesa STK Push
+- Customer ratings & reviews: 1–5★ with an optional comment, left on a
+  completed order (one per order), aggregated onto vendor cards and pages
+- Sold-out items are marked on the menu and can't be added to the cart
 - Live order status updates via Socket.IO
-- Role-based accounts: customer, restaurant owner, driver, admin
+- Role-based accounts: customer, vendor owner, driver, admin
 - Owner business hub: menu management with drag-to-reorder and automatic
-  image resizing, business profile editing, order management, contact inbox
+  image resizing, business profile editing (including vendor type), order
+  management, contact inbox
 - Driver dashboard for accepting deliveries and updating delivery stage
 - Session-based auth with bcrypt password hashing
 
@@ -68,7 +74,7 @@ Create an empty PostgreSQL database (matching `DB_NAME` in your `.env`,
 
 ```bash
 psql -d business_data -f sql/schema.sql
-psql -d business_data -f sql/seed.sql   # optional demo restaurant + menu
+psql -d business_data -f sql/seed.sql   # optional demo vendors + menus
 ```
 
 ### 4. Create an owner/admin account

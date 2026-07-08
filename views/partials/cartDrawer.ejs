@@ -1,0 +1,25 @@
+<%
+  const isShopper = typeof currentUser === "undefined" || !currentUser || !["owner", "admin", "driver"].includes(currentUser.role);
+%>
+<% if (isShopper) { %>
+  <div id="cart-drawer-overlay" class="cart-drawer-overlay"></div>
+
+  <aside id="cart-drawer" class="cart-drawer" aria-hidden="true" aria-label="Your cart">
+    <div class="cart-drawer-head">
+      <h2>Your cart</h2>
+      <button type="button" id="cart-drawer-close" class="cart-drawer-close" aria-label="Close cart">&times;</button>
+    </div>
+
+    <div class="cart-drawer-body" id="cart-drawer-body">
+      <p class="cart-drawer-empty">Your cart is empty.</p>
+    </div>
+
+    <div class="cart-drawer-footer">
+      <div class="cart-drawer-total">
+        <span>Subtotal</span>
+        <strong id="cart-drawer-total">KSh 0.00</strong>
+      </div>
+      <a href="/cart" class="btn vendor-primary-cta cart-drawer-checkout">View cart &amp; checkout</a>
+    </div>
+  </aside>
+<% } %>

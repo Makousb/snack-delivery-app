@@ -3,26 +3,28 @@ import {
   createOrder,
   orderSuccess,
   customerOrders,
-  restaurantOrders,
+  submitReview,
+  vendorOrders,
   submitMpesaCode,
   updateOrderStatus
 } from "../controllers/order.controller.js";
-import { requireAuth, requireRole } from "../middlewares/auth.middleware.js";
+import { blockRoles, requireAuth, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
 // Customer
-router.post("/restaurant/:restaurantId/order", createOrder);
+router.post("/vendor/:vendorId/order", blockRoles(["owner", "admin", "driver"]), createOrder);
 router.get("/orders/:orderId/success", orderSuccess);
 router.post("/orders/:orderId/confirm-payment", submitMpesaCode);
-router.get("/orders", customerOrders);
+router.get("/orders", blockRoles(["owner", "admin", "driver"]), customerOrders);
+router.post("/orders/:orderId/review", blockRoles(["owner", "admin", "driver"]), submitReview);
 
-// Admin / Restaurant
+// Admin / Vendor
 router.get(
-  "/admin/restaurant/:restaurantId/orders",
+  "/admin/vendor/:vendorId/orders",
   requireAuth,
   requireRole(["owner", "admin"]),
-  restaurantOrders
+  vendorOrders
 );
 router.post(
   "/admin/order/:orderId/status",

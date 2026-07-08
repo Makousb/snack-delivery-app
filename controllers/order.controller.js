@@ -1,27 +1,61 @@
 import { pool } from "../db/index.js";
+import { config } from "../config/env.js";
 import { initiateSTKPush } from "../services/mpesa.js";
+import { createReview, getReviewByOrderId } from "../db/queries/reviews.js";
+import { distanceKm } from "../utils/geo.js";
+import { computeDeliveryFee } from "../utils/pricing.js";
+import { isVendorOpen } from "../utils/hours.js";
+
+// Scheduled orders must give the kitchen some lead time, and can't be booked
+// absurdly far out.
+const SCHEDULE_MIN_LEAD_MS = 20 * 60 * 1000;
+const SCHEDULE_MAX_AHEAD_MS = 3 * 24 * 60 * 60 * 1000;
+import { validatePromo } from "../db/queries/promos.js";
+import { sendOrderConfirmation } from "../services/email.js";
 
 function parseCoordinate(value, max) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
 }
 
+// The only statuses a vendor is allowed to set from the orders dashboard.
+// Anything else (e.g. a hand-crafted POST) is rejected so the status column
+// can't be filled with arbitrary text.
+const VENDOR_SETTABLE_STATUSES = new Set([
+  "Pending Payment",
+  "Payment Pending Verification",
+  "Paid",
+  "Cash Pending",
+  "Preparing",
+  "Driver Assigned",
+  "Out for Delivery",
+  "Ready for Pickup",
+  "Completed"
+]);
+
 export const createOrder = async (req, res) => {
-  const { restaurantId } = req.params;
+  const { vendorId } = req.params;
   const userId = req.session.user?.id || null;
   const { phone, paymentMethod, deliveryAddress, tipAmount, deliveryLat, deliveryLng } = req.body;
   const parsedLat = parseCoordinate(deliveryLat, 90);
   const parsedLng = parseCoordinate(deliveryLng, 180);
+  const fulfillmentType = req.body.fulfillmentType === "pickup" ? "pickup" : "delivery";
 
   if (
     !req.session.cart ||
-    !req.session.cart[restaurantId] ||
-    req.session.cart[restaurantId].length === 0
+    !req.session.cart[vendorId] ||
+    req.session.cart[vendorId].length === 0
   ) {
-    return res.redirect(`/restaurant/${restaurantId}/cart`);
+    return res.redirect(`/vendor/${vendorId}/cart`);
   }
 
-  const cartItems = req.session.cart[restaurantId];
+  // Cash-only beta guard: never accept an online payment when M-Pesa is off.
+  if (paymentMethod === "mpesa" && !config.payments.mpesaEnabled) {
+    req.flash("error", "Online payment is unavailable right now — please choose cash on delivery.");
+    return res.redirect(`/vendor/${vendorId}/cart`);
+  }
+
+  const cartItems = req.session.cart[vendorId];
   const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   const parsedTipAmount = Math.max(0, Number(tipAmount || 0));
 
@@ -38,20 +72,95 @@ export const createOrder = async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    // Fetch the vendor up front so we can price delivery by distance before the
+    // order row is written. Fee is authoritative here (never trusted from the
+    // client); the cart page only shows an estimate.
+    const vendorInfo = await client.query(
+      "SELECT name, latitude, longitude, opening_time, closing_time FROM vendors WHERE id = $1",
+      [vendorId]
+    );
+    const vendor = vendorInfo.rows[0];
+
+    // Scheduled orders: validate the requested slot (sensible lead time, not
+    // too far out, and inside the vendor's opening hours). A valid schedule
+    // also lets customers order while the vendor is currently closed.
+    let scheduledFor = null;
+    if (req.body.orderTiming === "scheduled") {
+      const requested = new Date(req.body.scheduledFor || "");
+      const now = Date.now();
+
+      const isValidSlot =
+        !Number.isNaN(requested.getTime()) &&
+        requested.getTime() >= now + SCHEDULE_MIN_LEAD_MS &&
+        requested.getTime() <= now + SCHEDULE_MAX_AHEAD_MS &&
+        (!vendor || isVendorOpen(vendor, requested));
+
+      if (!isValidSlot) {
+        await client.query("ROLLBACK");
+        req.flash("error", "That scheduled time isn't available — please pick another slot.");
+        return res.redirect(`/vendor/${vendorId}/cart`);
+      }
+
+      scheduledFor = requested;
+    }
+
+    // Don't accept ASAP orders while the vendor is closed. (Scheduled orders
+    // are fine — the slot above is already validated against opening hours.)
+    if (!scheduledFor && vendor && !isVendorOpen(vendor)) {
+      await client.query("ROLLBACK");
+      req.flash("error", `${vendor.name} is closed right now — schedule your order for when they reopen.`);
+      return res.redirect(`/vendor/${vendorId}/cart`);
+    }
+
+    // Pickup orders skip delivery entirely: no fee, no driver job.
+    const hasBothCoords =
+      fulfillmentType === "delivery" &&
+      vendor?.latitude != null &&
+      vendor?.longitude != null &&
+      parsedLat != null &&
+      parsedLng != null;
+
+    const distance = hasBothCoords
+      ? distanceKm(Number(vendor.latitude), Number(vendor.longitude), parsedLat, parsedLng)
+      : null;
+
+    const deliveryFee = fulfillmentType === "pickup" ? 0 : computeDeliveryFee(distance);
+    const tip = fulfillmentType === "pickup" ? 0 : parsedTipAmount;
+
+    // Re-validate any promo code against the server-side subtotal so the
+    // discount can't be tampered with from the client.
+    let discount = 0;
+    let appliedPromoCode = null;
+    const promoInput = (req.body.promoCode || "").trim();
+    if (promoInput) {
+      const promoResult = await validatePromo(vendorId, promoInput, total);
+      if (!promoResult.error) {
+        discount = promoResult.discount;
+        appliedPromoCode = promoResult.code;
+      }
+    }
+
+    const grandTotal = total - discount + deliveryFee + tip;
+
     const orderResult = await client.query(
-      `INSERT INTO orders (restaurant_id, user_id, total, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO orders (vendor_id, user_id, total, delivery_fee, fulfillment_type, promo_code, discount, status, delivery_address, customer_phone, payment_method, delivery_lat, delivery_lng, scheduled_for)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING id`,
       [
-        restaurantId,
+        vendorId,
         userId,
         total,
+        deliveryFee,
+        fulfillmentType,
+        appliedPromoCode,
+        discount,
         initialStatus,
-        deliveryAddress || null,
+        fulfillmentType === "pickup" ? null : deliveryAddress || null,
         phone || null,
         paymentMethod || null,
-        parsedLat,
-        parsedLng
+        fulfillmentType === "pickup" ? null : parsedLat,
+        fulfillmentType === "pickup" ? null : parsedLng,
+        scheduledFor
       ]
     );
 
@@ -65,43 +174,44 @@ export const createOrder = async (req, res) => {
       );
     }
 
-    const restaurantInfo = await client.query(
-      "SELECT name FROM restaurants WHERE id = $1",
-      [restaurantId]
-    );
-
-    await client.query(
-      `INSERT INTO deliveries (
-         order_id,
-         status,
-         current_stage,
-         pickup_location,
-         dropoff_location,
-         tips
-       )
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        orderId,
-        "Available",
-        "Awaiting driver",
-        restaurantInfo.rows[0]?.name || "Restaurant kitchen",
-        deliveryAddress || null,
-        parsedTipAmount
-      ]
-    );
+    // Pickup orders don't need a driver, so no delivery job is created.
+    if (fulfillmentType === "delivery") {
+      await client.query(
+        `INSERT INTO deliveries (
+           order_id,
+           status,
+           current_stage,
+           pickup_location,
+           dropoff_location,
+           tips
+         )
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          orderId,
+          "Available",
+          "Awaiting driver",
+          vendor?.name || "Pickup point",
+          deliveryAddress || null,
+          tip
+        ]
+      );
+    }
 
     await client.query("COMMIT");
 
     const io = req.app.get("io");
 
     if (io) {
-      io.to(`restaurant_${restaurantId}`).emit("newOrder", {
+      io.to(`vendor_${vendorId}`).emit("newOrder", {
         orderId,
         total,
         status: initialStatus,
-        deliveryAddress: deliveryAddress || null,
-        deliveryLat: parsedLat,
-        deliveryLng: parsedLng
+        fulfillmentType,
+        scheduledFor: scheduledFor ? scheduledFor.toISOString() : null,
+        itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
+        deliveryAddress: fulfillmentType === "pickup" ? null : deliveryAddress || null,
+        deliveryLat: fulfillmentType === "pickup" ? null : parsedLat,
+        deliveryLng: fulfillmentType === "pickup" ? null : parsedLng
       });
 
       io.emit("orderUpdated", {
@@ -110,9 +220,20 @@ export const createOrder = async (req, res) => {
       });
     }
 
+    // Fire-and-forget order confirmation to the signed-in customer. No-ops when
+    // email isn't configured; never blocks or fails the checkout response.
+    if (req.session.user?.email) {
+      sendOrderConfirmation({
+        to: req.session.user.email,
+        order: { id: orderId, total, discount, delivery_fee: deliveryFee, tip },
+        items: cartItems,
+        vendorName: vendor?.name || "the vendor"
+      }).catch(() => {});
+    }
+
     if (paymentMethod === "mpesa" && phone) {
       try {
-        const stkResponse = await initiateSTKPush(phone, total);
+        const stkResponse = await initiateSTKPush(phone, grandTotal);
 
         if (stkResponse?.CheckoutRequestID) {
           await pool.query(
@@ -125,7 +246,7 @@ export const createOrder = async (req, res) => {
       }
     }
 
-    req.session.cart[restaurantId] = [];
+    req.session.cart[vendorId] = [];
 
     res.redirect(`/orders/${orderId}/success`);
   } catch (err) {
@@ -142,9 +263,13 @@ export const orderSuccess = async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.*, r.name AS restaurant_name
+      `SELECT o.*, v.name AS vendor_name, COALESCE(d.tips, 0) AS tip,
+              v.latitude AS vendor_latitude, v.longitude AS vendor_longitude,
+              v.opening_time AS vendor_opening_time, v.closing_time AS vendor_closing_time,
+              v.pickup_instructions AS vendor_pickup_instructions
        FROM orders o
-       JOIN restaurants r ON r.id = o.restaurant_id
+       JOIN vendors v ON v.id = o.vendor_id
+       LEFT JOIN deliveries d ON d.order_id = o.id
        WHERE o.id = $1`,
       [orderId]
     );
@@ -192,7 +317,7 @@ export const submitMpesaCode = async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      "SELECT user_id, restaurant_id, payment_method FROM orders WHERE id = $1",
+      "SELECT user_id, vendor_id, payment_method FROM orders WHERE id = $1",
       [orderId]
     );
     const order = orderResult.rows[0];
@@ -216,7 +341,7 @@ export const submitMpesaCode = async (req, res) => {
 
     if (io) {
       io.emit("orderUpdated", { orderId, status: "Payment Pending Verification" });
-      io.to(`restaurant_${order.restaurant_id}`).emit("orderUpdated", {
+      io.to(`vendor_${order.vendor_id}`).emit("orderUpdated", {
         orderId,
         status: "Payment Pending Verification"
       });
@@ -237,17 +362,56 @@ export const customerOrders = async (req, res) => {
     if (!userId) return res.redirect("/auth/login");
 
     const result = await pool.query(
-      `SELECT o.*, r.name AS restaurant_name
+      `SELECT o.*, v.name AS vendor_name
        FROM orders o
-       JOIN restaurants r ON r.id = o.restaurant_id
+       JOIN vendors v ON v.id = o.vendor_id
        WHERE o.user_id = $1
        ORDER BY o.created_at DESC`,
       [userId]
     );
 
+    const orders = result.rows;
+
+    // Attach a short item summary to each order so the history shows what
+    // was in it, not just a total. menu_item_id can be null for removed
+    // items, so fall back to a placeholder name.
+    if (orders.length) {
+      const itemsResult = await pool.query(
+        `SELECT oi.order_id, oi.quantity, COALESCE(mi.name, 'Removed item') AS name
+         FROM order_items oi
+         LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+         WHERE oi.order_id = ANY($1)
+         ORDER BY oi.id ASC`,
+        [orders.map((order) => order.id)]
+      );
+
+      const itemsByOrder = itemsResult.rows.reduce((groups, row) => {
+        (groups[row.order_id] = groups[row.order_id] || []).push(row);
+        return groups;
+      }, {});
+
+      // Pull any existing reviews so completed orders show either the rating
+      // the customer already left or a prompt to leave one.
+      const reviewsResult = await pool.query(
+        "SELECT order_id, rating, comment FROM reviews WHERE order_id = ANY($1)",
+        [orders.map((order) => order.id)]
+      );
+
+      const reviewByOrder = reviewsResult.rows.reduce((map, row) => {
+        map[row.order_id] = row;
+        return map;
+      }, {});
+
+      orders.forEach((order) => {
+        order.items = itemsByOrder[order.id] || [];
+        order.review = reviewByOrder[order.id] || null;
+        order.can_review = order.status === "Completed" && !order.review;
+      });
+    }
+
     res.render("orders", {
       title: "My Orders",
-      orders: result.rows
+      orders
     });
   } catch (err) {
     console.error(err);
@@ -255,26 +419,89 @@ export const customerOrders = async (req, res) => {
   }
 };
 
-export const restaurantOrders = async (req, res) => {
-  const restaurantId = req.user?.restaurant_id;
+export const submitReview = async (req, res) => {
+  const { orderId } = req.params;
+  const userId = req.session.user?.id;
 
-  if (!restaurantId) {
-    req.flash("error", "No restaurant is linked to this account.");
+  if (!userId) {
+    req.flash("error", "Log in to leave a review.");
+    return res.redirect("/auth/login");
+  }
+
+  const rating = Number.parseInt(req.body.rating, 10);
+  const comment = (req.body.comment || "").trim().slice(0, 1000) || null;
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    req.flash("error", "Pick a star rating between 1 and 5.");
+    return res.redirect("/orders");
+  }
+
+  try {
+    const orderResult = await pool.query(
+      "SELECT id, vendor_id, user_id, status FROM orders WHERE id = $1",
+      [orderId]
+    );
+    const order = orderResult.rows[0];
+
+    // Only the customer who placed the order, and only once it's completed,
+    // can review it.
+    if (!order || order.user_id !== userId) {
+      req.flash("error", "Order not found.");
+      return res.redirect("/orders");
+    }
+
+    if (order.status !== "Completed") {
+      req.flash("error", "You can review an order once it's completed.");
+      return res.redirect("/orders");
+    }
+
+    if (await getReviewByOrderId(orderId)) {
+      req.flash("error", "You've already reviewed this order.");
+      return res.redirect("/orders");
+    }
+
+    await createReview({
+      vendorId: order.vendor_id,
+      userId,
+      orderId: order.id,
+      rating,
+      comment
+    });
+
+    req.flash("success", "Thanks for your review!");
+    return res.redirect("/orders");
+  } catch (err) {
+    // UNIQUE(order_id) violation — a concurrent submit already reviewed it.
+    if (err.code === "23505") {
+      req.flash("error", "You've already reviewed this order.");
+      return res.redirect("/orders");
+    }
+
+    console.error(err);
+    return res.status(500).render("500", { title: "Server Error" });
+  }
+};
+
+export const vendorOrders = async (req, res) => {
+  const vendorId = req.user?.vendor_id;
+
+  if (!vendorId) {
+    req.flash("error", "No vendor is linked to this account.");
     return res.redirect("/admin");
   }
 
   try {
     const result = await pool.query(
       `SELECT * FROM orders
-       WHERE restaurant_id = $1
+       WHERE vendor_id = $1
        ORDER BY created_at DESC`,
-      [restaurantId]
+      [vendorId]
     );
 
     res.render("admin/orders", {
-      title: "Restaurant Orders",
+      title: "Vendor Orders",
       orders: result.rows,
-      restaurantId
+      vendorId
     });
   } catch (err) {
     console.error(err);
@@ -285,25 +512,30 @@ export const restaurantOrders = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
-  const restaurantId = req.user?.restaurant_id;
+  const vendorId = req.user?.vendor_id;
 
-  if (!restaurantId) {
-    req.flash("error", "No restaurant is linked to this account.");
+  if (!vendorId) {
+    req.flash("error", "No vendor is linked to this account.");
     return res.redirect("/admin");
+  }
+
+  if (!VENDOR_SETTABLE_STATUSES.has(status)) {
+    req.flash("error", "That order status isn't allowed.");
+    return res.redirect(`/admin/vendor/${vendorId}/orders`);
   }
 
   try {
     const result = await pool.query(
       `UPDATE orders
        SET status = $1
-       WHERE id = $2 AND restaurant_id = $3
+       WHERE id = $2 AND vendor_id = $3
        RETURNING id`,
-      [status, orderId, restaurantId]
+      [status, orderId, vendorId]
     );
 
     if (!result.rows.length) {
       req.flash("error", "Order not found.");
-      return res.redirect(`/admin/restaurant/${restaurantId}/orders`);
+      return res.redirect(`/admin/vendor/${vendorId}/orders`);
     }
 
     const io = req.app.get("io");
@@ -315,7 +547,7 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    res.redirect(`/admin/restaurant/${restaurantId}/orders`);
+    res.redirect(`/admin/vendor/${vendorId}/orders`);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating order");
@@ -326,6 +558,12 @@ export const updateOrderStatus = async (req, res) => {
 // first and process the result afterward.
 export const handleMpesaCallback = async (req, res) => {
   res.sendStatus(200);
+
+  // Inert while online payments are disabled — nothing should be able to flip
+  // an order to Paid through this (currently unauthenticated) endpoint.
+  if (!config.payments.mpesaEnabled) {
+    return;
+  }
 
   const stkCallback = req.body?.Body?.stkCallback;
 
@@ -342,7 +580,7 @@ export const handleMpesaCallback = async (req, res) => {
       `UPDATE orders
        SET status = $1
        WHERE mpesa_checkout_request_id = $2
-       RETURNING id, restaurant_id`,
+       RETURNING id, vendor_id`,
       [status, CheckoutRequestID]
     );
 
@@ -357,7 +595,7 @@ export const handleMpesaCallback = async (req, res) => {
 
     if (io) {
       io.emit("orderUpdated", { orderId: order.id, status });
-      io.to(`restaurant_${order.restaurant_id}`).emit("orderUpdated", {
+      io.to(`vendor_${order.vendor_id}`).emit("orderUpdated", {
         orderId: order.id,
         status
       });

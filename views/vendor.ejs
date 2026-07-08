@@ -1,0 +1,161 @@
+<%- include("partials/header") %>
+
+<section class="vendor-page">
+  <div class="vendor-hero">
+    <div class="vendor-hero-copy">
+      <span class="feature-eyebrow">Vendor spotlight</span>
+      <h1><%= vendor.name %> <span class="vendor-type-badge"><%= vendor.vendor_type_label %></span></h1>
+      <div class="vendor-hero-rating">
+        <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+      </div>
+      <p class="vendor-hero-description">
+        <%= vendor.description || "A polished delivery experience starts with a menu people can navigate quickly and confidently." %>
+      </p>
+
+      <div class="vendor-hero-metrics">
+        <div class="vendor-metric">
+          <strong><%= featuredItems.length %></strong>
+          <span>featured items</span>
+        </div>
+        <div class="vendor-metric">
+          <strong>Fast</strong>
+          <span>delivery-friendly menu</span>
+        </div>
+        <div class="vendor-metric">
+          <strong>Live</strong>
+          <span>cart and checkout flow</span>
+        </div>
+      </div>
+
+      <div class="vendor-hero-actions">
+        <a href="/vendor/<%= vendor.id %>/menu" class="btn vendor-primary-cta">
+          Browse Full Menu
+        </a>
+        <a href="/cart" class="btn vendor-secondary-cta">
+          Open Cart
+        </a>
+      </div>
+    </div>
+
+    <aside class="vendor-hero-panel <%= vendor.banner_url ? 'vendor-hero-panel-has-banner' : '' %>">
+      <% if (vendor.banner_url) { %>
+        <div class="vendor-hero-panel-banner">
+          <img
+            src="<%= vendor.banner_url %>"
+            alt="<%= vendor.name %> banner"
+            class="vendor-banner-image"
+            loading="lazy"
+          />
+        </div>
+      <% } %>
+
+      <div class="vendor-hero-brand">
+        <div class="vendor-logo vendor-hero-logo">
+          <% if (vendor.logo_url) { %>
+            <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy">
+          <% } else { %>
+            <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+          <% } %>
+        </div>
+
+        <div>
+          <% const spotlightStatus = vendorOpenStatus(vendor); %>
+          <span class="showcase-label vendor-status-pill vendor-status-<%= spotlightStatus.open ? "open" : "closed" %>">
+            <%= spotlightStatus.label %> · <%= formatVendorHours(vendor) %>
+          </span>
+          <h2><%= vendor.name %></h2>
+        </div>
+      </div>
+
+      <div class="vendor-hero-preview">
+        <% featuredItems.slice(0, 3).forEach(item => { %>
+          <div class="vendor-preview-row">
+            <span><%= item.name %></span>
+            <strong><%= formatCurrency(item.price) %></strong>
+          </div>
+        <% }) %>
+      </div>
+    </aside>
+  </div>
+
+  <section class="vendor-preview-section">
+    <div class="home-section-heading vendor-section-heading">
+      <div>
+        <span class="feature-eyebrow">Featured items</span>
+        <h2>Quick picks before you open the full menu.</h2>
+      </div>
+      <a href="/vendor/<%= vendor.id %>/menu" class="btn home-section-link">
+        View Full Menu
+      </a>
+    </div>
+
+    <div class="vendor-featured-grid">
+      <% featuredItems.forEach(item => { %>
+        <article class="vendor-featured-card">
+          <% if (item.image_url) { %>
+            <img
+              src="<%= item.image_url %>"
+              alt="<%= item.name %>"
+              class="vendor-featured-image"
+              loading="lazy"
+            />
+          <% } %>
+
+          <div class="vendor-featured-content">
+            <span class="menu-category"><%= item.category || "Popular" %></span>
+            <h3><%= item.name %></h3>
+            <p><%= item.description || "Made for quick, confident ordering." %></p>
+            <div class="vendor-featured-footer">
+              <strong><%= formatCurrency(item.price) %></strong>
+              <a href="/vendor/<%= vendor.id %>/menu" class="vendor-card-link">
+                Order now
+              </a>
+            </div>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="vendor-reviews-section">
+    <div class="home-section-heading vendor-section-heading">
+      <div>
+        <span class="feature-eyebrow">Customer reviews</span>
+        <h2>What people are saying.</h2>
+      </div>
+      <div class="vendor-reviews-summary">
+        <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+      </div>
+    </div>
+
+    <% if (reviews && reviews.length) { %>
+      <div class="vendor-reviews-grid">
+        <% reviews.forEach((review) => { %>
+          <article class="vendor-review-card">
+            <div class="vendor-review-stars" aria-label="<%= review.rating %> out of 5 stars">
+              <% for (let star = 1; star <= 5; star++) { %><span class="<%= star <= review.rating ? 'is-filled' : '' %>">★</span><% } %>
+            </div>
+            <% if (review.comment) { %>
+              <p class="vendor-review-comment"><%= review.comment %></p>
+            <% } %>
+            <div class="vendor-review-meta">
+              <strong><%= review.full_name || "Verified customer" %></strong>
+              <span><%= new Date(review.created_at).toLocaleDateString() %></span>
+            </div>
+
+            <% if (review.owner_reply) { %>
+              <div class="vendor-review-owner-reply">
+                <strong>Response from <%= vendor.name %></strong>
+                <p><%= review.owner_reply %></p>
+              </div>
+            <% } %>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="home-empty-state">No reviews yet — be the first to order and leave one.</p>
+    <% } %>
+  </section>
+</section>
+
+<%- include("partials/footer") %>

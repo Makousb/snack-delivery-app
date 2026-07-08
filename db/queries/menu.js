@@ -1,11 +1,11 @@
 import { pool } from "../index.js";
 
-export async function getAllMenuItems(restaurantId) {
-  if (!restaurantId) {
+export async function getAllMenuItems(vendorId) {
+  if (!vendorId) {
     const result = await pool.query(
       `SELECT *
        FROM menu_items
-       ORDER BY restaurant_id ASC, display_order ASC, id ASC`
+       ORDER BY vendor_id ASC, display_order ASC, id ASC`
     );
 
     return result.rows;
@@ -14,20 +14,20 @@ export async function getAllMenuItems(restaurantId) {
   const result = await pool.query(
     `SELECT *
      FROM menu_items
-     WHERE restaurant_id = $1
+     WHERE vendor_id = $1
      ORDER BY display_order ASC, id ASC`,
-    [restaurantId]
+    [vendorId]
   );
 
   return result.rows;
 }
 
-export async function getMenuItemById(id, restaurantId) {
+export async function getMenuItemById(id, vendorId) {
   const result = await pool.query(
     `SELECT *
      FROM menu_items
-     WHERE id = $1 AND restaurant_id = $2`,
-    [id, restaurantId]
+     WHERE id = $1 AND vendor_id = $2`,
+    [id, vendorId]
   );
 
   return result.rows[0];
@@ -41,12 +41,12 @@ export async function createMenuItem(data) {
     image_url,
     category,
     status,
-    restaurant_id
+    vendor_id
   } = data;
 
   await pool.query(
     `INSERT INTO menu_items
-     (name, description, price, image_url, category, status, restaurant_id)
+     (name, description, price, image_url, category, status, vendor_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7)`,
     [
       name,
@@ -55,7 +55,7 @@ export async function createMenuItem(data) {
       image_url,
       category,
       status || "Available",
-      restaurant_id
+      vendor_id
     ]
   );
 }
@@ -68,7 +68,7 @@ export async function updateMenuItem(id, data) {
     image_url,
     category,
     status,
-    restaurant_id
+    vendor_id
   } = data;
 
   await pool.query(
@@ -79,7 +79,7 @@ export async function updateMenuItem(id, data) {
          image_url = $4,
          category = $5,
          status = $6
-     WHERE id = $7 AND restaurant_id = $8`,
+     WHERE id = $7 AND vendor_id = $8`,
     [
       name,
       description,
@@ -88,15 +88,15 @@ export async function updateMenuItem(id, data) {
       category,
       status,
       id,
-      restaurant_id
+      vendor_id
     ]
   );
 }
 
-export async function deleteMenuItem(id, restaurantId) {
+export async function deleteMenuItem(id, vendorId) {
   await pool.query(
     `DELETE FROM menu_items
-     WHERE id = $1 AND restaurant_id = $2`,
-    [id, restaurantId]
+     WHERE id = $1 AND vendor_id = $2`,
+    [id, vendorId]
   );
 }
