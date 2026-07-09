@@ -1,0 +1,35 @@
+# Render blueprint: one web service + one Postgres database.
+# In the Render dashboard: New → Blueprint → pick this repo → Apply.
+# The app bootstraps its own schema (and demo data, via SEED_DEMO_DATA)
+# on first boot, so no manual psql step is needed.
+
+services:
+  - type: web
+    name: snack-delivery-app
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /home
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: snack-db
+          property: connectionString
+      # Render's internal database connection doesn't require TLS.
+      - key: DB_SSL
+        value: "false"
+      # Demo vendors + menus so the hosted app has something to browse.
+      # Remove (or set to "false") for a clean production database.
+      - key: SEED_DEMO_DATA
+        value: "true"
+
+databases:
+  - name: snack-db
+    plan: free
+    databaseName: snack
+    user: snack

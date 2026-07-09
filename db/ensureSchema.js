@@ -1,5 +1,31 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { pool } from "./index.js";
 import { slugify } from "../utils/slugify.js";
+
+const sqlDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "sql");
+
+// Fresh-database bootstrap (e.g. a brand-new Render/Heroku Postgres): when
+// the core tables don't exist yet, apply schema.sql directly so deploys are
+// zero-touch.
+async function applySchemaIfFresh() {
+  const { rows } = await pool.query("SELECT to_regclass('public.vendors') AS vendors");
+
+  if (!rows[0].vendors) {
+    console.info("Fresh database detected — applying sql/schema.sql");
+    await pool.query(fs.readFileSync(path.join(sqlDir, "schema.sql"), "utf8"));
+  }
+}
+
+// Idempotent demo data (vendors + menus), loaded when SEED_DEMO_DATA is set
+// so a hosted demo has something to browse.
+async function applyDemoSeed() {
+  if (process.env.SEED_DEMO_DATA !== "true") return;
+
+  console.info("SEED_DEMO_DATA=true — applying sql/seed.sql");
+  await pool.query(fs.readFileSync(path.join(sqlDir, "seed.sql"), "utf8"));
+}
 
 async function renameColumnIfNeeded(table, oldColumn, newColumn) {
   const result = await pool.query(
@@ -50,6 +76,8 @@ async function ensureVendorSlugs() {
 }
 
 export async function ensureSchema() {
+  await applySchemaIfFresh();
+
   await pool.query(`
     ALTER TABLE users
       ADD COLUMN IF NOT EXISTS full_name TEXT
@@ -226,4 +254,5 @@ export async function ensureSchema() {
   `);
 
   await ensureVendorSlugs();
+  await applyDemoSeed();
 }

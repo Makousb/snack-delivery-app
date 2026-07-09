@@ -131,6 +131,26 @@ npm start
 
 Visit `http://localhost:3000`.
 
+## Deploying to Render
+
+The repo ships a [render.yaml](render.yaml) blueprint that provisions the web
+service and a free Postgres database together:
+
+1. Push the repo to GitHub (already done if you're reading this there).
+2. In the [Render dashboard](https://dashboard.render.com): **New → Blueprint**,
+   pick this repository, and click **Apply**.
+3. That's it — on first boot the app applies `sql/schema.sql` to the fresh
+   database automatically, and because the blueprint sets
+   `SEED_DEMO_DATA=true` it also loads the demo vendors and menus.
+
+The deployed site is served over HTTPS, so the PWA works end to end: open it
+in Safari on an iPhone → Share → **Add to Home Screen**.
+
+Notes for a real deployment: remove `SEED_DEMO_DATA` from the service's
+environment once you have real data, and note that images uploaded by vendors
+live on the service's ephemeral disk (they reset on redeploy) — swap in an
+object store (e.g. S3/Cloudinary) before onboarding real vendors.
+
 ## Payments
 
 M-Pesa STK Push targets the Safaricom Daraja sandbox by default. Real
