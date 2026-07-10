@@ -8,6 +8,9 @@ services:
     name: snack-delivery-app
     runtime: node
     plan: free
+    # Must match the database's region — the internal DATABASE_URL only
+    # resolves within a single region.
+    region: oregon
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /home
@@ -31,5 +34,6 @@ services:
 databases:
   - name: snack-db
     plan: free
+    region: oregon
     databaseName: snack
     user: snack
