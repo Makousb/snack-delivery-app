@@ -3,7 +3,7 @@
   "short_name": "Snack",
   "description": "Food, groceries, and street-vendor favourites delivered or ready for pickup.",
   "id": "/",
-  "start_url": "/home",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f3f8f3",

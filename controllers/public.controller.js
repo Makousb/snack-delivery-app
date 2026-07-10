@@ -17,6 +17,13 @@ function withVendorTypeLabel(vendor) {
 }
 
 export const renderLanding = (req, res) => {
+  // Signed-in users skip the marketing page and land in the marketplace —
+  // this also makes the installed PWA (start_url "/") open straight into
+  // the app for returning users.
+  if (req.session.user) {
+    return res.redirect("/home");
+  }
+
   res.render("landing", {
     title: "Snack Delivery"
   });
