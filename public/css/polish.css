@@ -639,6 +639,95 @@ body.dark .marketplace-control-divider {
 }
 
 /* -----------------------------
+   Active order tracking strip
+------------------------------ */
+.active-order-strip {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.active-order-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 40%),
+    linear-gradient(135deg, var(--green-700), var(--green-600));
+  color: #f2fff5 !important;
+  box-shadow: 0 14px 30px rgba(22, 101, 52, 0.22);
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.active-order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(22, 101, 52, 0.28);
+}
+
+@keyframes active-order-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+}
+
+.active-order-pulse {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #bbf7d0;
+  animation: active-order-pulse 1.8s ease-in-out infinite;
+}
+
+.active-order-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.active-order-copy strong {
+  color: #ffffff;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.active-order-copy > span {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.86rem;
+}
+
+.active-order-copy [data-active-order-status] {
+  font-weight: 700;
+  color: #bbf7d0;
+}
+
+.active-order-open {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.active-order-done {
+  filter: saturate(0.6);
+  opacity: 0.85;
+}
+
+.active-order-done .active-order-pulse {
+  animation: none;
+  background: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-order-pulse {
+    animation: none;
+  }
+}
+
+/* -----------------------------
    Fulfillment (delivery / pickup)
 ------------------------------ */
 .fulfillment-chip {

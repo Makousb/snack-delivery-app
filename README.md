@@ -22,7 +22,11 @@ EJS, and PostgreSQL.
 - Live order tracking via Socket.IO, including driver location updates
 - Ratings & reviews (1–5★, one per completed order) aggregated onto vendor
   cards, favourites, "order your usual", and one-click reorder
-- Opt-in order confirmation emails
+- Active orders surface as a live tracking card on the home page (works for
+  guests too)
+- Opt-in order confirmation emails, and opt-in SMS updates (Africa's
+  Talking) — a text when the vendor receives the order and on every status
+  change through delivery or pickup
 
 ### Vendor owners
 

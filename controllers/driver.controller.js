@@ -1,4 +1,25 @@
 import { pool } from "../db/index.js";
+import { sendOrderSms, statusSmsMessage } from "../services/sms.js";
+
+// Push a status change to any open tracking pages and text the customer.
+// Only fires when the status genuinely changed (callers guard with
+// `status <> $1` in their UPDATE).
+function notifyOrderStatus(req, order, status) {
+  const io = req.app.get("io");
+
+  if (io) {
+    io.emit("orderUpdated", { orderId: order.id, status });
+  }
+
+  if (order.customer_phone) {
+    sendOrderSms(
+      order.customer_phone,
+      statusSmsMessage(order.id, status, {
+        isPickup: order.fulfillment_type === "pickup"
+      })
+    );
+  }
+}
 
 async function getDriverProfile(userId) {
   const result = await pool.query(
@@ -145,16 +166,22 @@ export async function acceptDelivery(req, res, next) {
       return res.redirect("/driver");
     }
 
-    await Promise.all([
+    const [, orderResult] = await Promise.all([
       pool.query(
         "UPDATE drivers SET status = 'On delivery', current_location = 'Heading to pickup' WHERE id = $1",
         [driver.id]
       ),
       pool.query(
-        "UPDATE orders SET status = 'Driver Assigned' WHERE id = $1",
+        `UPDATE orders SET status = 'Driver Assigned'
+         WHERE id = $1 AND status <> 'Driver Assigned'
+         RETURNING id, customer_phone, fulfillment_type`,
         [result.rows[0].order_id]
       )
     ]);
+
+    if (orderResult.rows.length) {
+      notifyOrderStatus(req, orderResult.rows[0], "Driver Assigned");
+    }
 
     req.flash("success", "Delivery accepted.");
     return res.redirect("/driver");
@@ -231,9 +258,11 @@ export async function updateDeliveryStage(req, res, next) {
       return res.redirect("/driver");
     }
 
-    await Promise.all([
+    const [orderResult] = await Promise.all([
       pool.query(
-        "UPDATE orders SET status = $1 WHERE id = $2",
+        `UPDATE orders SET status = $1
+         WHERE id = $2 AND status <> $1
+         RETURNING id, customer_phone, fulfillment_type`,
         [selectedStage.orderStatus, result.rows[0].order_id]
       ),
       pool.query(
@@ -241,6 +270,10 @@ export async function updateDeliveryStage(req, res, next) {
         [selectedStage.driverStatus, selectedStage.driverLocation, driver.id]
       )
     ]);
+
+    if (orderResult.rows.length) {
+      notifyOrderStatus(req, orderResult.rows[0], selectedStage.orderStatus);
+    }
 
     req.flash("success", "Delivery status updated.");
     return res.redirect("/driver");

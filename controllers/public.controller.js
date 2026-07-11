@@ -41,6 +41,39 @@ export const renderVendorLanding = (req, res) => {
   });
 };
 
+// Orders the customer is still waiting on, shown as a tracking card on the
+// home page. Signed-in users get their recent in-progress orders; guests get
+// the ones remembered in their session (stored at checkout).
+async function getActiveOrders(req) {
+  const sessionOrderIds = req.session.activeOrders || [];
+  const userId = req.session.user?.id || null;
+
+  if (!userId && sessionOrderIds.length === 0) return [];
+
+  try {
+    const condition = userId ? "o.user_id = $1" : "o.id = ANY($1)";
+    const params = [userId || sessionOrderIds];
+
+    const result = await pool.query(
+      `SELECT o.id, o.status, o.total, o.fulfillment_type, o.scheduled_for,
+              v.name AS vendor_name
+       FROM orders o
+       JOIN vendors v ON v.id = o.vendor_id
+       WHERE ${condition}
+         AND o.status NOT IN ('Completed', 'Payment Failed')
+         AND o.created_at > NOW() - INTERVAL '1 day'
+       ORDER BY o.created_at DESC
+       LIMIT 2`,
+      params
+    );
+
+    return result.rows;
+  } catch (error) {
+    console.error("Failed to load active orders:", error.message);
+    return [];
+  }
+}
+
 export const renderHome = async (req, res, next) => {
   try {
     const searchQuery = (req.query.search || "").trim();
@@ -85,7 +118,8 @@ export const renderHome = async (req, res, next) => {
       popularItems,
       vendorSections,
       usualOrder,
-      searchQuery
+      searchQuery,
+      activeOrders: await getActiveOrders(req)
     });
   } catch (err) {
     console.error(err);

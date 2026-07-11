@@ -12,6 +12,7 @@ const SCHEDULE_MIN_LEAD_MS = 20 * 60 * 1000;
 const SCHEDULE_MAX_AHEAD_MS = 3 * 24 * 60 * 60 * 1000;
 import { validatePromo } from "../db/queries/promos.js";
 import { sendOrderConfirmation } from "../services/email.js";
+import { sendOrderSms, statusSmsMessage } from "../services/sms.js";
 
 function parseCoordinate(value, max) {
   const parsed = Number(value);
@@ -218,6 +219,18 @@ export const createOrder = async (req, res) => {
         orderId,
         status: initialStatus
       });
+    }
+
+    // Remember this order in the session so the home page can surface a
+    // "track your order" card — works for guests as well as signed-in users.
+    req.session.activeOrders = [...(req.session.activeOrders || []), orderId].slice(-3);
+
+    // Fire-and-forget "order received" text. No-ops without SMS credentials.
+    if (phone) {
+      sendOrderSms(
+        phone,
+        `Snack: ${vendor?.name || "the vendor"} has received your order #${orderId} (KSh ${grandTotal.toFixed(2)}). We'll text you updates as it progresses.`
+      );
     }
 
     // Fire-and-forget order confirmation to the signed-in customer. No-ops when
@@ -529,7 +542,7 @@ export const updateOrderStatus = async (req, res) => {
       `UPDATE orders
        SET status = $1
        WHERE id = $2 AND vendor_id = $3
-       RETURNING id`,
+       RETURNING id, customer_phone, fulfillment_type`,
       [status, orderId, vendorId]
     );
 
@@ -545,6 +558,16 @@ export const updateOrderStatus = async (req, res) => {
         orderId,
         status
       });
+    }
+
+    const order = result.rows[0];
+    if (order.customer_phone) {
+      sendOrderSms(
+        order.customer_phone,
+        statusSmsMessage(order.id, status, {
+          isPickup: order.fulfillment_type === "pickup"
+        })
+      );
     }
 
     res.redirect(`/admin/vendor/${vendorId}/orders`);
@@ -580,7 +603,7 @@ export const handleMpesaCallback = async (req, res) => {
       `UPDATE orders
        SET status = $1
        WHERE mpesa_checkout_request_id = $2
-       RETURNING id, vendor_id`,
+       RETURNING id, vendor_id, customer_phone, fulfillment_type`,
       [status, CheckoutRequestID]
     );
 
@@ -599,6 +622,15 @@ export const handleMpesaCallback = async (req, res) => {
         orderId: order.id,
         status
       });
+    }
+
+    if (order.customer_phone) {
+      sendOrderSms(
+        order.customer_phone,
+        statusSmsMessage(order.id, status, {
+          isPickup: order.fulfillment_type === "pickup"
+        })
+      );
     }
   } catch (err) {
     console.error("Failed to process M-Pesa callback:", err);

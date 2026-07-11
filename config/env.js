@@ -45,6 +45,17 @@ export const config = {
   payments: {
     mpesaEnabled: process.env.MPESA_ENABLED === "true"
   },
+  // SMS order updates are opt-in (Africa's Talking). Without credentials the
+  // app runs exactly as before — no texts are sent.
+  sms: {
+    enabled: process.env.SMS_ENABLED === "true",
+    username: process.env.AT_USERNAME || "",
+    apiKey: process.env.AT_API_KEY || "",
+    from: process.env.SMS_FROM || "",
+    endpoint:
+      process.env.AT_SMS_URL ||
+      "https://api.africastalking.com/version1/messaging"
+  },
   // Transactional email is opt-in. Without SMTP credentials the app runs
   // exactly as before — order confirmations simply aren't sent.
   email: {

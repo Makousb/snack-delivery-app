@@ -228,19 +228,22 @@
             <input type="hidden" name="deliveryLng" />
           </div>
 
-          <% if (typeof mpesaEnabled !== "undefined" && mpesaEnabled) { %>
-            <div class="checkout-field">
-              <label for="phone"><strong>Phone Number (for M-Pesa):</strong></label>
-              <input
-                type="text"
-                id="phone"
-                name="phone"
-                placeholder="254712345678"
-                pattern="254[0-9]{9}"
-                class="checkout-input"
-              />
-            </div>
-          <% } %>
+          <div class="checkout-field">
+            <label for="phone">
+              <strong>Phone number<%= (typeof mpesaEnabled !== "undefined" && mpesaEnabled) ? " (M-Pesa & SMS updates)" : " (optional)" %>:</strong>
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              placeholder="0712 345 678"
+              class="checkout-input"
+              autocomplete="tel"
+            />
+            <p class="checkout-address-note">
+              We'll text you when the vendor receives your order and as it progresses.
+            </p>
+          </div>
 
           <div class="checkout-field" data-delivery-only>
             <label for="tipAmount"><strong>Driver Tip (KSh, optional):</strong></label>

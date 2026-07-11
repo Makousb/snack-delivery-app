@@ -79,6 +79,50 @@
   <%- include("partials/sidebar", { currentPage: "home" }) %>
 
 <section class="marketplace-page" id="marketplace-top">
+  <% const safeActiveOrders = (typeof activeOrders !== "undefined" && activeOrders) || []; %>
+  <% if (isShopper && safeActiveOrders.length) { %>
+    <section class="active-order-strip" aria-label="Your orders in progress">
+      <% safeActiveOrders.forEach((order) => { %>
+        <a href="/orders/<%= order.id %>/success" class="active-order-card" data-track-order="<%= order.id %>">
+          <span class="active-order-pulse" aria-hidden="true"></span>
+          <span class="active-order-copy">
+            <strong>Order #<%= order.id %> · <%= order.vendor_name %></strong>
+            <span>
+              <span data-active-order-status><%= order.status %></span>
+              · <%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %><%if (order.scheduled_for) { %> · <%= formatSlotLabel(order.scheduled_for) %><% } %>
+            </span>
+          </span>
+          <span class="active-order-open">Track &rarr;</span>
+        </a>
+      <% }) %>
+    </section>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      (function () {
+        if (typeof io === "undefined") return;
+        var socket = io();
+
+        document.querySelectorAll("[data-track-order]").forEach(function (card) {
+          socket.emit("joinOrderTracking", card.dataset.trackOrder);
+        });
+
+        socket.on("orderUpdated", function (data) {
+          var card = document.querySelector('[data-track-order="' + data.orderId + '"]');
+          if (!card) return;
+
+          var statusEl = card.querySelector("[data-active-order-status]");
+          if (statusEl) statusEl.textContent = data.status;
+
+          if (data.status === "Completed") {
+            card.classList.add("active-order-done");
+            window.snackToast?.("Order #" + data.orderId + " is complete");
+          }
+        });
+      })();
+    </script>
+  <% } %>
+
   <% if (typeof usualOrder !== "undefined" && usualOrder) { %>
     <section class="usual-order-prompt" id="usual-order-prompt" aria-label="Your usual order">
       <div class="usual-order-copy">
