@@ -149,3 +149,112 @@ WHERE v.slug = 'jiko-street-eats'
   AND NOT EXISTS (
     SELECT 1 FROM menu_items mi WHERE mi.vendor_id = v.id AND mi.name = item.name
   );
+
+-- Home services: plumbers, cleaners, and caterers, bookable the same way as
+-- a food order (fixed-price listings + a scheduled time slot).
+INSERT INTO vendors (name, vendor_type, service_category, description, slug, opening_time, closing_time)
+SELECT
+  'Nairobi Plumbing Co',
+  'service_provider',
+  'Plumbing',
+  'Licensed plumbers for repairs, installations, and emergency call-outs across Nairobi.',
+  'nairobi-plumbing-co',
+  '07:00',
+  '19:00'
+WHERE NOT EXISTS (
+  SELECT 1 FROM vendors WHERE slug = 'nairobi-plumbing-co'
+);
+
+INSERT INTO vendors (name, vendor_type, service_category, description, slug, opening_time, closing_time)
+SELECT
+  'Sparkle Home Cleaners',
+  'service_provider',
+  'Cleaning',
+  'Trusted house cleaning teams, fully equipped for standard and deep-clean visits.',
+  'sparkle-home-cleaners',
+  '08:00',
+  '18:00'
+WHERE NOT EXISTS (
+  SELECT 1 FROM vendors WHERE slug = 'sparkle-home-cleaners'
+);
+
+INSERT INTO vendors (name, vendor_type, service_category, description, slug, opening_time, closing_time)
+SELECT
+  'Jikoni Catering & Events',
+  'service_provider',
+  'Catering',
+  'Private chefs and event catering for parties, meetings, and family gatherings.',
+  'jikoni-catering-events',
+  '09:00',
+  '21:00'
+WHERE NOT EXISTS (
+  SELECT 1 FROM vendors WHERE slug = 'jikoni-catering-events'
+);
+
+INSERT INTO menu_items (vendor_id, name, description, price, image_url, category, status, display_order)
+SELECT
+  v.id,
+  item.name,
+  item.description,
+  item.price,
+  '/images/placeholder.png',
+  item.category,
+  'Available',
+  item.display_order
+FROM vendors v
+CROSS JOIN (
+  VALUES
+    ('Leak Repair', 'Diagnose and fix a leaking pipe, tap, or joint.', 2000.00, 'Repairs', 0),
+    ('Toilet Unclog', 'Clear a blocked toilet or drain.', 1500.00, 'Repairs', 1),
+    ('Water Heater Installation', 'Supply and fit a new water heater.', 6500.00, 'Installation', 2),
+    ('General Plumbing Inspection', 'Full check of pipes, taps, and fittings.', 1200.00, 'Inspection', 3)
+) AS item(name, description, price, category, display_order)
+WHERE v.slug = 'nairobi-plumbing-co'
+  AND NOT EXISTS (
+    SELECT 1 FROM menu_items mi WHERE mi.vendor_id = v.id AND mi.name = item.name
+  );
+
+INSERT INTO menu_items (vendor_id, name, description, price, image_url, category, status, display_order)
+SELECT
+  v.id,
+  item.name,
+  item.description,
+  item.price,
+  '/images/placeholder.png',
+  item.category,
+  'Available',
+  item.display_order
+FROM vendors v
+CROSS JOIN (
+  VALUES
+    ('Standard House Cleaning', 'A full clean of a standard 2-3 bedroom home.', 2500.00, 'Cleaning', 0),
+    ('Deep Clean', 'Detailed top-to-bottom clean, including kitchen and bathrooms.', 4500.00, 'Cleaning', 1),
+    ('Sofa & Upholstery Cleaning', 'Steam clean for sofas and upholstered furniture.', 1800.00, 'Cleaning', 2),
+    ('Post-Move Clean', 'Full clean of an empty unit before or after moving.', 3500.00, 'Cleaning', 3)
+) AS item(name, description, price, category, display_order)
+WHERE v.slug = 'sparkle-home-cleaners'
+  AND NOT EXISTS (
+    SELECT 1 FROM menu_items mi WHERE mi.vendor_id = v.id AND mi.name = item.name
+  );
+
+INSERT INTO menu_items (vendor_id, name, description, price, image_url, category, status, display_order)
+SELECT
+  v.id,
+  item.name,
+  item.description,
+  item.price,
+  '/images/placeholder.png',
+  item.category,
+  'Available',
+  item.display_order
+FROM vendors v
+CROSS JOIN (
+  VALUES
+    ('Private Chef (Per Head)', 'A personal chef cooking a 3-course meal at your home.', 1800.00, 'Chef', 0),
+    ('Small Event Catering (Per Head)', 'Full-service catering for gatherings of 10-40 guests.', 1200.00, 'Catering', 1),
+    ('Birthday Party Package', 'Catering package for a birthday celebration, up to 20 guests.', 25000.00, 'Catering', 2)
+) AS item(name, description, price, category, display_order)
+WHERE v.slug = 'jikoni-catering-events'
+  AND NOT EXISTS (
+    SELECT 1 FROM menu_items mi WHERE mi.vendor_id = v.id AND mi.name = item.name
+  );

@@ -2,11 +2,12 @@
 
 <% const isShopper = !currentUser || !["owner", "admin", "driver"].includes(currentUser.role); %>
 <% const menuVendorStatus = vendorOpenStatus(vendor); %>
+<% const isServiceVendor = vendor.vendor_type === "service_provider"; %>
 
 <section class="menu-page">
   <div class="menu-page-hero">
     <div class="menu-page-copy">
-      <span class="feature-eyebrow">Delivery menu</span>
+      <span class="feature-eyebrow"><%= isServiceVendor ? "Service listings" : "Delivery menu" %></span>
       <h1><%= vendor.name %></h1>
       <div class="menu-page-rating">
         <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
@@ -15,17 +16,23 @@
         </span>
       </div>
       <p>
-        <%= vendor.description || "Explore the menu, refine what you want quickly, and send it straight to your cart." %>
+        <%= vendor.description || (isServiceVendor ? "Browse services, pick a time slot, and book in a few taps." : "Explore the menu, refine what you want quickly, and send it straight to your cart.") %>
       </p>
 
       <div class="menu-page-highlights">
-        <span class="menu-highlight-pill">Fast prep</span>
-        <span class="menu-highlight-pill">Most loved items</span>
-        <span class="menu-highlight-pill">Straight to cart</span>
+        <% if (isServiceVendor) { %>
+          <span class="menu-highlight-pill">Verified pro</span>
+          <span class="menu-highlight-pill">Book a time slot</span>
+          <span class="menu-highlight-pill">Pay through Snack</span>
+        <% } else { %>
+          <span class="menu-highlight-pill">Fast prep</span>
+          <span class="menu-highlight-pill">Most loved items</span>
+          <span class="menu-highlight-pill">Straight to cart</span>
+        <% } %>
       </div>
 
       <div class="menu-page-actions">
-        <a href="/" class="btn vendor-secondary-cta">Back to Discovery</a>
+        <a href="<%= isServiceVendor ? "/services" : "/" %>" class="btn vendor-secondary-cta">Back to Discovery</a>
         <a href="/cart" class="btn vendor-primary-cta">Open Cart</a>
       </div>
     </div>
@@ -53,16 +60,23 @@
       <div class="menu-page-panel-grid">
         <div class="vendor-metric">
           <strong><%= items.length %></strong>
-          <span>item<%= items.length === 1 ? "" : "s" %> on this page</span>
+          <span><%= isServiceVendor ? "service" : "item" %><%= items.length === 1 ? "" : "s" %> on this page</span>
         </div>
         <div class="vendor-metric">
           <strong><%= totalPages %></strong>
           <span>page<%= totalPages === 1 ? "" : "s" %> to browse</span>
         </div>
-        <div class="vendor-metric">
-          <strong>KSh <%= deliveryBaseFee %>+</strong>
-          <span>delivery</span>
-        </div>
+        <% if (isServiceVendor) { %>
+          <div class="vendor-metric">
+            <strong>On-site</strong>
+            <span>at your address</span>
+          </div>
+        <% } else { %>
+          <div class="vendor-metric">
+            <strong>KSh <%= deliveryBaseFee %>+</strong>
+            <span>delivery</span>
+          </div>
+        <% } %>
       </div>
     </div>
   </div>
@@ -82,7 +96,7 @@
           id="menu-search"
           type="text"
           name="search"
-          placeholder="Search dishes, combos, or drinks"
+          placeholder="<%= isServiceVendor ? 'Search services' : 'Search dishes, combos, or drinks' %>"
           value="<%= searchQuery || '' %>"
         />
       </div>
@@ -98,18 +112,18 @@
         </select>
       </div>
 
-      <button type="submit" class="btn vendor-primary-cta">Refine Menu</button>
+      <button type="submit" class="btn vendor-primary-cta"><%= isServiceVendor ? "Refine Services" : "Refine Menu" %></button>
     </form>
 
     <div class="menu-results-meta">
       <span><%= items.length %> result<%= items.length === 1 ? "" : "s" %></span>
-      <span>Delivery-ready menu</span>
+      <span><%= isServiceVendor ? "Ready to book" : "Delivery-ready menu" %></span>
     </div>
   </section>
 
   <% if (!items || items.length === 0) { %>
     <section class="menu-empty-state">
-      <h2>No menu items matched that filter.</h2>
+      <h2>No <%= isServiceVendor ? "services" : "menu items" %> matched that filter.</h2>
       <p>Try a different search or switch back to all categories.</p>
     </section>
   <% } %>
@@ -162,7 +176,7 @@
               <span class="menu-item-status-badge"><%= item.status %></span>
             <% } %>
           </h3>
-          <p class="menu-description"><%= item.description || "Built for fast delivery decisions." %></p>
+          <p class="menu-description"><%= item.description || (isServiceVendor ? "Built for fast, easy booking." : "Built for fast delivery decisions.") %></p>
 
           <% if (isShopper) { %>
             <% if (isItemAvailable && menuVendorStatus.open) { %>
@@ -181,8 +195,9 @@
                   data-name="<%= item.name %>"
                   data-price="<%= item.price %>"
                   data-vendor="<%= vendor.id %>"
+                  data-original-label="<%= isServiceVendor ? "Add to Booking" : "Add to Cart" %>"
                 >
-                  Add to Cart
+                  <%= isServiceVendor ? "Add to Booking" : "Add to Cart" %>
                 </button>
               </div>
             <% } else { %>
@@ -331,7 +346,7 @@
     btn.disabled = true;
 
     setTimeout(() => {
-      btn.innerText = "Add to Cart";
+      btn.innerText = btn.dataset.originalLabel || "Add to Cart";
       btn.style.background = "";
       btn.disabled = false;
     }, 1200);

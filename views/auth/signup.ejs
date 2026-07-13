@@ -78,11 +78,27 @@
 
       <div>
         <label for="vendorType">Business Type</label>
-        <select id="vendorType" name="vendorType">
+        <select id="vendorType" name="vendorType" data-vendor-type-select>
           <% (typeof vendorTypes !== "undefined" ? vendorTypes : []).forEach((type) => { %>
             <option value="<%= type.value %>"><%= type.label %></option>
           <% }) %>
         </select>
+      </div>
+
+      <div data-service-category-field style="display: none;">
+        <label for="serviceCategory">Service category</label>
+        <input
+          type="text"
+          id="serviceCategory"
+          name="serviceCategory"
+          list="serviceCategorySuggestions"
+          placeholder="e.g. Plumbing"
+        />
+        <datalist id="serviceCategorySuggestions">
+          <% (typeof serviceCategorySuggestions !== "undefined" ? serviceCategorySuggestions : []).forEach((category) => { %>
+            <option value="<%= category %>"></option>
+          <% }) %>
+        </datalist>
       </div>
 
       <div class="auth-grid">
@@ -180,6 +196,16 @@
   const accountTypeInputs = document.querySelectorAll("[data-account-type]");
   const rolePanels = document.querySelectorAll("[data-role-panel]");
   const businessNameInput = document.getElementById("businessName");
+  const vendorTypeSelect = document.querySelector("[data-vendor-type-select]");
+  const serviceCategoryField = document.querySelector("[data-service-category-field]");
+
+  const syncServiceCategoryField = () => {
+    if (!vendorTypeSelect || !serviceCategoryField) return;
+    serviceCategoryField.style.display = vendorTypeSelect.value === "service_provider" ? "" : "none";
+  };
+
+  vendorTypeSelect?.addEventListener("change", syncServiceCategoryField);
+  syncServiceCategoryField();
   const requestedAccountType = new URLSearchParams(window.location.search).get("accountType");
 
   if (

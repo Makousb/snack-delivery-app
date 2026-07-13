@@ -13,7 +13,7 @@ import { getAllMessages, markMessageRead } from "../db/queries/messages.js";
 import { getReviewsForVendor, addOwnerReply } from "../db/queries/reviews.js";
 import { getVendorPromos, createPromo, togglePromo, deletePromo } from "../db/queries/promos.js";
 import { buildUniqueVendorSlug } from "../utils/slugify.js";
-import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
+import { VENDOR_TYPES, VENDOR_TYPE_VALUES, SERVICE_CATEGORY_SUGGESTIONS } from "../utils/vendorTypes.js";
 
 function getFilePath(file) {
   return file ? `/images/${file.filename}` : null;
@@ -303,6 +303,7 @@ export async function businessProfileForm(req, res) {
       title: "Edit Business Profile",
       vendor,
       vendorTypes: VENDOR_TYPES,
+      serviceCategorySuggestions: SERVICE_CATEGORY_SUGGESTIONS,
       accountEmail: req.user?.email || ""
     });
 
@@ -325,6 +326,7 @@ export async function updateBusinessProfile(req, res) {
       businessName,
       businessDescription,
       vendorType,
+      serviceCategory,
       email,
       openingTime,
       closingTime,
@@ -335,6 +337,7 @@ export async function updateBusinessProfile(req, res) {
     const safeDescription = (businessDescription || "").trim();
     const safeEmail = (email || "").trim().toLowerCase();
     const safePickupInstructions = (pickupInstructions || "").trim().slice(0, 500);
+    const safeServiceCategory = (serviceCategory || "").trim().slice(0, 120);
 
     // Accept HH:MM only; anything else (incl. blank) clears the window so the
     // vendor reads as always-open.
@@ -397,8 +400,9 @@ export async function updateBusinessProfile(req, res) {
            vendor_type = $6,
            opening_time = $7,
            closing_time = $8,
-           pickup_instructions = $9
-       WHERE id = $10`,
+           pickup_instructions = $9,
+           service_category = $10
+       WHERE id = $11`,
       [
         safeName,
         safeDescription || null,
@@ -409,6 +413,7 @@ export async function updateBusinessProfile(req, res) {
         safeOpeningTime,
         safeClosingTime,
         safePickupInstructions || null,
+        safeVendorType === "service_provider" ? safeServiceCategory || null : null,
         vendorId
       ]
     );

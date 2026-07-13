@@ -56,11 +56,28 @@
   >
     <div>
       <label for="vendorType">Business Type</label>
-      <select id="vendorType" name="vendorType">
+      <select id="vendorType" name="vendorType" data-vendor-type-select>
         <% safeVendorTypes.forEach((type) => { %>
           <option value="<%= type.value %>" <%= safeVendor.vendor_type === type.value ? "selected" : "" %>><%= type.label %></option>
         <% }) %>
       </select>
+    </div>
+
+    <div data-service-category-field style="<%= safeVendor.vendor_type === "service_provider" ? "" : "display: none;" %>">
+      <label for="serviceCategory">Service category</label>
+      <input
+        type="text"
+        id="serviceCategory"
+        name="serviceCategory"
+        list="serviceCategorySuggestions"
+        placeholder="e.g. Plumbing"
+        value="<%= safeVendor.service_category || "" %>"
+      />
+      <datalist id="serviceCategorySuggestions">
+        <% (typeof serviceCategorySuggestions !== "undefined" ? serviceCategorySuggestions : []).forEach((category) => { %>
+          <option value="<%= category %>"></option>
+        <% }) %>
+      </datalist>
     </div>
 
     <div class="auth-grid">
@@ -195,6 +212,14 @@
 </div>
 
 <script>
+  const vendorTypeSelect = document.querySelector("[data-vendor-type-select]");
+  const serviceCategoryField = document.querySelector("[data-service-category-field]");
+
+  vendorTypeSelect?.addEventListener("change", () => {
+    if (!serviceCategoryField) return;
+    serviceCategoryField.style.display = vendorTypeSelect.value === "service_provider" ? "" : "none";
+  });
+
   document.querySelectorAll("[data-file-input]").forEach((input) => {
     input.addEventListener("change", () => {
       const key = input.dataset.fileInput;

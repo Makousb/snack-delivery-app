@@ -1,19 +1,23 @@
 # Snack Delivery App
 
-A Grab-style multi-vendor delivery marketplace — restaurants, neighborhood
-stores, and local street vendors all in one place — with separate
-experiences for customers, vendor owners, and drivers. Built with Express,
-EJS, and PostgreSQL.
+A Grab-style multi-vendor marketplace — restaurants, neighborhood stores,
+local street vendors, and bookable home-service providers (plumbing,
+cleaning, catering, and more) all in one place — with separate experiences
+for customers, vendor owners, and drivers. Built with Express, EJS, and
+PostgreSQL.
 
 ## Features
 
 ### Customers
 
-- Browse restaurants, neighborhood stores, and street vendors; search across
-  vendors and dishes, and filter by open now / top rated / new on Snack
+- Browse restaurants, neighborhood stores, street vendors, and **home
+  services** (plumbing, cleaning, catering, and more, in their own
+  dedicated section); search across vendors and dishes, and filter by open
+  now / top rated / new on Snack
 - Street-vendor price comparison — the same snack priced across nearby carts
-- **Delivery or pickup** on every order: pickup skips the delivery fee and
-  shows the vendor's own pickup instructions
+- **Delivery, pickup, or an on-site visit** on every order: pickup skips the
+  delivery fee and shows the vendor's own pickup instructions; a home
+  service is booked for your address instead, with no delivery fee
 - **ASAP or scheduled orders**: pick a 30-minute slot inside the vendor's
   opening hours — including booking ahead while the vendor is closed
 - Checkout with promo codes, driver tips, a saved address book (Google
@@ -35,12 +39,15 @@ EJS, and PostgreSQL.
 - **Scheduled queue** with live countdowns that escalate as a slot
   approaches (amber inside an hour, red pulse when due) and update in real
   time as new orders arrive over the socket
-- Live orders table with real-time inserts, color-coded status pills, and a
-  "Ready for Pickup" flow for pickup orders
+- Live orders table with real-time inserts, color-coded status pills, and
+  fulfillment-aware statuses ("Ready for Pickup" for pickup, "Confirmed" /
+  "In Progress" for on-site service bookings)
 - Menu management with drag-to-reorder and automatic image resizing;
-  sold-out items are blocked from carts
-- Business profile: vendor type, opening hours, pickup instructions, logo
-  and banner
+  sold-out items are blocked from carts — the same tool doubles as a
+  service-listing manager for home-service providers
+- Business profile: vendor type (including Service Provider, with an
+  open-ended service category like "Plumbing" or "Catering"), opening
+  hours, pickup instructions, logo and banner
 - Promo code management, review replies, and a contact inbox
 
 ### Drivers

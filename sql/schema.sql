@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS vendors (
   name TEXT NOT NULL,
   owner_id INTEGER,
   vendor_type TEXT NOT NULL DEFAULT 'restaurant'
-    CHECK (vendor_type IN ('restaurant', 'store', 'street_vendor')),
+    CHECK (vendor_type IN ('restaurant', 'store', 'street_vendor', 'service_provider')),
   description TEXT,
   logo_url TEXT,
   banner_url TEXT,
@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS vendors (
   opening_time TIME,
   closing_time TIME,
   pickup_instructions TEXT,
+  service_category TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

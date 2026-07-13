@@ -83,14 +83,24 @@
         <% }) %>
       </div>
 
-      <aside class="cart-summary-card" data-cart-summary data-vendor-id="<%= vendorId || "" %>" data-subtotal="<%= total %>" data-fallback-fee="<%= deliveryFee %>">
+      <%
+        const isServiceCheckout = (typeof cartVendor !== "undefined" && cartVendor?.vendor_type === "service_provider");
+      %>
+      <aside
+        class="cart-summary-card"
+        data-cart-summary
+        data-vendor-id="<%= vendorId || "" %>"
+        data-subtotal="<%= total %>"
+        data-fallback-fee="<%= deliveryFee %>"
+        data-is-service="<%= isServiceCheckout %>"
+      >
         <span class="feature-eyebrow">Checkout</span>
-        <h2>Ready to place the order?</h2>
+        <h2><%= isServiceCheckout ? "Ready to book?" : "Ready to place the order?" %></h2>
 
         <div class="cart-summary-stats">
           <div class="cart-summary-stat">
             <strong data-eta-window>25-40 min</strong>
-            <span data-eta-caption>delivery window</span>
+            <span data-eta-caption><%= isServiceCheckout ? "requested time" : "delivery window" %></span>
           </div>
           <div class="cart-summary-stat">
             <strong>Saved</strong>
@@ -103,12 +113,14 @@
             <span>Subtotal</span>
             <strong><%= formatCurrency(total) %></strong>
           </div>
-          <div class="cart-summary-row">
-            <span>Delivery <span class="cart-delivery-note" data-delivery-note>(estimated)</span></span>
-            <strong data-delivery-fee><%= formatCurrency(deliveryFee) %></strong>
-          </div>
+          <% if (!isServiceCheckout) { %>
+            <div class="cart-summary-row">
+              <span>Delivery <span class="cart-delivery-note" data-delivery-note>(estimated)</span></span>
+              <strong data-delivery-fee><%= formatCurrency(deliveryFee) %></strong>
+            </div>
+          <% } %>
           <div class="cart-summary-row" data-tip-row hidden>
-            <span>Driver tip</span>
+            <span><%= isServiceCheckout ? "Tip" : "Driver tip" %></span>
             <strong data-tip-display><%= formatCurrency(0) %></strong>
           </div>
           <div class="cart-summary-row cart-summary-discount" data-discount-row hidden>
@@ -130,23 +142,33 @@
             const vendorClosedNow = safeVendorStatus ? !safeVendorStatus.open : false;
           %>
 
-          <div class="checkout-field">
-            <span class="checkout-fulfillment-label"><strong>How would you like it?</strong></span>
-            <div class="fulfillment-options">
-              <label class="fulfillment-option">
-                <input type="radio" name="fulfillmentType" value="delivery" checked data-fulfillment-input> Delivery
-              </label>
-              <label class="fulfillment-option">
-                <input type="radio" name="fulfillmentType" value="pickup" data-fulfillment-input> Pickup (collect from vendor)
-              </label>
-            </div>
-            <% if (safeCartVendor?.pickup_instructions) { %>
-              <p class="checkout-address-note pickup-instructions-note" data-pickup-note hidden>
-                <strong>Pickup instructions from <%= safeCartVendor.name %>:</strong>
-                <%= safeCartVendor.pickup_instructions %>
+          <% if (isServiceCheckout) { %>
+            <input type="hidden" name="fulfillmentType" value="on_site" />
+            <div class="checkout-field">
+              <span class="checkout-fulfillment-label"><strong>This is an on-site visit</strong></span>
+              <p class="checkout-address-note">
+                <%= safeCartVendor?.name || "The provider" %> will come to the address you provide below.
               </p>
-            <% } %>
-          </div>
+            </div>
+          <% } else { %>
+            <div class="checkout-field">
+              <span class="checkout-fulfillment-label"><strong>How would you like it?</strong></span>
+              <div class="fulfillment-options">
+                <label class="fulfillment-option">
+                  <input type="radio" name="fulfillmentType" value="delivery" checked data-fulfillment-input> Delivery
+                </label>
+                <label class="fulfillment-option">
+                  <input type="radio" name="fulfillmentType" value="pickup" data-fulfillment-input> Pickup (collect from vendor)
+                </label>
+              </div>
+              <% if (safeCartVendor?.pickup_instructions) { %>
+                <p class="checkout-address-note pickup-instructions-note" data-pickup-note hidden>
+                  <strong>Pickup instructions from <%= safeCartVendor.name %>:</strong>
+                  <%= safeCartVendor.pickup_instructions %>
+                </p>
+              <% } %>
+            </div>
+          <% } %>
 
           <div class="checkout-field">
             <span class="checkout-fulfillment-label"><strong>When do you want it?</strong></span>
@@ -192,7 +214,7 @@
           </div>
 
           <div class="checkout-field" data-delivery-only>
-            <label for="delivery-address"><strong>Delivery Address:</strong></label>
+            <label for="delivery-address"><strong><%= isServiceCheckout ? "Service Address:" : "Delivery Address:" %></strong></label>
 
             <% if (typeof savedAddresses !== "undefined" && savedAddresses.length) { %>
               <div class="saved-address-picker">
@@ -246,7 +268,7 @@
           </div>
 
           <div class="checkout-field" data-delivery-only>
-            <label for="tipAmount"><strong>Driver Tip (KSh, optional):</strong></label>
+            <label for="tipAmount"><strong><%= isServiceCheckout ? "Tip for the provider (KSh, optional):" : "Driver Tip (KSh, optional):" %></strong></label>
             <div class="tip-presets">
               <button type="button" class="tip-preset" data-tip-percent="5">5%</button>
               <button type="button" class="tip-preset" data-tip-percent="10">10%</button>
@@ -301,7 +323,7 @@
               class="btn <%= (typeof mpesaEnabled !== "undefined" && mpesaEnabled) ? "checkout-secondary-btn" : "checkout-primary-btn" %>"
               data-cash-btn
             >
-              Pay on Delivery
+              <%= isServiceCheckout ? "Confirm Booking (Cash)" : "Pay on Delivery" %>
             </button>
           </div>
         </form>
@@ -323,6 +345,7 @@
     const noteEl = summary.querySelector("[data-delivery-note]");
 
     const fallbackFee = Number(summary.dataset.fallbackFee) || 0;
+    const isServiceCheckout = summary.dataset.isService === "true";
     const deliveryOnly = document.querySelectorAll("[data-delivery-only]");
 
     let quote = { fee: fallbackFee, etaMin: 25, etaMax: 40, hasCoords: false, distanceKm: null };
@@ -355,7 +378,7 @@
       scheduleSelect?.selectedOptions?.[0]?.textContent.trim() || "Scheduled";
 
     const render = () => {
-      const fee = pickup ? 0 : quote.fee;
+      const fee = isServiceCheckout || pickup ? 0 : quote.fee;
       const tipValue = pickup ? 0 : tip;
       if (feeEl) feeEl.textContent = money(fee);
       if (tipDisplay) tipDisplay.textContent = money(tipValue);
@@ -367,18 +390,28 @@
       if (etaEl) {
         etaEl.textContent = scheduled
           ? selectedSlotLabel()
-          : pickup
-            ? "Ready ~15 min"
-            : quote.etaMin + "-" + quote.etaMax + " min";
+          : isServiceCheckout
+            ? "As soon as possible"
+            : pickup
+              ? "Ready ~15 min"
+              : quote.etaMin + "-" + quote.etaMax + " min";
       }
       if (etaCaptionEl) {
         etaCaptionEl.textContent = scheduled
           ? "scheduled for"
-          : pickup
-            ? "pickup window"
-            : "delivery window";
+          : isServiceCheckout
+            ? "requested time"
+            : pickup
+              ? "pickup window"
+              : "delivery window";
       }
-      if (cashBtn) cashBtn.textContent = pickup ? "Pay on Pickup" : "Pay on Delivery";
+      if (cashBtn) {
+        cashBtn.textContent = isServiceCheckout
+          ? "Confirm Booking (Cash)"
+          : pickup
+            ? "Pay on Pickup"
+            : "Pay on Delivery";
+      }
       if (pickupNote) pickupNote.hidden = !pickup;
       if (noteEl) {
         noteEl.textContent = pickup

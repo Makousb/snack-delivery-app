@@ -748,6 +748,11 @@ body.dark .marketplace-control-divider {
   color: #92400e;
 }
 
+.fulfillment-chip-onsite {
+  background: rgba(124, 58, 237, 0.12);
+  color: #6d28d9;
+}
+
 .fulfillment-chip-scheduled {
   background: rgba(37, 99, 235, 0.12);
   color: #1d4ed8;
@@ -1323,7 +1328,9 @@ body.dark .order-item-row {
 .admin-status-pill[data-status="Preparing"],
 .admin-status-pill[data-status="Driver Assigned"],
 .admin-status-pill[data-status="Out for Delivery"],
-.admin-status-pill[data-status="Ready for Pickup"] {
+.admin-status-pill[data-status="Ready for Pickup"],
+.admin-status-pill[data-status="Confirmed"],
+.admin-status-pill[data-status="In Progress"] {
   background: rgba(37, 99, 235, 0.12);
   color: #1d4ed8;
 }

@@ -1,35 +1,37 @@
 <%- include("partials/header") %>
 
+<% const isServiceVendor = vendor.vendor_type === "service_provider"; %>
+
 <section class="vendor-page">
   <div class="vendor-hero">
     <div class="vendor-hero-copy">
-      <span class="feature-eyebrow">Vendor spotlight</span>
+      <span class="feature-eyebrow"><%= isServiceVendor ? "Provider spotlight" : "Vendor spotlight" %></span>
       <h1><%= vendor.name %> <span class="vendor-type-badge"><%= vendor.vendor_type_label %></span></h1>
       <div class="vendor-hero-rating">
         <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
       </div>
       <p class="vendor-hero-description">
-        <%= vendor.description || "A polished delivery experience starts with a menu people can navigate quickly and confidently." %>
+        <%= vendor.description || (isServiceVendor ? "Book a time slot and pay through Snack, with no back-and-forth." : "A polished delivery experience starts with a menu people can navigate quickly and confidently.") %>
       </p>
 
       <div class="vendor-hero-metrics">
         <div class="vendor-metric">
           <strong><%= featuredItems.length %></strong>
-          <span>featured items</span>
+          <span><%= isServiceVendor ? "featured services" : "featured items" %></span>
         </div>
         <div class="vendor-metric">
-          <strong>Fast</strong>
-          <span>delivery-friendly menu</span>
+          <strong><%= isServiceVendor ? "On-site" : "Fast" %></strong>
+          <span><%= isServiceVendor ? "at your address" : "delivery-friendly menu" %></span>
         </div>
         <div class="vendor-metric">
           <strong>Live</strong>
-          <span>cart and checkout flow</span>
+          <span><%= isServiceVendor ? "booking and checkout flow" : "cart and checkout flow" %></span>
         </div>
       </div>
 
       <div class="vendor-hero-actions">
         <a href="/vendor/<%= vendor.id %>/menu" class="btn vendor-primary-cta">
-          Browse Full Menu
+          <%= isServiceVendor ? "Browse All Services" : "Browse Full Menu" %>
         </a>
         <a href="/cart" class="btn vendor-secondary-cta">
           Open Cart
@@ -81,11 +83,11 @@
   <section class="vendor-preview-section">
     <div class="home-section-heading vendor-section-heading">
       <div>
-        <span class="feature-eyebrow">Featured items</span>
-        <h2>Quick picks before you open the full menu.</h2>
+        <span class="feature-eyebrow"><%= isServiceVendor ? "Featured services" : "Featured items" %></span>
+        <h2><%= isServiceVendor ? "Popular services before you see the full list." : "Quick picks before you open the full menu." %></h2>
       </div>
       <a href="/vendor/<%= vendor.id %>/menu" class="btn home-section-link">
-        View Full Menu
+        <%= isServiceVendor ? "View All Services" : "View Full Menu" %>
       </a>
     </div>
 

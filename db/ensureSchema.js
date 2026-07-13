@@ -101,20 +101,18 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 6),
       ADD COLUMN IF NOT EXISTS opening_time TIME,
       ADD COLUMN IF NOT EXISTS closing_time TIME,
-      ADD COLUMN IF NOT EXISTS pickup_instructions TEXT
+      ADD COLUMN IF NOT EXISTS pickup_instructions TEXT,
+      ADD COLUMN IF NOT EXISTS service_category TEXT
   `);
 
+  // Dropped and recreated (not "IF NOT EXISTS") so adding a new vendor_type
+  // — most recently service_provider — takes effect on existing databases,
+  // not just fresh ones.
+  await pool.query(`ALTER TABLE vendors DROP CONSTRAINT IF EXISTS vendors_vendor_type_check`);
   await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'vendors_vendor_type_check'
-      ) THEN
-        ALTER TABLE vendors
-          ADD CONSTRAINT vendors_vendor_type_check
-          CHECK (vendor_type IN ('restaurant', 'store', 'street_vendor'));
-      END IF;
-    END $$;
+    ALTER TABLE vendors
+      ADD CONSTRAINT vendors_vendor_type_check
+      CHECK (vendor_type IN ('restaurant', 'store', 'street_vendor', 'service_provider'))
   `);
 
   await pool.query(`

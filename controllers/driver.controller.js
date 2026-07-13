@@ -15,7 +15,8 @@ function notifyOrderStatus(req, order, status) {
     sendOrderSms(
       order.customer_phone,
       statusSmsMessage(order.id, status, {
-        isPickup: order.fulfillment_type === "pickup"
+        isPickup: order.fulfillment_type === "pickup",
+        isService: order.fulfillment_type === "on_site"
       })
     );
   }

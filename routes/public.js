@@ -7,6 +7,7 @@ import {
   showVendor,
   renderHome,
   renderStreetVendors,
+  renderServices,
   renderAllVendors,
   searchResults,
   showContact,
@@ -22,6 +23,7 @@ router.get("/partner", renderVendorLanding);
 router.get("/home", renderHome);
 router.get("/search", searchResults);
 router.get("/street-vendors", renderStreetVendors);
+router.get("/services", renderServices);
 
 router.get("/about", showAbout);
 router.get("/contact", showContact);

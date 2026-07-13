@@ -89,7 +89,7 @@
             <strong>Order #<%= order.id %> · <%= order.vendor_name %></strong>
             <span>
               <span data-active-order-status><%= order.status %></span>
-              · <%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %><%if (order.scheduled_for) { %> · <%= formatSlotLabel(order.scheduled_for) %><% } %>
+              · <%= order.fulfillment_type === "on_site" ? "On-site visit" : order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %><%if (order.scheduled_for) { %> · <%= formatSlotLabel(order.scheduled_for) %><% } %>
             </span>
           </span>
           <span class="active-order-open">Track &rarr;</span>

@@ -2,8 +2,11 @@
 
 <%
   const isPickupOrder = order.fulfillment_type === "pickup";
+  const isServiceOrder = order.fulfillment_type === "on_site";
   const isScheduledOrder = Boolean(order.scheduled_for);
   const scheduledLabel = isScheduledOrder ? formatSlotLabel(order.scheduled_for) : "";
+  const fulfillmentLabel = isServiceOrder ? "On-site visit" : isPickupOrder ? "Pickup" : "Delivery";
+  const fulfillmentChipClass = isServiceOrder ? "fulfillment-chip-onsite" : isPickupOrder ? "fulfillment-chip-pickup" : "";
 %>
 
 <section class="order-page">
@@ -13,17 +16,23 @@
     <span class="feature-eyebrow">Order confirmed</span>
     <h1><%=
       isScheduledOrder
-        ? "Your order is scheduled."
-        : isPickupOrder
-          ? "Your order is being prepared."
-          : "Your order is in motion."
+        ? (isServiceOrder ? "Your booking is scheduled." : "Your order is scheduled.")
+        : isServiceOrder
+          ? "Your booking is confirmed."
+          : isPickupOrder
+            ? "Your order is being prepared."
+            : "Your order is in motion."
     %></h1>
     <p>
       <% if (isScheduledOrder) { %>
         Booked for <strong><%= scheduledLabel %></strong> —
-        <%= isPickupOrder
-          ? "collect it from the vendor around that time."
-          : "the kitchen will start in time for your slot." %>
+        <%= isServiceOrder
+          ? "the provider will arrive around that time."
+          : isPickupOrder
+            ? "collect it from the vendor around that time."
+            : "the kitchen will start in time for your slot." %>
+      <% } else if (isServiceOrder) { %>
+        We'll keep this page updated while the provider confirms and completes your booking.
       <% } else if (isPickupOrder) { %>
         We'll keep this page updated — collect your order from the vendor once it's marked ready.
       <% } else { %>
@@ -98,13 +107,15 @@
             <strong>-<%= formatCurrency(order.discount) %></strong>
           </div>
         <% } %>
-        <div class="cart-summary-row">
-          <span><%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %></span>
-          <strong><%= formatCurrency(order.delivery_fee || 0) %></strong>
-        </div>
+        <% if (!isServiceOrder) { %>
+          <div class="cart-summary-row">
+            <span><%= isPickupOrder ? "Pickup" : "Delivery" %></span>
+            <strong><%= formatCurrency(order.delivery_fee || 0) %></strong>
+          </div>
+        <% } %>
         <% if (Number(order.tip) > 0) { %>
           <div class="cart-summary-row">
-            <span>Driver tip</span>
+            <span><%= isServiceOrder ? "Tip" : "Driver tip" %></span>
             <strong><%= formatCurrency(order.tip) %></strong>
           </div>
         <% } %>
@@ -118,8 +129,8 @@
       <div class="order-summary-meta">
         <span>Order #<%= order.id %></span>
         <span><%= order.vendor_name %></span>
-        <span class="fulfillment-chip <%= isPickupOrder ? "fulfillment-chip-pickup" : "" %>">
-          <%= isPickupOrder ? "Pickup" : "Delivery" %>
+        <span class="fulfillment-chip <%= fulfillmentChipClass %>">
+          <%= fulfillmentLabel %>
         </span>
       </div>
 
@@ -146,9 +157,25 @@
         </div>
       <% } %>
 
+      <% if (isServiceOrder) { %>
+        <div class="pickup-info-card">
+          <span class="pickup-info-title"><%- include("partials/icon", { name: "tools" }) %> Visit details</span>
+          <strong><%= order.vendor_name %></strong>
+          <% if (order.delivery_address) { %>
+            <span>Address: <%= order.delivery_address %></span>
+          <% } %>
+          <span>
+            Provider hours: <%= formatVendorHours({
+              opening_time: order.vendor_opening_time,
+              closing_time: order.vendor_closing_time
+            }) %>
+          </span>
+        </div>
+      <% } %>
+
       <div class="order-summary-actions">
         <a href="/vendor/<%= order.vendor_id %>/menu" class="btn vendor-primary-cta">
-          Back to Menu
+          <%= isServiceOrder ? "Back to Services" : "Back to Menu" %>
         </a>
         <a href="/orders" class="btn vendor-secondary-cta">
           View Orders

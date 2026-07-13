@@ -32,12 +32,17 @@
       </thead>
       <tbody id="orders-table-body">
         <% orders.forEach(order => { %>
-          <% const rowIsPickup = order.fulfillment_type === "pickup"; %>
+          <%
+            const rowIsPickup = order.fulfillment_type === "pickup";
+            const rowIsOnSite = order.fulfillment_type === "on_site";
+            const rowFulfillmentLabel = rowIsOnSite ? "On-site" : rowIsPickup ? "Pickup" : "Delivery";
+            const rowFulfillmentClass = rowIsOnSite ? "fulfillment-chip-onsite" : rowIsPickup ? "fulfillment-chip-pickup" : "";
+          %>
           <tr id="order-<%= order.id %>">
             <td><strong>#<%= order.id %></strong></td>
             <td>
-              <span class="fulfillment-chip <%= rowIsPickup ? "fulfillment-chip-pickup" : "" %>">
-                <%= rowIsPickup ? "Pickup" : "Delivery" %>
+              <span class="fulfillment-chip <%= rowFulfillmentClass %>">
+                <%= rowFulfillmentLabel %>
               </span>
             </td>
             <td><%= formatCurrency(order.total) %></td>
@@ -66,12 +71,17 @@
                   <option <%= order.status === "Payment Pending Verification" ? "selected" : "" %>>Payment Pending Verification</option>
                   <option <%= order.status === "Paid" ? "selected" : "" %>>Paid</option>
                   <option <%= order.status === "Cash Pending" ? "selected" : "" %>>Cash Pending</option>
-                  <option <%= order.status === "Preparing" ? "selected" : "" %>>Preparing</option>
-                  <% if (rowIsPickup) { %>
-                    <option <%= order.status === "Ready for Pickup" ? "selected" : "" %>>Ready for Pickup</option>
+                  <% if (rowIsOnSite) { %>
+                    <option <%= order.status === "Confirmed" ? "selected" : "" %>>Confirmed</option>
+                    <option <%= order.status === "In Progress" ? "selected" : "" %>>In Progress</option>
                   <% } else { %>
-                    <option <%= order.status === "Driver Assigned" ? "selected" : "" %>>Driver Assigned</option>
-                    <option <%= order.status === "Out for Delivery" ? "selected" : "" %>>Out for Delivery</option>
+                    <option <%= order.status === "Preparing" ? "selected" : "" %>>Preparing</option>
+                    <% if (rowIsPickup) { %>
+                      <option <%= order.status === "Ready for Pickup" ? "selected" : "" %>>Ready for Pickup</option>
+                    <% } else { %>
+                      <option <%= order.status === "Driver Assigned" ? "selected" : "" %>>Driver Assigned</option>
+                      <option <%= order.status === "Out for Delivery" ? "selected" : "" %>>Out for Delivery</option>
+                    <% } %>
                   <% } %>
                   <option <%= order.status === "Completed" ? "selected" : "" %>>Completed</option>
                 </select>
@@ -109,14 +119,20 @@
     }
 
     const isPickup = order.fulfillmentType === "pickup";
+    const isOnSite = order.fulfillmentType === "on_site";
+    const fulfillmentLabel = isOnSite ? "On-site" : isPickup ? "Pickup" : "Delivery";
+    const fulfillmentClass = isOnSite ? "fulfillment-chip-onsite" : isPickup ? "fulfillment-chip-pickup" : "";
 
     const statusOptions = [
       "Pending Payment",
       "Payment Pending Verification",
       "Paid",
       "Cash Pending",
-      "Preparing",
-      ...(isPickup ? ["Ready for Pickup"] : ["Driver Assigned", "Out for Delivery"]),
+      ...(isOnSite
+        ? ["Confirmed", "In Progress"]
+        : isPickup
+          ? ["Preparing", "Ready for Pickup"]
+          : ["Preparing", "Driver Assigned", "Out for Delivery"]),
       "Completed"
     ]
       .map((status) => `<option ${order.status === status ? "selected" : ""}>${status}</option>`)
@@ -125,7 +141,7 @@
     const row = `
       <tr id="order-${order.orderId}">
         <td><strong>#${order.orderId}</strong></td>
-        <td><span class="fulfillment-chip ${isPickup ? "fulfillment-chip-pickup" : ""}">${isPickup ? "Pickup" : "Delivery"}</span></td>
+        <td><span class="fulfillment-chip ${fulfillmentClass}">${fulfillmentLabel}</span></td>
         <td>KSh ${Number(order.total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td><span class="status admin-status-pill" data-status="${order.status}">${order.status}</span></td>
         <td>—</td>

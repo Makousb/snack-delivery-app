@@ -22,10 +22,16 @@
             <strong>#<%= order.id %></strong>
           </div>
 
+          <%
+            const historyIsPickup = order.fulfillment_type === "pickup";
+            const historyIsService = order.fulfillment_type === "on_site";
+            const historyFulfillmentLabel = historyIsService ? "On-site visit" : historyIsPickup ? "Pickup" : "Delivery";
+            const historyFulfillmentClass = historyIsService ? "fulfillment-chip-onsite" : historyIsPickup ? "fulfillment-chip-pickup" : "";
+          %>
           <h2><%= order.status %></h2>
           <div class="order-history-chips">
-            <span class="fulfillment-chip <%= order.fulfillment_type === "pickup" ? "fulfillment-chip-pickup" : "" %>">
-              <%= order.fulfillment_type === "pickup" ? "Pickup" : "Delivery" %>
+            <span class="fulfillment-chip <%= historyFulfillmentClass %>">
+              <%= historyFulfillmentLabel %>
             </span>
             <% if (order.scheduled_for) { %>
               <span class="fulfillment-chip fulfillment-chip-scheduled">

@@ -13,7 +13,14 @@ function vendorTypeLabel(vendorType) {
 }
 
 function withVendorTypeLabel(vendor) {
-  return { ...vendor, vendor_type_label: vendorTypeLabel(vendor.vendor_type) };
+  // Service providers show their specific trade (e.g. "Plumbing") instead
+  // of the generic "Service Provider" type label, when they've set one.
+  const label =
+    vendor.vendor_type === "service_provider" && vendor.service_category
+      ? vendor.service_category
+      : vendorTypeLabel(vendor.vendor_type);
+
+  return { ...vendor, vendor_type_label: label };
 }
 
 export const renderLanding = (req, res) => {
@@ -77,8 +84,12 @@ async function getActiveOrders(req) {
 export const renderHome = async (req, res, next) => {
   try {
     const searchQuery = (req.query.search || "").trim();
+    // Street vendors and service providers get their own dedicated sections
+    // (/street-vendors, /services) rather than mixing into the main food
+    // and grocery home page.
+    const homeExcludedTypes = "('street_vendor', 'service_provider')";
     const [vendorsResult, popularItemsResult] = await Promise.all([
-      pool.query("SELECT * FROM vendors WHERE vendor_type != 'street_vendor' ORDER BY name ASC"),
+      pool.query(`SELECT * FROM vendors WHERE vendor_type NOT IN ${homeExcludedTypes} ORDER BY name ASC`),
       pool.query(`
         SELECT
           mi.id,
@@ -92,7 +103,7 @@ export const renderHome = async (req, res, next) => {
           v.vendor_type
         FROM menu_items mi
         JOIN vendors v ON v.id = mi.vendor_id
-        WHERE v.vendor_type != 'street_vendor'
+        WHERE v.vendor_type NOT IN ${homeExcludedTypes}
         ORDER BY v.name ASC, mi.display_order ASC, mi.id ASC
       `)
     ]);
@@ -101,7 +112,7 @@ export const renderHome = async (req, res, next) => {
     const popularItems = popularItemsResult.rows;
 
     const vendorSections = VENDOR_TYPES
-      .filter((type) => type.value !== "street_vendor")
+      .filter((type) => !["street_vendor", "service_provider"].includes(type.value))
       .map((type) => ({
         value: type.value,
         vendors: vendors.filter((vendor) => vendor.vendor_type === type.value),
@@ -175,6 +186,47 @@ export const renderStreetVendors = async (req, res, next) => {
       vendors,
       itemsByVendor,
       priceComparisons
+    });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+// Dedicated home-services section: plumbers, cleaners, caterers, and other
+// bookable providers, kept separate from the food/grocery marketplace.
+export const renderServices = async (req, res, next) => {
+  try {
+    const [vendorsResult, itemsResult] = await Promise.all([
+      pool.query("SELECT * FROM vendors WHERE vendor_type = 'service_provider' ORDER BY name ASC"),
+      pool.query(`
+        SELECT mi.id, mi.name, mi.description, mi.price, mi.category, mi.image_url, mi.vendor_id, v.name AS vendor_name
+        FROM menu_items mi
+        JOIN vendors v ON v.id = mi.vendor_id
+        WHERE v.vendor_type = 'service_provider'
+        ORDER BY v.name ASC, mi.display_order ASC, mi.id ASC
+      `)
+    ]);
+
+    const vendors = await withVendorRatings(vendorsResult.rows.map(withVendorTypeLabel));
+    const items = itemsResult.rows.map((item) => ({ ...item, price: Number(item.price) }));
+
+    const itemsByVendor = items.reduce((groups, item) => {
+      const key = String(item.vendor_id);
+      groups[key] = groups[key] || [];
+      groups[key].push(item);
+      return groups;
+    }, {});
+
+    // Category chips are built from whatever providers have actually set —
+    // an open-ended list, not a fixed enum.
+    const categories = [...new Set(vendors.map((vendor) => vendor.service_category).filter(Boolean))].sort();
+
+    res.render("services", {
+      title: "Home Services",
+      vendors,
+      itemsByVendor,
+      categories
     });
   } catch (err) {
     console.error(err);

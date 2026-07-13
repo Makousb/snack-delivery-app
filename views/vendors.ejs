@@ -12,7 +12,8 @@
   const sectionMeta = {
     restaurant: { label: "Restaurants" },
     store: { label: "Grocery & convenience" },
-    street_vendor: { label: "Street vendor" }
+    street_vendor: { label: "Street vendor" },
+    service_provider: { label: "Home services" }
   };
 %>
 
@@ -98,7 +99,10 @@
                   <div class="marketplace-vendor-title">
                     <div>
                       <h3><%= vendor.name %></h3>
-                      <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= cardStatus.label %> · Delivery from KSh <%= deliveryBaseFee %></p>
+                      <p>
+                        <span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= cardStatus.label %>
+                        <% if (vendor.vendor_type !== "service_provider") { %> · Delivery from KSh <%= deliveryBaseFee %><% } %>
+                      </p>
                     </div>
                     <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
                   </div>

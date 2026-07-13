@@ -31,6 +31,8 @@ const VENDOR_SETTABLE_STATUSES = new Set([
   "Driver Assigned",
   "Out for Delivery",
   "Ready for Pickup",
+  "Confirmed",
+  "In Progress",
   "Completed"
 ]);
 
@@ -40,7 +42,9 @@ export const createOrder = async (req, res) => {
   const { phone, paymentMethod, deliveryAddress, tipAmount, deliveryLat, deliveryLng } = req.body;
   const parsedLat = parseCoordinate(deliveryLat, 90);
   const parsedLng = parseCoordinate(deliveryLng, 180);
-  const fulfillmentType = req.body.fulfillmentType === "pickup" ? "pickup" : "delivery";
+  // Provisional — service-provider vendors are forced to "on_site" below
+  // once the vendor row is loaded, regardless of what the client submitted.
+  let fulfillmentType = req.body.fulfillmentType === "pickup" ? "pickup" : "delivery";
 
   if (
     !req.session.cart ||
@@ -77,10 +81,16 @@ export const createOrder = async (req, res) => {
     // order row is written. Fee is authoritative here (never trusted from the
     // client); the cart page only shows an estimate.
     const vendorInfo = await client.query(
-      "SELECT name, latitude, longitude, opening_time, closing_time FROM vendors WHERE id = $1",
+      "SELECT name, vendor_type, latitude, longitude, opening_time, closing_time FROM vendors WHERE id = $1",
       [vendorId]
     );
     const vendor = vendorInfo.rows[0];
+
+    // Service providers only ever offer an on-site visit — never delivery
+    // or vendor pickup — regardless of what the client submitted.
+    if (vendor?.vendor_type === "service_provider") {
+      fulfillmentType = "on_site";
+    }
 
     // Scheduled orders: validate the requested slot (sensible lead time, not
     // too far out, and inside the vendor's opening hours). A valid schedule
@@ -125,7 +135,12 @@ export const createOrder = async (req, res) => {
       ? distanceKm(Number(vendor.latitude), Number(vendor.longitude), parsedLat, parsedLng)
       : null;
 
-    const deliveryFee = fulfillmentType === "pickup" ? 0 : computeDeliveryFee(distance);
+    // Only real courier delivery carries a distance-based fee — pickup has
+    // no fee, and on-site service calls are priced by the listing itself
+    // (no separate call-out fee for now).
+    const deliveryFee = fulfillmentType === "delivery" ? computeDeliveryFee(distance) : 0;
+    // Tipping applies to anyone who shows up in person (courier or
+    // provider), just not a self-service pickup.
     const tip = fulfillmentType === "pickup" ? 0 : parsedTipAmount;
 
     // Re-validate any promo code against the server-side subtotal so the
@@ -175,7 +190,9 @@ export const createOrder = async (req, res) => {
       );
     }
 
-    // Pickup orders don't need a driver, so no delivery job is created.
+    // Only real courier delivery needs a driver job — pickup orders are
+    // collected in person, and on-site service bookings are fulfilled by
+    // the provider themselves, not a courier.
     if (fulfillmentType === "delivery") {
       await client.query(
         `INSERT INTO deliveries (
@@ -227,9 +244,10 @@ export const createOrder = async (req, res) => {
 
     // Fire-and-forget "order received" text. No-ops without SMS credentials.
     if (phone) {
+      const noun = fulfillmentType === "on_site" ? "booking" : "order";
       sendOrderSms(
         phone,
-        `Snack: ${vendor?.name || "the vendor"} has received your order #${orderId} (KSh ${grandTotal.toFixed(2)}). We'll text you updates as it progresses.`
+        `Snack: ${vendor?.name || "the vendor"} has received your ${noun} #${orderId} (KSh ${grandTotal.toFixed(2)}). We'll text you updates as it progresses.`
       );
     }
 
@@ -565,7 +583,8 @@ export const updateOrderStatus = async (req, res) => {
       sendOrderSms(
         order.customer_phone,
         statusSmsMessage(order.id, status, {
-          isPickup: order.fulfillment_type === "pickup"
+          isPickup: order.fulfillment_type === "pickup",
+          isService: order.fulfillment_type === "on_site"
         })
       );
     }
@@ -628,7 +647,8 @@ export const handleMpesaCallback = async (req, res) => {
       sendOrderSms(
         order.customer_phone,
         statusSmsMessage(order.id, status, {
-          isPickup: order.fulfillment_type === "pickup"
+          isPickup: order.fulfillment_type === "pickup",
+          isService: order.fulfillment_type === "on_site"
         })
       );
     }

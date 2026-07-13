@@ -27,16 +27,22 @@ export function normalizePhone(raw) {
 
 // Customer-facing one-liner for a status change. Statuses a customer
 // doesn't care about return null and send nothing.
-export function statusSmsMessage(orderId, status, { isPickup = false } = {}) {
+export function statusSmsMessage(orderId, status, { isPickup = false, isService = false } = {}) {
+  const noun = isService ? "booking" : "order";
+
   const messages = {
-    Paid: `Snack order #${orderId}: payment received. The vendor is on it.`,
+    Paid: `Snack ${noun} #${orderId}: payment received. The ${isService ? "provider" : "vendor"} is on it.`,
     Preparing: `Snack order #${orderId}: the vendor is preparing your order.`,
     "Ready for Pickup": `Snack order #${orderId} is ready for pickup — see your order page for pickup details.`,
     "Driver Assigned": `Snack order #${orderId}: a driver has been assigned and is heading to the vendor.`,
     "Out for Delivery": `Snack order #${orderId} is on its way to you.`,
-    Completed: isPickup
-      ? `Snack order #${orderId} is complete. Enjoy!`
-      : `Snack order #${orderId} has been delivered. Enjoy!`
+    Confirmed: `Snack booking #${orderId}: the provider has confirmed your appointment.`,
+    "In Progress": `Snack booking #${orderId}: the provider has started your service.`,
+    Completed: isService
+      ? `Snack booking #${orderId} is complete. Thanks for using Snack!`
+      : isPickup
+        ? `Snack order #${orderId} is complete. Enjoy!`
+        : `Snack order #${orderId} has been delivered. Enjoy!`
   };
 
   return messages[status] || null;

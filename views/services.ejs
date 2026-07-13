@@ -1,0 +1,133 @@
+<%- include("partials/header", { bodyClass: "home-sidebar-layout" }) %>
+
+<%
+  const safeServiceVendors = vendors || [];
+  const safeItemsByVendor = itemsByVendor || {};
+  const safeCategories = categories || [];
+  const fallbackServiceImages = [
+    "/homepage_images/Restaurant_items.avif",
+    "/homepage_images/meat.avif",
+    "/homepage_images/greek.avif"
+  ];
+%>
+
+<div class="marketplace-home-layout">
+  <%- include("partials/sidebar", { currentPage: "services" }) %>
+
+<section class="marketplace-page">
+  <div class="street-vendors-head">
+    <span class="feature-eyebrow">Home services</span>
+    <h1>Book trusted help for your home.</h1>
+    <p>
+      Plumbers, cleaners, caterers, and other pros — pick a service, choose a time slot,
+      and pay right here, just like a food order.
+    </p>
+  </div>
+
+  <% if (safeCategories.length > 0) { %>
+    <div class="marketplace-filter-bar" aria-label="Service categories">
+      <button type="button" class="marketplace-filter-active" data-service-filter="all">All services</button>
+      <% safeCategories.forEach((category) => { %>
+        <button type="button" data-service-filter="<%= category %>"><%= category %></button>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <% if (safeServiceVendors.length === 0) { %>
+    <p class="home-empty-state">No service providers yet — check back soon.</p>
+  <% } else { %>
+    <div class="marketplace-vendor-grid" id="service-provider-grid">
+      <% safeServiceVendors.forEach((vendor, index) => { %>
+        <%
+          const cardStatus = vendorOpenStatus(vendor);
+          const isTopRated = Number(vendor.rating_average || 0) >= 4.5 && Number(vendor.rating_count || 0) > 0;
+          let badge = "";
+          let badgeClass = "";
+          if (!cardStatus.open) {
+            badge = "Closed";
+            badgeClass = "marketplace-store-badge-closed";
+          } else if (isTopRated) {
+            badge = "Top rated";
+          } else if (Number(vendor.rating_count || 0) === 0) {
+            badge = "New on Snack";
+          }
+          const bannerImage = vendor.banner_url || fallbackServiceImages[index % fallbackServiceImages.length];
+          const previewItems = safeItemsByVendor[String(vendor.id)] || [];
+        %>
+
+        <a
+          href="/vendor/<%= vendor.id %>/menu"
+          class="marketplace-vendor-card"
+          data-service-vendor
+          data-category="<%= vendor.service_category || "" %>"
+        >
+          <div class="marketplace-vendor-media">
+            <img src="<%= bannerImage %>" alt="<%= vendor.name %>" loading="lazy" />
+            <% if (badge) { %>
+              <span class="marketplace-store-badge <%= badgeClass %>"><%= badge %></span>
+            <% } %>
+            <%- include("partials/favoriteButton", { vendorId: vendor.id }) %>
+            <span class="marketplace-vendor-logo">
+              <% if (vendor.logo_url) { %>
+                <img src="<%= vendor.logo_url %>" alt="<%= vendor.name %> logo" loading="lazy" />
+              <% } else { %>
+                <span class="home-logo-fallback"><%= vendor.name.charAt(0).toUpperCase() %></span>
+              <% } %>
+            </span>
+          </div>
+
+          <div class="marketplace-vendor-content">
+            <div class="marketplace-vendor-title">
+              <div>
+                <h3><%= vendor.name %></h3>
+                <p><span class="vendor-type-tag"><%= vendor.vendor_type_label %></span> · <%= cardStatus.label %></p>
+              </div>
+              <%- include("partials/vendorRating", { average: vendor.rating_average, count: vendor.rating_count }) %>
+            </div>
+
+            <p class="marketplace-vendor-description">
+              <%= vendor.description || "Book a time slot and pay through Snack." %>
+            </p>
+
+            <% if (previewItems.length > 0) { %>
+              <div class="marketplace-menu-preview">
+                <% previewItems.slice(0, 2).forEach((item) => { %>
+                  <span><%= item.name %> · <%= formatCurrency(item.price) %></span>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+    <p class="home-empty-state" id="service-filter-empty" hidden>No services match that category yet.</p>
+  <% } %>
+</section>
+</div>
+
+<script>
+  const serviceFilterButtons = document.querySelectorAll("[data-service-filter]");
+  const serviceCards = document.querySelectorAll("[data-service-vendor]");
+  const serviceFilterEmpty = document.getElementById("service-filter-empty");
+
+  serviceFilterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const category = button.dataset.serviceFilter;
+
+      serviceFilterButtons.forEach((b) => {
+        b.classList.toggle("marketplace-filter-active", b === button);
+      });
+
+      let visibleCount = 0;
+      serviceCards.forEach((card) => {
+        const show = category === "all" || card.dataset.category === category;
+        card.classList.toggle("vendor-filtered-out", !show);
+        if (show) visibleCount += 1;
+      });
+
+      if (serviceFilterEmpty) serviceFilterEmpty.hidden = visibleCount > 0;
+    });
+  });
+</script>
+
+<%- include("partials/footer") %>

@@ -287,7 +287,7 @@ async function loadCheckoutVendor(vendorId) {
 
   try {
     const result = await pool.query(
-      `SELECT id, name, opening_time, closing_time, pickup_instructions
+      `SELECT id, name, opening_time, closing_time, pickup_instructions, vendor_type, service_category
        FROM vendors WHERE id = $1`,
       [vendorId]
     );

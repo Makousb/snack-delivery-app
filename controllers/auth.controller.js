@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { pool } from "../db/index.js";
 import { getUserByEmail } from "../db/queries/users.js";
 import { buildUniqueVendorSlug } from "../utils/slugify.js";
-import { VENDOR_TYPES, VENDOR_TYPE_VALUES } from "../utils/vendorTypes.js";
+import { VENDOR_TYPES, VENDOR_TYPE_VALUES, SERVICE_CATEGORY_SUGGESTIONS } from "../utils/vendorTypes.js";
 
 function getRedirectPathForRole(role) {
   if (role === "driver") return "/driver";
@@ -54,7 +54,11 @@ function regenerateSession(req) {
 }
 
 export function showSignup(req, res) {
-  res.render("auth/signup", { title: "Create Account", vendorTypes: VENDOR_TYPES });
+  res.render("auth/signup", {
+    title: "Create Account",
+    vendorTypes: VENDOR_TYPES,
+    serviceCategorySuggestions: SERVICE_CATEGORY_SUGGESTIONS
+  });
 }
 
 export async function signup(req, res) {
@@ -69,6 +73,7 @@ export async function signup(req, res) {
       businessName,
       businessDescription,
       vendorType,
+      serviceCategory,
       phone,
       vehicleType,
       licenseNumber
@@ -116,8 +121,8 @@ export async function signup(req, res) {
       const bannerUrl = getFilePath(req.files?.businessBanner?.[0]);
 
       const vendorResult = await client.query(
-        `INSERT INTO vendors (name, vendor_type, description, logo_url, banner_url, slug)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO vendors (name, vendor_type, description, logo_url, banner_url, slug, service_category)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id`,
         [
           safeBusinessName,
@@ -125,7 +130,8 @@ export async function signup(req, res) {
           (businessDescription || "").trim() || null,
           logoUrl,
           bannerUrl,
-          slug
+          slug,
+          safeVendorType === "service_provider" ? (serviceCategory || "").trim() || null : null
         ]
       );
 
